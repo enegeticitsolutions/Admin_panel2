@@ -2466,8 +2466,7 @@ The vital tracking system is now completely dynamic and configuration-driven. Ne
 - **Mobile Service Request Submission (`package-utilization.tsx` & `utilization.routes.ts`)**:
   - Connected beneficiary/subscriber service requests submitted via `package-utilization.tsx` (`POST /api/shared/utilization/request-service`) directly to `ServiceRequest` database table.
   - Added automatic `beneficiaryId` and `subscriberId` resolution in `utilization.routes.ts` from active subscriptions.
-- **TypeScript & Service Fixes**:
-  - Fixed `Request` import from `express` in `utilization.routes.ts`.
-  - Replaced `careCompanionUserId` with `existingVisit.careCompanionId` in `visit_service.ts`.
-  - Fixed `PageHeader` `description` prop in `RequestedVisitsPage.tsx`.
-  - Cleaned up duplicate `teamApi` export in `api.ts`.
+- **Express Route Precedence Fix (`apps/admin-backend/routes/visits.js`)**:
+  - Moved `GET /api/visits/service-requests` handler above `GET /api/visits/:id` (moved from line 1057 to line 432).
+  - Fixed route swallowing bug where Express caught `"service-requests"` as a visit ID parameter (`:id`), resulting in 404 "Visit not found" errors instead of executing the service request aggregation query.
+
