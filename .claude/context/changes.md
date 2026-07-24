@@ -4,7 +4,31 @@
 
 ---
 
+## Session: In-App Radar Map Modal, Snyk SAST Remediation & Git Remotes Sync (2026-07-24)
+
+### In-App Map Integration for Emergency Radar
+- **EmergencyRadarPage.tsx**: Replaced external Google Maps URL redirection (`href="https://www.google.com/maps/..."`) with an in-app map modal trigger.
+- **LocationPickerModal Integration**: Integrated the shared `LocationPickerModal` component from Zone creation, allowing admins to inspect requesting beneficiaries' exact location on an interactive Google Map directly on the same screen without leaving the Emergency Radar interface.
+- **Address & Coordinate Fallback**: Supports direct GPS coordinates (`locationLat`/`locationLng`, `user.latitude`/`user.longitude`) and text address geocoding fallback (`locationAddress`, `flatPlot`, `streetArea`, `city`, `pincode`).
+
+### Security Vulnerability Remediations (Snyk Audit Cleanups)
+- **Open Redirect (CWE-601) in Image URIs (`sathi-app` & `mobile-app`)**:
+  - Upgraded `sanitizeImageUri` in `apps/sathi-app/utils/sanitizeImageUri.ts` and `apps/mobile-app/utils/sanitizeImageUri.ts` using the WHATWG `new URL()` constructor and explicit protocol validation (`http:`, `https:`, `file:`). Both primary `uri` and `fallback` parameters are sanitized, defaulting to a safe static SVG data URI if invalid.
+  - Wrapped all raw `<Image source={{ uri: ... }}>` components across `sathi-app` (`profile.tsx`, `match.tsx`, `ConnectContactModal.tsx`, `ProfilePhotoUploader.tsx`, `PhotoPickerInput.tsx`) and `mobile-app` (`team.tsx`, `subscriber/index.tsx`, `GlobalDrawer.tsx`, `SubscriptionTab.tsx`, `TimelineTab.tsx`, `NextVisitCard.tsx`, `beneficiary/index.tsx`, `ConnectContactModal.tsx`, `ProfilePhotoUploader.tsx`, `PhotoPickerInput.tsx`) in `sanitizeImageUri`.
+- **DOM-XSS (CWE-79) & Open Redirect Link Sanitization (`admin-frontend`)**:
+  - Enhanced `apps/admin-frontend/src/app/utils/sanitizeUrl.ts` with `sanitizeWhatsappLink(phone)` and `sanitizeImgSrc`.
+  - Updated `RenewalsWorklistPage.tsx` to wrap WhatsApp href links in `sanitizeWhatsappLink`.
+- **Format String Vulnerabilities (CWE-134) (`admin-backend`)**:
+  - Fixed `console.error` format string parameters across `admin-backend` (`users.js`, `regions.js`, `config.js`, `notifications.js`) by separating string templates from HTTP parameter variables.
+
+### Git Sync & Multi-Remote Push
+- Merged `harshit/feature/unified-sathi-visits-and-timers` into `main`.
+- Committed and pushed all features and security remediations to both `harshit` (`Harshit00018/MHN.git`) and `senior` (`prayogbhartifoundation/Maihoonnna_App.git`) remote repositories.
+
+---
+
 ## Session: Unified Visit Histories, Live Timers & Saathi Feedback Integration (2026-07-24)
+
 
 ### Saathi Live Timer & Checkout Automation
 - **Sathi Visit Automation**: Implemented automatic exact-duration checkout in `beneficiary_sathi_service.ts` when the beneficiary confirms the visit.
