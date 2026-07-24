@@ -1,4 +1,4 @@
-import { Router, Response } from 'express';
+import { Router, Request, Response } from 'express';
 import prisma from '../../core/database';
 import { authenticate, AuthRequest } from './deps';
 
@@ -413,13 +413,14 @@ router.post('/request-service', authenticate, async (req: AuthRequest, res: Resp
     // Resolve subscriberId if userRole is subscriber
     const subscriberId = userRole === 'subscriber' ? userId : null;
 
-    // Validate benefit balance is not exhausted
+    // Validate benefit balance is not exhausted and resolve real beneficiaryId/subscriberId
     const cleanBenId = String(beneficiaryId).replace('unlinked-', '');
     const activeSub = await prisma.subscription.findFirst({
       where: {
         OR: [
           { beneficiaryId: beneficiaryId },
-          { id: cleanBenId }
+          { id: cleanBenId },
+          { beneficiaryId: cleanBenId }
         ],
         isActive: true
       },
@@ -441,10 +442,13 @@ router.post('/request-service', authenticate, async (req: AuthRequest, res: Resp
       }
     }
 
+    const targetBeneficiaryId = activeSub?.beneficiaryId || cleanBenId;
+    const targetSubscriberId = activeSub?.subscriberId || (userRole === 'subscriber' ? userId : null);
+
     const request = await prisma.serviceRequest.create({
       data: {
-        beneficiaryId,
-        subscriberId,
+        beneficiaryId: targetBeneficiaryId,
+        subscriberId: targetSubscriberId,
         benefitId,
         preferredDate: new Date(preferredDate),
         preferredTiming,

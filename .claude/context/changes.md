@@ -2440,5 +2440,34 @@ The vital tracking system is now completely dynamic and configuration-driven. Ne
 - **Ledger Audit API**:
   - Added `GET /api/shared/utilization/ledger/:beneficiaryId` endpoint returning chronological ledger transactions, active reservations, and exact balance breakdowns.
 
+---
 
+## Session: Requested Visits Control Hub & Service Request Lifecycle (2026-07-24 / 2026-07-25)
 
+### Control Hub & Dedicated Operations Page
+- **`RequestedVisitsPage.tsx` (`/requested-visits`)**:
+  - Built a dedicated operations control tower in `apps/admin-frontend/src/app/pages/RequestedVisitsPage.tsx`.
+  - Added summary metrics cards: Total Requests, Action Needed (Unread), Requesting Beneficiaries Count, Active Teams Represented.
+  - Added multi-select filters for Beneficiaries, Care Companions, Teams, and Statuses (Read/Unread).
+  - Integrated 1-Tap Quick Schedule Modal: pre-fills Beneficiary, Benefit, preferred date/time, allows Care Companion selection, reserves 1 unit in the **Benefit Ledger** upon confirmation, and marks request as read.
+
+### Historical Date Range Filter Engine
+- **Date Presets & Range Picker**:
+  - Added Date Range Presets: `All History (Past & Future)`, `Past 7 Days`, `Past 30 Days`, `This Month`, and `Custom Date Range`.
+  - Added `startDate` and `endDate` pickers to allow operators to navigate into past service requests.
+  - Displayed exact request creation timestamps (`Requested on: 14 Jul 2026, 02:30 PM`) on request cards.
+- **Backend Date Filtering (`GET /api/visits/service-requests`)**:
+  - Updated `apps/admin-backend/routes/visits.js` to parse `startDate` and `endDate` query parameters.
+  - Filtered Prisma queries using `createdAt: { gte: startDate, lte: endDate }`.
+- **API Service Layer (`visitRequestApi.getAll`)**:
+  - Updated `apps/admin-frontend/src/services/api.ts` to support passing `startDate` and `endDate`.
+
+### End-to-End Mobile App ➔ Operations Hub Integration
+- **Mobile Service Request Submission (`package-utilization.tsx` & `utilization.routes.ts`)**:
+  - Connected beneficiary/subscriber service requests submitted via `package-utilization.tsx` (`POST /api/shared/utilization/request-service`) directly to `ServiceRequest` database table.
+  - Added automatic `beneficiaryId` and `subscriberId` resolution in `utilization.routes.ts` from active subscriptions.
+- **TypeScript & Service Fixes**:
+  - Fixed `Request` import from `express` in `utilization.routes.ts`.
+  - Replaced `careCompanionUserId` with `existingVisit.careCompanionId` in `visit_service.ts`.
+  - Fixed `PageHeader` `description` prop in `RequestedVisitsPage.tsx`.
+  - Cleaned up duplicate `teamApi` export in `api.ts`.

@@ -699,6 +699,19 @@ export const scheduleApi = {
     mockTodayVisits[index].status = status;
     return mockTodayVisits[index];
   },
+
+  async createVisit(data: {
+    beneficiaryId: string;
+    careCompanionId: string;
+    scheduledTime: string;
+    durationMinutes: number;
+    benefitId?: string;
+  }): Promise<any> {
+    return apiJson<any>('/visits', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
 };
 
 // ============================================================================
@@ -1548,5 +1561,53 @@ export const emergencyApi = {
     });
   },
 };
+
+export const visitRequestApi = {
+  getAll: async (params?: {
+    beneficiaryIds?: string[];
+    careCompanionIds?: string[];
+    teamIds?: string[];
+    zoneIds?: string[];
+    isRead?: boolean;
+    search?: string;
+    startDate?: string;
+    endDate?: string;
+  }): Promise<any[]> => {
+    const query = new URLSearchParams();
+    if (params?.beneficiaryIds && params.beneficiaryIds.length > 0) {
+      query.append('beneficiaryIds', params.beneficiaryIds.join(','));
+    }
+    if (params?.careCompanionIds && params.careCompanionIds.length > 0) {
+      query.append('careCompanionIds', params.careCompanionIds.join(','));
+    }
+    if (params?.teamIds && params.teamIds.length > 0) {
+      query.append('teamIds', params.teamIds.join(','));
+    }
+    if (params?.zoneIds && params.zoneIds.length > 0) {
+      query.append('zoneIds', params.zoneIds.join(','));
+    }
+    if (params?.isRead !== undefined) {
+      query.append('isRead', String(params.isRead));
+    }
+    if (params?.search) {
+      query.append('search', params.search);
+    }
+    if (params?.startDate) {
+      query.append('startDate', params.startDate);
+    }
+    if (params?.endDate) {
+      query.append('endDate', params.endDate);
+    }
+    const qStr = query.toString();
+    return apiJson<any[]>(`/visits/service-requests${qStr ? `?${qStr}` : ''}`);
+  },
+
+  markAsRead: async (requestId: string): Promise<any> => {
+    return apiJson(`/beneficiaries/service-requests/${requestId}/read`, { method: 'POST' });
+  }
+};
+
+
+
 
 
