@@ -9,6 +9,7 @@ import { useSafeBack } from '@/hooks/useSafeBack';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigationStack } from '@/contexts/NavigationStackContext';
 import { useAndroidBackHandler } from '@/hooks/useAndroidBackHandler';
+import { AddressInputField } from '@/components/ui/AddressInputField';
 
 interface ContactInfo {
     phone: string;
@@ -58,6 +59,7 @@ export default function ProfileScreen() {
     const [editPhone, setEditPhone] = useState('');
     const [editEmail, setEditEmail] = useState('');
     const [editAddress, setEditAddress] = useState('');
+    const [editLocation, setEditLocation] = useState({});
     const [saving, setSaving] = useState(false);
 
     useEffect(() => {
@@ -414,14 +416,23 @@ export default function ProfileScreen() {
                                 autoCapitalize="none"
                             />
 
-                            <Text style={styles.inputLabel}>Residential Address</Text>
-                            <TextInput
-                                style={[styles.textInput, { height: 80, textAlignVertical: 'top', paddingTop: 14 }]}
-                                value={editAddress}
-                                onChangeText={setEditAddress}
-                                multiline={true}
-                                placeholder="123 Maple Street, San Francisco, CA 94102"
-                            />
+                            <View style={{ marginBottom: 15 }}>
+                                <AddressInputField
+                                    label="Residential Address"
+                                    value={editAddress}
+                                    onChangeText={setEditAddress}
+                                    onLocationFetched={(details) => {
+                                        setEditAddress(details.address || editAddress);
+                                        setEditLocation({
+                                            city: details.city,
+                                            state: details.state,
+                                            pincode: details.pincode,
+                                            latitude: details.latitude,
+                                            longitude: details.longitude
+                                        });
+                                    }}
+                                />
+                            </View>
                         </ScrollView>
 
                         <TouchableOpacity
