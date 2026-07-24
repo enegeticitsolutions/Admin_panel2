@@ -1,4 +1,10 @@
 # Execution Plan
+- [x] Requested Visits Operations Control Hub & Historical Date Range Filter (2026-07-24 / 2026-07-25)
+  - [x] Operations Control Hub: Dedicated `/requested-visits` page with multi-select filters (Beneficiaries, Care Companions, Teams, Statuses)
+  - [x] Quick Visit Schedule Modal: 1-tap visit scheduling with Care Companion assignment and Benefit Ledger unit reservation hold
+  - [x] Historical Date Range Filter: Presets (Past 7/30/90 days, All History) & Custom `startDate`/`endDate` pickers
+  - [x] Mobile ➔ Admin Integration: Mobile app `package-utilization.tsx` service requests persist to `ServiceRequest` table and flow seamlessly to Requested Visits Hub
+  - [x] Type Safety & Backend Cleanups: Resolved Express `Request` import and `careCompanionUserId` in `mobile-backend`
 - [x] Financial-Grade Double-Entry Benefit Ledger & Reservation Engine (2026-07-24)
   - [x] Schema: `BenefitReservation` (HELD, CONSUMED, RELEASED) & `BenefitTransaction` (immutable double-entry ledger)
   - [x] Engine: `benefitLedgerService` (`reserveBenefit`, `consumeReservation`, `releaseReservation`, `adjustBalance`)

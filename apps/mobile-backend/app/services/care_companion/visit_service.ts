@@ -457,7 +457,7 @@ export const checkOut = async (data: {
               {
                 reservationId: reservation.id,
                 reason: `Visit Checkout Completed. Encounter: ${visit.encounterId}`,
-                performedByUserId: careCompanionUserId,
+                performedByUserId: existingVisit.careCompanionId,
               },
               tx
             );
@@ -489,7 +489,7 @@ export const checkOut = async (data: {
                   availableBefore: Math.max(0, benefitToDeduct.totalUnits - benefitToDeduct.reservedUnits - benefitToDeduct.usedUnits),
                   availableAfter: Math.max(0, benefitToDeduct.totalUnits - benefitToDeduct.reservedUnits - (benefitToDeduct.usedUnits + unitsToDeduct)),
                   reason: `Direct Visit Checkout Completed. Encounter: ${visit.encounterId}`,
-                  performedByUserId: careCompanionUserId,
+                  performedByUserId: existingVisit.careCompanionId,
                 }
               });
             }

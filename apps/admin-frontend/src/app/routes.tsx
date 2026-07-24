@@ -48,6 +48,7 @@ import RenewalsWorklistPage from './pages/RenewalsWorklistPage';
 import RenewalWizardPage from './pages/RenewalWizardPage';
 import GuideManagementPage from './pages/GuideManagementPage';
 import EmergencyRadarPage from './pages/EmergencyRadarPage';
+import RequestedVisitsPage from './pages/RequestedVisitsPage';
 
 export const router = createBrowserRouter([
   {
@@ -94,6 +95,15 @@ export const router = createBrowserRouter([
         path: 'visits',
         Component: VisitsPage,
       },
+      {
+        path: 'requested-visits',
+        Component: RequestedVisitsPage,
+      },
+      {
+        path: 'visit-requests',
+        Component: RequestedVisitsPage,
+      },
+
       {
         path: 'care-companions',
         Component: CareCompanionsPage,

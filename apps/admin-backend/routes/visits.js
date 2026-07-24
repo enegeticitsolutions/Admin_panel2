@@ -1051,4 +1051,132 @@ router.get('/roster/feedbacks', async (req, res) => {
   }
 });
 
+// ─── GET /api/visits/service-requests ─────────────────────────────────────────
+// Aggregated Visit/Service Requests with Multi-Select Filters
+// ─────────────────────────────────────────────────────────────────────────────
+router.get('/service-requests', async (req, res) => {
+  try {
+    const {
+      beneficiaryIds,
+      careCompanionIds,
+      teamIds,
+      zoneIds,
+      isRead,
+      search,
+      startDate,
+      endDate,
+    } = req.query;
+
+    const where = {};
+
+    // Filter by read status
+    if (isRead === 'true') {
+      where.isRead = true;
+    } else if (isRead === 'false') {
+      where.isRead = false;
+    }
+
+    // Filter by date range (created date or preferred date)
+    if (startDate || endDate) {
+      where.createdAt = {};
+      if (startDate) {
+        where.createdAt.gte = new Date(startDate);
+      }
+      if (endDate) {
+        const endD = new Date(endDate);
+        endD.setHours(23, 59, 59, 999);
+        where.createdAt.lte = endD;
+      }
+    }
+
+
+    // Beneficiary filter
+    const beneficiaryWhere = {};
+
+    if (beneficiaryIds) {
+      const bIds = String(beneficiaryIds).split(',').map((s) => s.trim()).filter(Boolean);
+      if (bIds.length > 0) {
+        beneficiaryWhere.id = { in: bIds };
+      }
+    }
+
+    if (teamIds) {
+      const tIds = String(teamIds).split(',').map((s) => s.trim()).filter(Boolean);
+      if (tIds.length > 0) {
+        beneficiaryWhere.teamId = { in: tIds };
+      }
+    }
+
+    if (careCompanionIds) {
+      const ccIds = String(careCompanionIds).split(',').map((s) => s.trim()).filter(Boolean);
+      if (ccIds.length > 0) {
+        beneficiaryWhere.OR = [
+          { primaryCcId: { in: ccIds } },
+          { secondaryCcId: { in: ccIds } },
+        ];
+      }
+    }
+
+    if (Object.keys(beneficiaryWhere).length > 0) {
+      where.beneficiary = beneficiaryWhere;
+    }
+
+    const requests = await prisma.serviceRequest.findMany({
+      where,
+      include: {
+        beneficiary: {
+          include: {
+            user: { select: { id: true, name: true, phone: true, location: true } },
+            team: { select: { id: true, name: true } },
+            primaryCC: { include: { user: { select: { name: true, phone: true } } } },
+            secondaryCC: { include: { user: { select: { name: true, phone: true } } } },
+            subscriptions: {
+              where: { isActive: true },
+              include: {
+                package: { select: { name: true } },
+                benefitBalances: {
+                  include: {
+                    benefit: { select: { id: true, name: true, unitLabel: true } }
+                  }
+                }
+              },
+              take: 1
+            }
+          }
+        },
+        subscriber: { select: { id: true, name: true, phone: true } },
+        requestedByUser: { select: { id: true, name: true, phone: true } },
+        benefit: {
+          select: {
+            id: true,
+            name: true,
+            unitLabel: true,
+            benefitType: { select: { id: true, name: true } }
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    // Optional text search filter
+    let filtered = requests;
+    if (search && String(search).trim()) {
+      const q = String(search).toLowerCase().trim();
+      filtered = requests.filter((r) => {
+        const bName = r.beneficiary?.name?.toLowerCase() || '';
+        const sName = r.subscriber?.name?.toLowerCase() || '';
+        const benefitName = r.benefit?.name?.toLowerCase() || '';
+        const pincode = r.beneficiary?.pincode || '';
+        return bName.includes(q) || sName.includes(q) || benefitName.includes(q) || pincode.includes(q);
+      });
+    }
+
+    res.json({ success: true, data: filtered });
+  } catch (err) {
+    console.error('GET /api/visits/service-requests error:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 module.exports = router;
+
