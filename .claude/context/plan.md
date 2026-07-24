@@ -1,5 +1,12 @@
 # Execution Plan
+- [x] Financial-Grade Double-Entry Benefit Ledger & Reservation Engine (2026-07-24)
+  - [x] Schema: `BenefitReservation` (HELD, CONSUMED, RELEASED) & `BenefitTransaction` (immutable double-entry ledger)
+  - [x] Engine: `benefitLedgerService` (`reserveBenefit`, `consumeReservation`, `releaseReservation`, `adjustBalance`)
+  - [x] Emergency SOS: Atomic hold on trigger, consumption on resolution, release on cancellation
+  - [x] Visit Scheduling ➔ Checkout: Reserve on FM schedule, consume on CC checkout (`visit-details.tsx`), release on cancel
+  - [x] Audit API: `GET /api/shared/utilization/ledger/:beneficiaryId`
 - [x] Emergency Radar In-App Map Integration & Snyk SAST Security Cleanups (2026-07-24)
+
   - [x] Integrated LocationPickerModal on EmergencyRadarPage.tsx
   - [x] Remediation of CWE-601 Open Redirect in sathi-app & mobile-app Image source URIs
   - [x] Remediation of CWE-79 DOM-XSS & link sanitization in admin-frontend
