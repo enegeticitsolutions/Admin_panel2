@@ -40,7 +40,7 @@ router.get('/me', authenticate, async (req: AuthRequest, res: Response) => {
 router.post('/me', authenticate, async (req: AuthRequest, res: Response) => {
     try {
         const userId = req.userId as string;
-        const { name, phone, email, address, age, gender } = req.body;
+        const { name, phone, email, address, age, gender, latitude, longitude, city, state, pincode } = req.body;
 
         const beneficiary = await prisma.beneficiary.findFirst({
             where: {
@@ -74,7 +74,12 @@ router.post('/me', authenticate, async (req: AuthRequest, res: Response) => {
                 ...(name && { name }),
                 ...(address && { address }),
                 ...(age && { age: parseInt(age, 10) }),
-                ...(gender && { gender })
+                ...(gender && { gender }),
+                ...(latitude && { latitude: parseFloat(latitude) }),
+                ...(longitude && { longitude: parseFloat(longitude) }),
+                ...(city && { city }),
+                ...(state && { state }),
+                ...(pincode && { pincode }),
             }
         });
 

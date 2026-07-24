@@ -61,10 +61,12 @@ interface DashboardData {
 
 export default function BeneficiaryDashboard() {
     const { width } = useWindowDimensions();
-    const MAX_CONTENT_WIDTH = 440;
+    const MAX_CONTENT_WIDTH = 800;
     const BASE_HORIZONTAL_PADDING = 16;
     const contentWidth = Math.min(Math.max(width - BASE_HORIZONTAL_PADDING * 2, 0), MAX_CONTENT_WIDTH);
     const responsiveContentStyle = { width: contentWidth, alignSelf: 'center' as const };
+    const numColumns = contentWidth >= 600 ? 4 : 2;
+    const actionCardWidth = Math.floor((contentWidth - ((numColumns - 1) * 12)) / numColumns);
     useExitOnBack();
 
     const [triggeringEmergency, setTriggeringEmergency] = useState(false);
@@ -331,7 +333,7 @@ export default function BeneficiaryDashboard() {
                 <View style={styles.statsRow}>
                     <View style={styles.statCard}>
                         <View style={[styles.statIconBadge, { backgroundColor: '#DBEAFE' }]}>
-                            <Feather name="calendar" size={20} color="#2563FF" />
+                            <Feather name="calendar" size={20} color="#155DFC" />
                         </View>
 
                         <Text style={styles.statLabel}>Next Visit</Text>
@@ -342,7 +344,7 @@ export default function BeneficiaryDashboard() {
 
                     <View style={styles.statCard}>
                         <View style={[styles.statIconBadge, { backgroundColor: '#DCFCE7' }]}>
-                            <Feather name="trending-up" size={20} color="#16A34A" />
+                            <Feather name="trending-up" size={20} color="#00A63E" />
                         </View>
 
                         <Text style={styles.statLabel}>Adherence</Text>
@@ -443,7 +445,7 @@ export default function BeneficiaryDashboard() {
 
                 <View style={styles.quickActionsGrid}>
                     <TouchableOpacity
-                        style={styles.actionCard}
+                        style={[styles.actionCard, { width: actionCardWidth }]}
                         onPress={() => router.push('/(beneficiary)/vitals')}
                     >
                         <View style={[styles.actionIconBadge, { backgroundColor: '#FEE2E2' }]}>
@@ -456,7 +458,7 @@ export default function BeneficiaryDashboard() {
 
                     {sathiEligible && (
                         <TouchableOpacity
-                            style={styles.actionCard}
+                            style={[styles.actionCard, { width: actionCardWidth }]}
                             onPress={() => router.push('/(beneficiary)/sathi-request')}
                         >
                             <View style={[styles.actionIconBadge, { backgroundColor: '#FFF7ED' }]}>
@@ -469,7 +471,7 @@ export default function BeneficiaryDashboard() {
                     )}
 
                     <TouchableOpacity
-                        style={styles.actionCard}
+                        style={[styles.actionCard, { width: actionCardWidth }]}
                         onPress={() => router.push('/(beneficiary)/meds' as any)}
                     >
                         <View style={[styles.actionIconBadge, { backgroundColor: '#FEF3C7' }]}>
@@ -481,7 +483,7 @@ export default function BeneficiaryDashboard() {
                     </TouchableOpacity>
 
                     <TouchableOpacity
-                        style={styles.actionCard}
+                        style={[styles.actionCard, { width: actionCardWidth }]}
                         onPress={() => router.push('/(beneficiary)/schedule' as any)}
                     >
                         <View style={[styles.actionIconBadge, { backgroundColor: '#F3E8FF' }]}>
@@ -806,7 +808,6 @@ const styles = StyleSheet.create({
         gap: 12,
     },
     actionCard: {
-        width: '48.3%',
         height: 132,
         borderRadius: 16,
         backgroundColor: '#FFFFFF',
@@ -826,14 +827,14 @@ const styles = StyleSheet.create({
     },
     actionTitle: {
         marginTop: 12,
-        fontFamily: 'Poppins-SemiBold',
+        fontFamily: 'Poppins-Medium',
         fontSize: 14,
-        color: '#0F172A',
+        color: '#000000',
     },
     actionSubtitle: {
         fontFamily: 'Poppins-Regular',
-        fontSize: 11,
-        color: '#64748B',
+        fontSize: 12,
+        color: '#333333',
         marginTop: 2,
     },
     modalOverlay: {
