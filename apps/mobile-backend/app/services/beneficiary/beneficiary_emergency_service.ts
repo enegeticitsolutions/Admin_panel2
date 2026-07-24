@@ -2,6 +2,7 @@ import prisma from '../../core/database';
 import { ApiError } from '../../utils/ApiError';
 
 import { isEmergencyBenefit } from '../../constants/systemBenefits';
+import { benefitLedgerService } from '../shared/benefit_ledger_service';
 
 export const getBeneficiaryEmergencyEligibility = async (beneficiaryId: string) => {
   const activeSubscriptions = await prisma.subscription.findMany({
@@ -100,18 +101,10 @@ export const triggerEmergencyRequest = async (
 
   const ticketNumber = `EMG-${Math.floor(100000 + Math.random() * 900000)}`;
 
-  // Wrap emergency request creation + balance deduction in a transaction
+  // Wrap emergency request creation + unit reservation in a transaction
   const emergencyReq = await prisma.$transaction(async (tx) => {
-    // 1. Deduct 1 unit from the benefit balance (if balance row exists)
-    if (balanceId) {
-      await tx.subscriptionBenefitBalance.update({
-        where: { id: balanceId },
-        data: { usedUnits: { increment: 1 } },
-      });
-    }
-
-    // 2. Create the emergency request record
-    return tx.emergencyRequest.create({
+    // 1. Create the emergency request record
+    const emg = await tx.emergencyRequest.create({
       data: {
         ticketNumber,
         beneficiaryId,
@@ -140,7 +133,25 @@ export const triggerEmergencyRequest = async (
         }
       }
     });
+
+    // 2. Reserve 1 Emergency unit (HELD) in the double-entry ledger
+    if (balanceId) {
+      await benefitLedgerService.reserveBenefit(
+        {
+          balanceId,
+          beneficiaryId,
+          units: 1,
+          emergencyRequestId: emg.id,
+          reason: `Emergency SOS Alert Ticket: ${ticketNumber}`,
+          performedByUserId: requestedByUserId,
+        },
+        tx
+      );
+    }
+
+    return emg;
   });
+
 
   // Dispatch notifications to Subscriber, Primary CC, and Secondary CC
   const notificationTargets = [

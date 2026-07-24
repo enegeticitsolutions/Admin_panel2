@@ -2405,4 +2405,40 @@ The vital tracking system is now completely dynamic and configuration-driven. Ne
 - `apps/mobile-app/app/(care-companion)/visit-details.tsx`:
   - Added exhausted benefit checks on service request submission.
 
+---
+
+## Session: Financial-Grade Double-Entry Benefit Ledger & Reservation Engine (2026-07-24)
+
+### Database Architecture & Prisma Models
+- **SubscriptionBenefitBalance Model**:
+  - Added `reservedUnits` (active holds for pending/scheduled visits or emergency SOS alerts) and `availableUnits` (`totalUnits - reservedUnits - usedUnits`).
+  - Added relations to `BenefitReservation` and `BenefitTransaction`.
+- **BenefitReservation Model**:
+  - Declared `BenefitReservation` model with fields: `id`, `balanceId`, `beneficiaryId`, `units`, `status` (enum `HELD`, `CONSUMED`, `RELEASED`, `EXPIRED`), `emergencyRequestId`, `sathiRequestId`, `visitId`, `expiresAt`, `createdAt`, and `updatedAt`.
+- **BenefitTransaction Model (Immutable Double-Entry Ledger)**:
+  - Declared `BenefitTransaction` model with fields: `id`, `balanceId`, `reservationId`, `transactionType` (enum `ALLOCATED`, `RESERVED`, `CONSUMED`, `RELEASED`, `REFUNDED`, `ADJUSTED`, `RENEWED`, `EXPIRED`), `units`, balance snapshots (`totalBefore`, `totalAfter`, `reservedBefore`, `reservedAfter`, `usedBefore`, `usedAfter`, `availableBefore`, `availableAfter`), `reason`, `performedByUserId`, and `createdAt`.
+- **Schema Synchronization**:
+  - Propagated model additions across `packages/database/prisma/schema.prisma`, `apps/mobile-backend/prisma/schema.prisma`, and `apps/admin-backend/prisma/schema.prisma`.
+  - Executed `npx prisma db push` and `npx prisma generate` across `mobile-backend` and `admin-backend`.
+
+### Service Layer & Core Engine
+- **Benefit Ledger Service (`apps/mobile-backend/app/services/shared/benefit_ledger_service.ts`)**:
+  - `reserveBenefit()`: Reserves units for upcoming visit or Emergency SOS (`HELD` reservation, `RESERVED` transaction, `-availableUnits`, `+reservedUnits`).
+  - `consumeReservation()`: Converts `HELD` hold to `CONSUMED` upon visit completion or emergency resolution (`-reservedUnits`, `+usedUnits`).
+  - `releaseReservation()`: Releases `HELD` hold on visit/emergency cancellation or rejection (`-reservedUnits`, `+availableUnits`).
+  - `adjustBalance()`: Admin manual balance adjustments with audit trail logging.
+
+### System Workflow Integration
+- **Emergency SOS Alert Flow**:
+  - On trigger (`beneficiary_emergency_service.ts`): Creates a `HELD` reservation for 1 Emergency unit at request creation time.
+  - On resolution (`admin-backend/routes/emergency.js`): Converts `HELD` reservation to `CONSUMED` when marked as `resolved`.
+  - On cancellation/rejection: Releases `HELD` reservation back to `availableUnits`.
+- **Field Manager Visit Scheduling ➔ Care Companion Checkout Flow**:
+  - On visit schedule (`admin-backend/routes/visits.js`): Creates a `HELD` reservation linked to `visitId`, reserving 1 visit unit.
+  - On visit check-out (`visit_service.ts` / `visit-details.tsx`): Converts `HELD` reservation to `CONSUMED` upon checkout completion.
+  - On visit cancellation/no-show: Releases `HELD` reservation back to `availableUnits` with zero unit loss.
+- **Ledger Audit API**:
+  - Added `GET /api/shared/utilization/ledger/:beneficiaryId` endpoint returning chronological ledger transactions, active reservations, and exact balance breakdowns.
+
+
 

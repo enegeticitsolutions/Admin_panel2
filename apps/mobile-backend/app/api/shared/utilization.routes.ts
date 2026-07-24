@@ -466,4 +466,87 @@ router.post('/request-service', authenticate, async (req: AuthRequest, res: Resp
   }
 });
 
+// GET /api/shared/utilization/ledger/:beneficiaryId — Complete immutable transaction ledger history
+router.get('/ledger/:beneficiaryId', async (req: Request, res: Response) => {
+  try {
+    const { beneficiaryId } = req.params;
+
+    const activeSub = await prisma.subscription.findFirst({
+      where: { beneficiaryId, isActive: true },
+      include: {
+        benefitBalances: {
+          include: {
+            benefit: { select: { id: true, name: true, unitLabel: true } },
+            transactions: {
+              orderBy: { createdAt: 'desc' },
+              take: 50,
+            },
+            reservations: {
+              where: { status: 'HELD' },
+              orderBy: { createdAt: 'desc' },
+            }
+          }
+        }
+      }
+    });
+
+    if (!activeSub) {
+      return res.json({ success: true, data: { balances: [], transactions: [], reservations: [] } });
+    }
+
+    const allTransactions: any[] = [];
+    const allReservations: any[] = [];
+
+    const balances = activeSub.benefitBalances.map((bal: any) => {
+      const reserved = bal.reservedUnits || 0;
+      const used = bal.usedUnits || 0;
+      const available = bal.availableUnits !== undefined && bal.availableUnits !== null ? bal.availableUnits : Math.max(0, bal.totalUnits - reserved - used);
+
+      (bal.transactions || []).forEach((tx: any) => {
+        allTransactions.push({
+          ...tx,
+          benefitId: bal.benefitId,
+          benefitName: bal.benefit?.name,
+          unitLabel: bal.benefit?.unitLabel || 'units',
+        });
+      });
+
+      (bal.reservations || []).forEach((resItem: any) => {
+        allReservations.push({
+          ...resItem,
+          benefitId: bal.benefitId,
+          benefitName: bal.benefit?.name,
+        });
+      });
+
+      return {
+        balanceId: bal.id,
+        benefitId: bal.benefitId,
+        benefitName: bal.benefit?.name,
+        unitLabel: bal.benefit?.unitLabel || 'units',
+        totalUnits: bal.totalUnits,
+        reservedUnits: reserved,
+        usedUnits: used,
+        availableUnits: available,
+      };
+    });
+
+    allTransactions.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+    return res.json({
+      success: true,
+      data: {
+        subscriptionId: activeSub.id,
+        balances,
+        transactions: allTransactions,
+        activeReservations: allReservations,
+      }
+    });
+  } catch (error: any) {
+    console.error('GET /api/shared/utilization/ledger error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 export default router;
+

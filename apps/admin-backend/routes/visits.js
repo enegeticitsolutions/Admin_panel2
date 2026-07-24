@@ -123,15 +123,64 @@ router.post('/', async (req, res) => {
         },
       });
 
-      // B. Benefit is stored on the visit (above) but NOT deducted here.
-      //    Deduction happens at CHECKOUT (PATCH /:id/complete) ONLY after the CC actually
-      //    completed the visit. This means:
-      //      • Missed visits (CC no-show) → benefit is never touched → no refund needed
-      //      • Cancelled visits           → benefit is never touched → no refund needed
-      //      • Completed visits           → deducted at checkout exactly
+      // B. Create a HELD BenefitReservation in the double-entry ledger so units are reserved
+      //    The unit is converted to CONSUMED at checkout, or RELEASED if cancelled/missed.
       if (benefitId) {
-        console.log(`[VISIT SCHEDULE] benefitId=${benefitId} stored on visit. Deduction deferred to checkout.`);
+        const activeSub = await tx.subscription.findFirst({
+          where: { beneficiaryId, isActive: true },
+          include: { benefitBalances: { where: { benefitId } } }
+        });
+
+        if (activeSub && activeSub.benefitBalances && activeSub.benefitBalances.length > 0) {
+          const bal = activeSub.benefitBalances[0];
+          const available = Math.max(0, bal.totalUnits - bal.reservedUnits - bal.usedUnits);
+
+          if (bal.totalUnits > 0 && available <= 0) {
+            throw new Error('Insufficient benefit balance available for this visit');
+          }
+
+          const reservedBefore = bal.reservedUnits;
+          const usedBefore = bal.usedUnits;
+          const totalBefore = bal.totalUnits;
+          const availableBefore = available;
+
+          const reservedAfter = reservedBefore + 1;
+          const availableAfter = availableBefore - 1;
+
+          const resHold = await tx.benefitReservation.create({
+            data: {
+              balanceId: bal.id,
+              beneficiaryId,
+              units: 1,
+              status: 'HELD',
+              visitId: visit.id,
+            }
+          });
+
+          await tx.benefitTransaction.create({
+            data: {
+              balanceId: bal.id,
+              reservationId: resHold.id,
+              transactionType: 'RESERVED',
+              units: -1,
+              totalBefore, totalAfter: totalBefore,
+              reservedBefore, reservedAfter,
+              usedBefore, usedAfter: usedBefore,
+              availableBefore, availableAfter,
+              reason: `Visit Scheduled Encounter: ${visit.encounterId}`,
+              performedByUserId: req.user?.id || null
+            }
+          });
+
+          await tx.subscriptionBenefitBalance.update({
+            where: { id: bal.id },
+            data: { reservedUnits: reservedAfter, availableUnits: availableAfter }
+          });
+
+          console.log(`[VISIT SCHEDULE] Reserved 1 unit (HELD reservation ${resHold.id}) for visit ${visit.id}`);
+        }
       }
+
 
       // C. Send Notifications
       const formattedTime = startTime.toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });

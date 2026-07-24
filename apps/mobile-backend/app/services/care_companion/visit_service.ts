@@ -1,6 +1,8 @@
 import prisma from '../../core/database';
 import { generateUUID, generateEncounterId, generateVisitCode } from '../../utils/helpers';
 import { Prisma } from '@prisma/client';
+import { benefitLedgerService } from '../shared/benefit_ledger_service';
+
 
 // â”€â”€â”€ Geo-fencing Helper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -445,67 +447,75 @@ export const checkOut = async (data: {
           // Already processed (re-run) — update hours record only, don't touch balance
           console.log(`[CHECKOUT] Log already exists for visit ${visit.id} — skipping deduction (idempotent re-run).`);
         } else if (targetBenefitId) {
-          // Find the specific balance record for this benefit
-          const benefitToDeduct = activeSubscription.benefitBalances.find(b => b.benefitId === targetBenefitId);
+          // Check for HELD reservation on this visit
+          const reservation = await tx.benefitReservation.findUnique({
+            where: { visitId: visit.id },
+          });
 
-          if (!benefitToDeduct) {
-            console.error(`[CHECKOUT] benefitId=${targetBenefitId} not found in subscription balances. Skipping deduction.`);
+          if (reservation && reservation.status === 'HELD') {
+            await benefitLedgerService.consumeReservation(
+              {
+                reservationId: reservation.id,
+                reason: `Visit Checkout Completed. Encounter: ${visit.encounterId}`,
+                performedByUserId: careCompanionUserId,
+              },
+              tx
+            );
+            console.log(`[CHECKOUT] Consumed HELD reservation ${reservation.id} for visit ${visit.id}`);
           } else {
-            const label = (benefitToDeduct.snapshotUnitLabel || benefitToDeduct.benefit?.unitLabel || '').toLowerCase();
-            const isHourBenefit = label.includes('hour') || label.includes('hr');
-            const benefitName = benefitToDeduct.snapshotBenefitName || benefitToDeduct.benefit?.name || targetBenefitId;
+            // Fallback for legacy visits or direct checkout without prior hold
+            const benefitToDeduct = activeSubscription.benefitBalances.find(b => b.benefitId === targetBenefitId);
+            if (benefitToDeduct) {
+              const label = (benefitToDeduct.snapshotUnitLabel || benefitToDeduct.benefit?.unitLabel || '').toLowerCase();
+              const isHourBenefit = label.includes('hour') || label.includes('hr');
+              const unitsToDeduct = isHourBenefit ? Math.ceil(hoursConsumed) : 1;
 
-            console.log(`[CHECKOUT] benefit="${benefitName}" isHourBenefit=${isHourBenefit}`);
-
-            if (isHourBenefit) {
-              // HOUR-BASED: deduct actual hours (min 1h rule)
               await tx.subscriptionBenefitBalance.update({
                 where: { id: benefitToDeduct.id },
-                data: { usedUnits: benefitToDeduct.usedUnits + hoursConsumed }
+                data: { usedUnits: { increment: unitsToDeduct } }
               });
-              await tx.packageHoursLog.create({
+
+              await tx.benefitTransaction.create({
                 data: {
-                  subscriptionId: activeSubscription.id,
-                  beneficiaryId: visit.beneficiaryId,
-                  visitId: visit.id,
-                  hoursConsumed,
-                  balanceBefore: benefitToDeduct.usedUnits,
-                  balanceAfter: benefitToDeduct.usedUnits + hoursConsumed,
-                  description: `Visit completed [hour]. Actual: ${actualMinutes} min – billed ${hoursConsumed.toFixed(2)}h (min 1h rule).`
+                  balanceId: benefitToDeduct.id,
+                  transactionType: 'CONSUMED',
+                  units: unitsToDeduct,
+                  totalBefore: benefitToDeduct.totalUnits,
+                  totalAfter: benefitToDeduct.totalUnits,
+                  reservedBefore: benefitToDeduct.reservedUnits,
+                  reservedAfter: benefitToDeduct.reservedUnits,
+                  usedBefore: benefitToDeduct.usedUnits,
+                  usedAfter: benefitToDeduct.usedUnits + unitsToDeduct,
+                  availableBefore: Math.max(0, benefitToDeduct.totalUnits - benefitToDeduct.reservedUnits - benefitToDeduct.usedUnits),
+                  availableAfter: Math.max(0, benefitToDeduct.totalUnits - benefitToDeduct.reservedUnits - (benefitToDeduct.usedUnits + unitsToDeduct)),
+                  reason: `Direct Visit Checkout Completed. Encounter: ${visit.encounterId}`,
+                  performedByUserId: careCompanionUserId,
                 }
               });
-              // Update quick-access counter
-              await tx.subscription.update({
-                where: { id: activeSubscription.id },
-                data: { hoursUsed: activeSubscription.hoursUsed + hoursConsumed, visitsCompleted: activeSubscription.visitsCompleted + 1 }
-              });
-              console.log(`[CHECKOUT] Deducted ${hoursConsumed}h from "${benefitName}"`);
-            } else {
-              // SESSION/VISIT-COUNT: deduct exactly 1 unit at checkout
-              await tx.subscriptionBenefitBalance.update({
-                where: { id: benefitToDeduct.id },
-                data: { usedUnits: benefitToDeduct.usedUnits + 1 }
-              });
-              await tx.packageHoursLog.create({
-                data: {
-                  subscriptionId: activeSubscription.id,
-                  beneficiaryId: visit.beneficiaryId,
-                  visitId: visit.id,
-                  hoursConsumed: actualMinutes / 60,
-                  balanceBefore: benefitToDeduct.usedUnits,
-                  balanceAfter: benefitToDeduct.usedUnits + 1,
-                  description: `Visit completed [session]. Actual: ${actualMinutes} min – 1 session consumed from "${benefitName}".`
-                }
-              });
-              // Update quick-access counter
-              await tx.subscription.update({
-                where: { id: activeSubscription.id },
-                data: { visitsCompleted: activeSubscription.visitsCompleted + 1 }
-              });
-              console.log(`[CHECKOUT] Deducted 1 session from "${benefitName}"`);
             }
           }
-        } else {
+
+          // Create package hours log for audit display
+          const benefitToDeduct = activeSubscription.benefitBalances.find(b => b.benefitId === targetBenefitId);
+          if (benefitToDeduct) {
+            await tx.packageHoursLog.create({
+              data: {
+                subscriptionId: activeSubscription.id,
+                beneficiaryId: visit.beneficiaryId,
+                visitId: visit.id,
+                hoursConsumed,
+                balanceBefore: benefitToDeduct.usedUnits,
+                balanceAfter: benefitToDeduct.usedUnits + 1,
+                description: `Visit completed. Encounter: ${visit.encounterId}.`
+              }
+            });
+            await tx.subscription.update({
+              where: { id: activeSubscription.id },
+              data: { visitsCompleted: activeSubscription.visitsCompleted + 1 }
+            });
+          }
+        }
+ else {
           // No benefitId on the visit — log for audit only, no balance deduction
           console.warn(`[CHECKOUT] No benefitId on visit ${visit.id} — logging only, no deduction.`);
           await tx.packageHoursLog.create({

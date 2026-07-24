@@ -1381,7 +1381,9 @@ model SubscriptionBenefitBalance {
   snapshotBenefitName     String? // Snapshot: benefit name at subscription creation
   snapshotUnitLabel       String? // Snapshot: unit label at subscription creation
   totalUnits              Int                    @default(0)
+  reservedUnits           Int                    @default(0)
   usedUnits               Int                    @default(0)
+  availableUnits          Int                    @default(0)
   unit                    String?
   createdAt               DateTime               @default(now())
   updatedAt               DateTime               @updatedAt
@@ -1389,9 +1391,81 @@ model SubscriptionBenefitBalance {
   packageVersionBenefit   PackageVersionBenefit? @relation(fields: [packageVersionBenefitId], references: [id])
   subscription            Subscription           @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
 
+  reservations            BenefitReservation[]
+  transactions            BenefitTransaction[]
+
   @@unique([subscriptionId, benefitId])
   @@map("subscription_benefit_balances")
 }
+
+enum ReservationStatus {
+  HELD
+  CONSUMED
+  RELEASED
+  EXPIRED
+}
+
+enum TransactionType {
+  ALLOCATED
+  RESERVED
+  CONSUMED
+  RELEASED
+  REFUNDED
+  ADJUSTED
+  RENEWED
+  EXPIRED
+}
+
+model BenefitReservation {
+  id                 String                     @id @default(uuid())
+  balanceId          String
+  balance            SubscriptionBenefitBalance @relation(fields: [balanceId], references: [id], onDelete: Cascade)
+  beneficiaryId      String
+  units              Int                        @default(1)
+  status             ReservationStatus          @default(HELD)
+  
+  emergencyRequestId String?                    @unique
+  sathiRequestId     String?                    @unique
+  visitId            String?                    @unique
+  
+  expiresAt          DateTime?
+  createdAt          DateTime                   @default(now())
+  updatedAt          DateTime                   @updatedAt
+
+  transactions       BenefitTransaction[]
+
+  @@index([balanceId, status])
+  @@map("benefit_reservations")
+}
+
+model BenefitTransaction {
+  id                 String                     @id @default(uuid())
+  balanceId          String
+  balance            SubscriptionBenefitBalance @relation(fields: [balanceId], references: [id], onDelete: Cascade)
+  reservationId      String?
+  reservation        BenefitReservation?        @relation(fields: [reservationId], references: [id], onDelete: SetNull)
+  
+  transactionType    TransactionType
+  units              Int                        // e.g. +10, -1, +1
+  
+  totalBefore        Int
+  totalAfter         Int
+  reservedBefore     Int
+  reservedAfter      Int
+  usedBefore         Int
+  usedAfter          Int
+  availableBefore    Int
+  availableAfter     Int
+
+  reason             String?
+  performedByUserId  String?
+  createdAt          DateTime                   @default(now())
+
+  @@index([balanceId, createdAt])
+  @@index([transactionType])
+  @@map("benefit_transactions")
+}
+
 
 model StaffAvailabilityBlocker {
   id              String        @id @default(uuid())
