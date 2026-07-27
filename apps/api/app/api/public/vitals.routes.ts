@@ -21,7 +21,7 @@ router.get('/', async (req: Request, res: Response) => {
     
     res.json({ success: true, data: vitals });
   } catch (error: any) {
-    console.error('Error fetching vitals in mobile-backend:', error);
+    console.error('Error fetching vitals in api:', error);
     res.status(500).json({ 
       success: false, 
       message: 'Failed to fetch vitals',
