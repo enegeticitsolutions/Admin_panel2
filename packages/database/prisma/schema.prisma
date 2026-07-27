@@ -555,6 +555,7 @@ model BenefitType {
 model Benefit {
   id                     String                       @id @default(uuid())
   benefitTypeId          String
+  code                   String?
   name                   String
   description            String?
   isChargeable           Boolean                      @default(false)
@@ -1827,6 +1828,14 @@ model Volunteer {
   previousExperience String?
   whyJoin            String?
   address            String?
+  flatPlot           String?
+  streetArea         String?
+  landmark           String?
+  city               String?
+  state              String?
+  pincode            String?
+  latitude           Float?
+  longitude          Float?
   interests          String[]            @default([])
   totalCreditHours   Float               @default(0)   // accumulated hours volunteered
   totalCreditPoints  Float               @default(0)   // credit points earned
@@ -1842,6 +1851,7 @@ model Volunteer {
   visitLogs          VolunteerVisitLog[]
   creditTransactions VolunteerCreditTransaction[]
   sathiVisitRequests SathiVisitRequest[]
+  rewardCoupons      VolunteerRewardCoupon[]
 
   @@map("volunteers")
 }
@@ -1908,6 +1918,41 @@ model VolunteerCreditTransaction {
   @@map("volunteer_credit_transactions")
 }
 
+model VolunteerRewardOption {
+  id             String   @id @default(uuid())
+  title          String   // e.g., "MHN Gift Card ₹500"
+  rewardType     String   // "MHN_GIFT_CARD" | "UPI_TRANSFER"
+  pointsRequired Int      // e.g., 50
+  valueRs        Float    // e.g., 500.0
+  description    String?  
+  isActive       Boolean  @default(true)
+  displayOrder   Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  coupons        VolunteerRewardCoupon[]
+
+  @@map("volunteer_reward_options")
+}
+
+model VolunteerRewardCoupon {
+  id              String                 @id @default(uuid())
+  code            String                 @unique // e.g., MHN-GIFT-8A49-209B
+  volunteerId     String                 // FK -> Volunteer.id
+  rewardOptionId  String?                // FK -> VolunteerRewardOption.id
+  pointsRedeemed  Int                    
+  valueRs         Float                  
+  status          String                 @default("ACTIVE") // 'ACTIVE' | 'CLAIMED' | 'EXPIRED' | 'CANCELLED'
+  claimedAt       DateTime?              
+  claimedByUserId String?                // FK to User who claimed/purchased a package with it
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+  volunteer       Volunteer              @relation(fields: [volunteerId], references: [id])
+  rewardOption    VolunteerRewardOption? @relation(fields: [rewardOptionId], references: [id])
+
+  @@map("volunteer_reward_coupons")
+}
+
 // ─── Enums ──────────────────────────────────────────────────────────────────
 
 enum VolunteerStatus {
@@ -1934,16 +1979,24 @@ enum CreditTransactionType {
 }
 
 model SathiVisitRequest {
-  id              String               @id @default(uuid())
-  beneficiaryId   String
-  volunteerId     String?              // The volunteer who accepted it (null if pending)
-  dateTime        DateTime
-  reason          String
-  status          SathiRequestStatus   @default(PENDING) // PENDING, ACCEPTED, REJECTED
-  rejectionReason String?
-  rejectedBy      String[]             @default([]) // Array of volunteer IDs who rejected this request
-  createdAt       DateTime             @default(now())
-  updatedAt       DateTime             @updatedAt
+  id                    String               @id @default(uuid())
+  beneficiaryId         String
+  volunteerId           String?              // The volunteer who accepted it (null if pending)
+  dateTime              DateTime
+  reason                String
+  status                SathiRequestStatus   @default(PENDING) // PENDING, ACCEPTED, REJECTED, RESCHEDULE_PROPOSED, IN_PROGRESS, COMPLETED
+  otpCode               String?              // 4-digit code generated when ACCEPTED
+  rejectionReason       String?
+  rejectedBy            String[]             @default([]) // Array of volunteer IDs who rejected this request
+  proposedDateTime      DateTime?            // New proposed date/time when volunteer requests reschedule
+  proposedBy            String?              // volunteerId who proposed the reschedule
+  feedbackNotes         String?              // Volunteer's notes after completion
+  feedbackRating        Int?                 // Volunteer's rating (1-5) after completion
+  beneficiaryRating     Int?                 // Beneficiary's rating (1-5) after completion
+  beneficiaryFeedback   String?              // Beneficiary's text feedback after completion
+  actualDurationMinutes Float?               // Exact time taken
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
 
   beneficiary     Beneficiary          @relation(fields: [beneficiaryId], references: [id], onDelete: Cascade)
   volunteer       Volunteer?           @relation(fields: [volunteerId], references: [id], onDelete: SetNull)
@@ -1955,6 +2008,9 @@ enum SathiRequestStatus {
   PENDING
   ACCEPTED
   REJECTED
+  RESCHEDULE_PROPOSED
+  IN_PROGRESS
+  COMPLETED
 }
 
 model RosterApproval {

@@ -812,6 +812,34 @@ export default function SathiDashboard() {
           </View>
         </View>
 
+        {/* Companion Rewards & Credits Banner */}
+        <TouchableOpacity
+          style={{
+            backgroundColor: '#111827',
+            borderRadius: scale(16),
+            padding: scale(16),
+            marginBottom: scale(16),
+            flexDirection: 'row',
+            alignItems: 'center',
+            borderWidth: 1,
+            borderColor: '#374151',
+          }}
+          onPress={() => router.push('/(sathi)/credits')}
+        >
+          <View style={{ width: scale(44), height: scale(44), borderRadius: scale(12), backgroundColor: '#FE6700', justifyContent: 'center', alignItems: 'center' }}>
+            <Ionicons name="gift" size={24} color="#FFFFFF" />
+          </View>
+          <View style={{ flex: 1, marginLeft: scale(12) }}>
+            <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: scale(15) }}>Companion Rewards Program</Text>
+            <Text style={{ color: '#FFB74D', fontSize: scale(12), marginTop: scale(2) }}>
+              {dashboard?.totalCreditPoints !== undefined ? `${dashboard.totalCreditPoints.toFixed(0)} Credits Available (₹${dashboard.totalCreditPoints.toFixed(0) * 10} Value)` : 'Earn & redeem gift vouchers & UPI'}
+            </Text>
+          </View>
+          <View style={{ backgroundColor: 'rgba(254, 103, 0, 0.2)', paddingHorizontal: scale(10), paddingVertical: scale(6), borderRadius: scale(10), borderWidth: 1, borderColor: '#FE6700' }}>
+            <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: scale(12) }}>Redeem →</Text>
+          </View>
+        </TouchableOpacity>
+
         {/* Monthly Goal progress card */}
         <View style={styles.goalCard}>
           <View style={styles.goalHeader}>

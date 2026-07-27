@@ -180,6 +180,26 @@ export default function SathiProfile() {
           </Text>
         </View>
 
+        {/* Credits & Rewards Banner Option */}
+        <TouchableOpacity
+          style={styles.creditsCard}
+          onPress={() => router.push('/(sathi)/credits')}
+        >
+          <View style={styles.creditsIconBox}>
+            <Ionicons name="gift" size={26} color="#FFFFFF" />
+          </View>
+          <View style={{ flex: 1, marginLeft: scale(14) }}>
+            <Text style={styles.creditsTitle}>Credits & Rewards</Text>
+            <Text style={styles.creditsSubtitle}>
+              {profile?.totalCreditPoints !== undefined ? `${profile.totalCreditPoints} pts available` : 'View balance & redeem options'}
+            </Text>
+          </View>
+          <View style={styles.creditsActionBadge}>
+            <Text style={styles.creditsActionText}>Redeem</Text>
+            <Ionicons name="chevron-forward" size={16} color="#FFFFFF" style={{ marginLeft: 2 }} />
+          </View>
+        </TouchableOpacity>
+
         {/* Details Section */}
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>Personal Information</Text>
@@ -320,6 +340,55 @@ const styles = StyleSheet.create({
     fontSize: scale(14),
     color: DEEP_ORANGE,
     fontWeight: '600',
+  },
+  creditsCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#111827',
+    borderRadius: scale(18),
+    padding: scale(16),
+    marginBottom: scale(16),
+    shadowColor: DEEP_ORANGE,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: '#374151',
+  },
+  creditsIconBox: {
+    width: scale(48),
+    height: scale(48),
+    borderRadius: scale(14),
+    backgroundColor: DEEP_ORANGE,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  creditsTitle: {
+    fontSize: scale(16),
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  creditsSubtitle: {
+    fontSize: scale(12),
+    color: '#FFB74D',
+    marginTop: scale(2),
+    fontWeight: '500',
+  },
+  creditsActionBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(254, 103, 0, 0.2)',
+    paddingHorizontal: scale(12),
+    paddingVertical: scale(8),
+    borderRadius: scale(12),
+    borderWidth: 1,
+    borderColor: DEEP_ORANGE,
+  },
+  creditsActionText: {
+    fontSize: scale(12),
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
   card: {
     backgroundColor: '#FFFFFF',

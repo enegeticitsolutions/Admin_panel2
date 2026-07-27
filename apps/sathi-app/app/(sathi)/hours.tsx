@@ -286,24 +286,53 @@ export default function SathiHours() {
         )}
 
         {/* Credits Ledger Transaction Ledger */}
-        <Text style={styles.sectionTitle}>Points ledger Transaction ledger</Text>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+          <Text style={[styles.sectionTitle, { marginBottom: 0 }]}>Points Ledger & History</Text>
+          <TouchableOpacity onPress={() => router.push('/(sathi)/credits')}>
+            <Text style={{ color: '#FE6700', fontWeight: '700', fontSize: 13 }}>Redeem Rewards →</Text>
+          </TouchableOpacity>
+        </View>
         {creditsLedger.length > 0 ? (
-          creditsLedger.map((item) => (
-            <View key={item.id} style={styles.ledgerItem}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.ledgerDesc} numberOfLines={1}>
-                  {item.description || 'Companion visit completed'}
-                </Text>
-                <Text style={styles.ledgerDate}>
-                  {new Date(item.createdAt || Date.now()).toLocaleString()}
+          creditsLedger.map((item) => {
+            const isEarned = item.pointsDelta >= 0;
+            return (
+              <View key={item.id} style={styles.ledgerItem}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.ledgerDesc} numberOfLines={1}>
+                    {item.description || (isEarned ? 'Companion visit completed' : 'Reward redeemed')}
+                  </Text>
+                  <Text style={styles.ledgerDate}>
+                    {new Date(item.createdAt || Date.now()).toLocaleString()}
+                  </Text>
+                </View>
+                <Text style={[styles.ledgerPoints, !isEarned && { color: '#EF4444' }]}>
+                  {isEarned ? '+' : ''}{item.pointsDelta?.toFixed(0)} pts
                 </Text>
               </View>
-              <Text style={styles.ledgerPoints}>+{item.pointsDelta?.toFixed(0)} pts</Text>
-            </View>
-          ))
+            );
+          })
         ) : (
           <Text style={styles.emptyText}>No ledger transactions recorded.</Text>
         )}
+
+        <TouchableOpacity
+          style={{
+            backgroundColor: '#111827',
+            paddingVertical: 14,
+            borderRadius: 14,
+            alignItems: 'center',
+            marginTop: 8,
+            marginBottom: 20,
+            flexDirection: 'row',
+            justifyContent: 'center'
+          }}
+          onPress={() => router.push('/(sathi)/credits')}
+        >
+          <Ionicons name="gift" size={20} color="#FFB74D" style={{ marginRight: 8 }} />
+          <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 14 }}>
+            Explore Rewards & Redeem Options
+          </Text>
+        </TouchableOpacity>
       </ScrollView>
 
       <SathiBottomNav />
