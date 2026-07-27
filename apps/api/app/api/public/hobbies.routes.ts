@@ -21,7 +21,7 @@ router.get('/', async (req: Request, res: Response) => {
     
     res.json({ success: true, data: hobbies });
   } catch (error: any) {
-    console.error('Error fetching hobbies in mobile-backend:', error);
+    console.error('Error fetching hobbies in api:', error);
     res.status(500).json({ 
       success: false, 
       message: 'Failed to fetch hobbies',
