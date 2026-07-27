@@ -40,3 +40,9 @@ export const volunteerCheckinSchema = Joi.object({
 export const volunteerCheckoutSchema = Joi.object({
   notes: Joi.string().optional().allow(''),
 });
+
+export const volunteerRedeemSchema = Joi.object({
+  points: Joi.number().integer().min(1).required(),
+  redeemType: Joi.string().valid('GIFT_CARD', 'DISCOUNT_COUPON', 'UPI_TRANSFER').required(),
+  details: Joi.object().optional().default({}),
+});
