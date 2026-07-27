@@ -1,0 +1,19 @@
+{
+  "name": "@maihoonna/database",
+  "version": "1.0.0",
+  "private": true,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate dev"
+  },
+  "dependencies": {
+    "@prisma/client": "^7.8.0"
+  },
+  "devDependencies": {
+    "prisma": "^7.8.0",
+    "typescript": "^5.8.0"
+  }
+}
