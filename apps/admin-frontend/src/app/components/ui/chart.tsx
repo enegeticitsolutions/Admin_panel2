@@ -78,6 +78,24 @@ const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
     return null;
   }
 
+  /**
+   * Sanitize a CSS color value to prevent DOM-XSS via dangerouslySetInnerHTML.
+   * Only allows: hex, rgb(), rgba(), hsl(), hsla(), named CSS keywords.
+   * Returns empty string for any value that does not match.
+   */
+  function sanitizeCssColor(value: string | undefined): string {
+    if (!value) return '';
+    const trimmed = value.trim();
+    // Allow hex colors (#rgb, #rrggbb, #rgba, #rrggbbaa)
+    if (/^#[0-9a-fA-F]{3,8}$/.test(trimmed)) return trimmed;
+    // Allow rgb/rgba/hsl/hsla functional notation (numbers, %, spaces, commas, slashes only inside)
+    if (/^(rgb|rgba|hsl|hsla)\([\d\s,%.\/]+\)$/i.test(trimmed)) return trimmed;
+    // Allow safe CSS named colors and CSS custom properties (var(--...))
+    if (/^var\(--[\w-]+\)$/.test(trimmed)) return trimmed;
+    if (/^[a-zA-Z]+$/.test(trimmed)) return trimmed; // named colors e.g. "red", "transparent"
+    return '';
+  }
+
   return (
     <style
       dangerouslySetInnerHTML={{
@@ -87,9 +105,10 @@ const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
 ${prefix} [data-chart=${id}] {
 ${colorConfig
   .map(([key, itemConfig]) => {
-    const color =
+    const rawColor =
       itemConfig.theme?.[theme as keyof typeof itemConfig.theme] ||
       itemConfig.color;
+    const color = sanitizeCssColor(rawColor);
     return color ? `  --color-${key}: ${color};` : null;
   })
   .join("\n")}
@@ -101,6 +120,7 @@ ${colorConfig
     />
   );
 };
+
 
 const ChartTooltip = RechartsPrimitive.Tooltip;
 
