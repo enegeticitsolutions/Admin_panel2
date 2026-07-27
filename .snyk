@@ -1,0 +1,31 @@
+# Snyk (https://snyk.io) policy file, patches or ignores known vulnerabilities.
+version: v1.25.0
+
+# Transitive dependency vulnerabilities with no upstream fix available.
+# These are bundler/metro/expo internal dependencies that cannot be
+# overridden without breaking the build tools.
+ignore:
+  # brace-expansion < 2.0.0 — Allocation of Resources Without Limits (CWE-770)
+  # Dependency chain: expo-* → metro → brace-expansion@1.x
+  # "No supported fix" — upstream expo/metro must upgrade
+  SNYK-JS-BRACEEXPANSION-6666431:
+    - '*':
+        reason: Transitive via expo/metro build tooling; no upstream fix available. Overridden in package.json where possible.
+        expires: '2027-01-01T00:00:00.000Z'
+
+  # image-size < 1.x — Infinite Loop DoS (CWE-835)
+  # Dependency chain: metro-config → image-size@0.x
+  # Override set to ^1.2.0 in package overrides.
+  SNYK-JS-IMAGESIZE-2874857:
+    - '*':
+        reason: Transitive via metro-config; override applied in package.json overrides field.
+        expires: '2027-01-01T00:00:00.000Z'
+
+  # inflight — Missing Release of Resource (CWE-772)
+  # Deprecated package used internally by expo build tools.
+  SNYK-JS-INFLIGHT-6095116:
+    - '*':
+        reason: Transitive via expo SDK; deprecated package with no current fix from expo.
+        expires: '2027-01-01T00:00:00.000Z'
+
+patch: {}
