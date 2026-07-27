@@ -5,6 +5,7 @@ import * as sathiService from '../../services/sathi/sathi_service';
 import {
   volunteerCheckinSchema,
   volunteerCheckoutSchema,
+  volunteerRedeemSchema,
 } from '../../schemas/sathi';
 
 const router = Router();
@@ -27,6 +28,26 @@ router.get('/hours', authenticate, async (req: AuthRequest, res: Response) => {
 router.get('/credits', authenticate, async (req: AuthRequest, res: Response) => {
   const txs = await sathiService.getVolunteerCreditTransactions(req.userId!);
   res.json(new ApiResponse(200, txs));
+});
+
+router.get('/credits/summary', authenticate, async (req: AuthRequest, res: Response) => {
+  const summary = await sathiService.getVolunteerCreditSummary(req.userId!);
+  res.json(new ApiResponse(200, summary));
+});
+
+router.post('/credits/redeem', authenticate, validate(volunteerRedeemSchema), async (req: AuthRequest, res: Response) => {
+  const result = await sathiService.redeemVolunteerCredits(req.userId!, req.body);
+  res.json(new ApiResponse(200, result, result.message));
+});
+
+router.post('/credits/coupons/validate', authenticate, async (req: AuthRequest, res: Response) => {
+  const result = await sathiService.validateVolunteerCoupon(req.body.code);
+  res.json(new ApiResponse(200, result, result.message));
+});
+
+router.post('/credits/coupons/claim', authenticate, async (req: AuthRequest, res: Response) => {
+  const result = await sathiService.claimVolunteerCoupon(req.body.code, req.userId);
+  res.json(new ApiResponse(200, result, result.message));
 });
 
 export default router;

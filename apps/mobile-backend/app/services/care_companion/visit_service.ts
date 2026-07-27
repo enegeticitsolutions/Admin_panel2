@@ -350,17 +350,18 @@ export const checkOut = async (data: {
       data: visitUpdateData,
     });
 
+    const careCompanion = await tx.careCompanion.findUnique({
+      where: { id: existingVisit.careCompanionId },
+      select: { userId: true }
+    });
+    const careCompanionUserId = careCompanion?.userId || existingVisit.careCompanionId;
+    const capturedById = careCompanionUserId;
+
     // 4. Create Vital Readings if present
     if (data.vitalsList && Array.isArray(data.vitalsList)) {
       if (isEdit) {
         await tx.vitalReading.deleteMany({ where: { visitId: visit.id } });
       }
-
-      const careCompanion = await tx.careCompanion.findUnique({
-        where: { id: existingVisit.careCompanionId },
-        select: { userId: true }
-      });
-      const capturedById = careCompanion?.userId || existingVisit.careCompanionId;
 
       for (const reading of data.vitalsList) {
         const def = await tx.vitalDefinition.findUnique({ where: { id: reading.vitalDefinitionId } });

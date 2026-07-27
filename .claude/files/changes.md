@@ -1,3 +1,21 @@
+# Implementation: Saathi Volunteer Credits & MHN Gift Card Redemption System (2026-07-27)
+
+## Overview
+Implemented an end-to-end, dynamic reward and redemption system for MaiHoonNa Saathi Volunteers with configurable credit input, zero minimum criteria, automated checkout coupon validation/claiming, and a 5-second non-blocking copy button UX.
+
+## Files Modified
+- [modify] [apps/mobile-backend/prisma/schema.prisma](file:///c:/Users/Administrator/Desktop/MHN/apps/mobile-backend/prisma/schema.prisma), [apps/admin-backend/prisma/schema.prisma](file:///c:/Users/Administrator/Desktop/MHN/apps/admin-backend/prisma/schema.prisma), [packages/database/prisma/schema.prisma](file:///c:/Users/Administrator/Desktop/MHN/packages/database/prisma/schema.prisma): Synchronized `VolunteerRewardOption` and `VolunteerRewardCoupon` models across all schemas and regenerated Prisma clients.
+- [modify] [apps/mobile-backend/app/services/coupon_service.ts](file:///c:/Users/Administrator/Desktop/MHN/apps/mobile-backend/app/services/coupon_service.ts): Upgraded `validateCoupon` to validate both regular promo codes and volunteer reward gift vouchers.
+- [modify] [apps/mobile-backend/app/services/subscriber/subscription_service.ts](file:///c:/Users/Administrator/Desktop/MHN/apps/mobile-backend/app/services/subscriber/subscription_service.ts): Added automatic voucher status update to `CLAIMED` upon successful subscription package purchase.
+- [modify] [apps/sathi-app/app/(sathi)/credits.tsx](file:///c:/Users/Administrator/Desktop/MHN/apps/sathi-app/app/(sathi)/credits.tsx): Implemented configurable credit input, dynamic button text, custom celebration modal, removed test claim button, and added 5-second in-place copy button feedback.
+
+## Actions Taken
+- Synced all 3 Prisma database schemas across the monorepo and ran `npx prisma generate`.
+- Resolved `EADDRINUSE` port conflicts and restarted the Saathi mobile-backend server cleanly.
+- Verified zero TypeScript compilation errors in frontend and backend.
+
+---
+
 # Implementation: Database Sync and Fix
 
 ## Files Modified

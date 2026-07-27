@@ -1,4 +1,4 @@
-import { Router, Response } from 'express';
+import { Router, Request, Response } from 'express';
 import prisma from '../../core/database';
 import { authenticate, AuthRequest } from './deps';
 
@@ -469,7 +469,7 @@ router.post('/request-service', authenticate, async (req: AuthRequest, res: Resp
 // GET /api/shared/utilization/ledger/:beneficiaryId — Complete immutable transaction ledger history
 router.get('/ledger/:beneficiaryId', async (req: Request, res: Response) => {
   try {
-    const { beneficiaryId } = req.params;
+    const beneficiaryId = String(req.params.beneficiaryId || '');
 
     const activeSub = await prisma.subscription.findFirst({
       where: { beneficiaryId, isActive: true },
