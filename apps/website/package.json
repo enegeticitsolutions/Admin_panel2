@@ -1,20 +1,20 @@
 {
   "name": "website",
-  "version": "1.0.0",
-  "main": "index.js",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "npm run dev --prefix backend"
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/tripathishubh0099/MaiHoonNa.git"
+  "devDependencies": {
+    "vite": "^7.3.1"
   },
-  "author": "",
-  "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/tripathishubh0099/MaiHoonNa/issues"
-  },
-  "homepage": "https://github.com/tripathishubh0099/MaiHoonNa#readme",
-  "description": ""
+  "dependencies": {
+    "@tailwindcss/vite": "^4.1.18",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "tailwindcss": "^4.1.18"
+  }
 }

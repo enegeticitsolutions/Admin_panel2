@@ -13,7 +13,9 @@
     "build:packages": "npm run build --workspaces --if-present"
   },
   "dependencies": {
+    "@types/nodemailer": "^8.0.1",
     "expo-local-authentication": "^57.0.2",
+    "nodemailer": "^9.0.3",
     "react-native-modal-datetime-picker": "^18.0.0"
   }
 }
