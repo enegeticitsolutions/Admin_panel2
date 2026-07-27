@@ -4,18 +4,18 @@
   "description": "Admin Panel Backend API for MaiHoonNa",
   "main": "server.js",
   "prisma": {
-    "schema": "prisma/schema.prisma",
-    "seed": "node prisma/seed.js"
+    "schema": "../../packages/database/prisma/schema.prisma"
   },
   "scripts": {
     "dev": "node server.js",
-    "build": "prisma generate",
+    "build": "prisma generate --schema=../../packages/database/prisma/schema.prisma",
     "start": "node server.js",
-    "copy-schema": "node scripts/copy-schema.js",
-    "postinstall": "prisma generate",
+    "postinstall": "prisma generate --schema=../../packages/database/prisma/schema.prisma",
     "format": "prettier --write ."
   },
   "dependencies": {
+    "@maihoonna/database": "*",
+    "@maihoonna/notifications": "*",
     "@aws-sdk/client-s3": "^3.1018.0",
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
