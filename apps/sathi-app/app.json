@@ -21,7 +21,7 @@
       "package": "com.rajeev_23.sathinetwork",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#FE6700"
       },
       "predictiveBackGestureEnabled": false,
       "config": {
