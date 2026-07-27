@@ -1918,6 +1918,8 @@ model VolunteerCreditTransaction {
   @@map("volunteer_credit_transactions")
 }
 
+// ─── Dynamic Reward Options & Gift Vouchers ─────────────────────────────────
+
 model VolunteerRewardOption {
   id             String   @id @default(uuid())
   title          String   // e.g., "MHN Gift Card ₹500"
