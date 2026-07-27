@@ -7,12 +7,6 @@ export default ({ config }) => {
   return {
     ...config,
 
-    plugins: [
-      ...(config.plugins || []),
-      "@react-native-community/datetimepicker",
-      "expo-font",
-    ],
-
     ios: {
       ...config.ios,
       config: {

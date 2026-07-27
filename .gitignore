@@ -1,10 +1,8 @@
-################################
 # Scratch / Dev-only files (never push)
 ################################
 .claude
 MOBILE_TESTING_SETUP.md
 sync-app.ps1
-apps/web-landing/
 
 # Backend seed/scratch files
 apps/admin-backend/prisma/seed-beneficiary-subscriber.js

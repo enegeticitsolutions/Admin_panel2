@@ -8,10 +8,12 @@
     "build": "tsc",
     "start": "node dist/app/run.js",
     "seed:test": "ts-node --transpile-only prisma/seed_test.ts",
-    "prisma:generate": "prisma generate",
-    "prisma:push": "prisma db push"
+    "prisma:generate": "prisma generate --schema=../../packages/database/prisma/schema.prisma",
+    "prisma:push": "prisma db push --schema=../../packages/database/prisma/schema.prisma"
   },
   "dependencies": {
+    "@maihoonna/database": "*",
+    "@maihoonna/notifications": "*",
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
     "@supabase/supabase-js": "^2.105.1",

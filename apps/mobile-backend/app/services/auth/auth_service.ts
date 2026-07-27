@@ -12,13 +12,14 @@ export const sendOtp = async (rawPhone: string) => {
   const user = await prisma.user.findUnique({
     where: { phone },
   });
-  
-  if (!user) {
-    throw new ApiError(404, 'User not found, please signup first');
-  }
 
   const provider = OtpFactory.getProvider();
-  return await provider.send(phone);
+  const sendResult = await provider.send(phone);
+
+  return {
+    ...sendResult,
+    isNewUser: !user,
+  };
 };
 
 export const verifyOtp = async (rawPhone: string, otpCode: string) => {
