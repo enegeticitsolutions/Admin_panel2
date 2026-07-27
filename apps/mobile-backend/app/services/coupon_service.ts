@@ -48,6 +48,31 @@ export const validateCoupon = async (
     });
 
     if (!coupon) {
+      // Check if it's a Volunteer Reward Gift Card Voucher!
+      const giftCoupon = await prisma.volunteerRewardCoupon.findUnique({
+        where: { code }
+      });
+
+      if (giftCoupon) {
+        if (giftCoupon.status === 'CLAIMED') {
+          return { isValid: false, message: 'This MHN Gift Card has already been claimed and used.', discountApplied: 0, finalAmount: orderAmount };
+        }
+        if (giftCoupon.status !== 'ACTIVE') {
+          return { isValid: false, message: 'This MHN Gift Card is no longer active.', discountApplied: 0, finalAmount: orderAmount };
+        }
+        // It's active! Apply flat discount equal to valueRs!
+        const discountApplied = Math.min(giftCoupon.valueRs, orderAmount);
+        const finalAmount = Math.max(0, orderAmount - discountApplied);
+        await logCouponAttempt(code, userId, 'SUCCESS', 'Volunteer Gift Card applied');
+        return {
+          isValid: true,
+          couponId: giftCoupon.id,
+          discountApplied,
+          finalAmount,
+          message: `MHN Gift Card applied! You saved ₹${discountApplied}.`
+        };
+      }
+
       await logCouponAttempt(code, userId, 'FAIL', 'Coupon does not exist');
       return { isValid: false, message: 'Invalid coupon code', discountApplied: 0, finalAmount: orderAmount };
     }
@@ -145,25 +170,48 @@ export const applyCoupon = async (
   orderAmount: number,
   discountApplied: number
 ) => {
-  // 1. Record Usage
-  await prisma.couponUsage.create({
-    data: {
-      id: generateUUID(),
-      couponId,
-      userId,
-      subscriptionId,
-      orderAmount,
-      discountApplied
-    }
+  // Check if it's a regular coupon first
+  const regularCoupon = await prisma.coupon.findUnique({
+    where: { id: couponId }
   });
 
-  // 2. Increment Global Usage Count
-  await prisma.coupon.update({
-    where: { id: couponId },
-    data: {
-      usedCount: {
-        increment: 1
+  if (regularCoupon) {
+    // 1. Record Usage
+    await prisma.couponUsage.create({
+      data: {
+        id: generateUUID(),
+        couponId,
+        userId,
+        subscriptionId,
+        orderAmount,
+        discountApplied
       }
-    }
+    });
+
+    // 2. Increment Global Usage Count
+    await prisma.coupon.update({
+      where: { id: couponId },
+      data: {
+        usedCount: {
+          increment: 1
+        }
+      }
+    });
+    return;
+  }
+
+  // Otherwise check if it is a Volunteer Reward Gift Card
+  const giftCoupon = await prisma.volunteerRewardCoupon.findUnique({
+    where: { id: couponId }
   });
+  if (giftCoupon && giftCoupon.status === 'ACTIVE') {
+    await prisma.volunteerRewardCoupon.update({
+      where: { id: couponId },
+      data: {
+        status: 'CLAIMED',
+        claimedByUserId: userId,
+        claimedAt: new Date()
+      }
+    });
+  }
 };

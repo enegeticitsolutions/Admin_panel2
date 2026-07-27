@@ -1851,6 +1851,7 @@ model Volunteer {
   visitLogs          VolunteerVisitLog[]
   creditTransactions VolunteerCreditTransaction[]
   sathiVisitRequests SathiVisitRequest[]
+  rewardCoupons      VolunteerRewardCoupon[]
 
   @@map("volunteers")
 }
@@ -1915,6 +1916,43 @@ model VolunteerCreditTransaction {
   volunteer   Volunteer           @relation(fields: [volunteerId], references: [id])
 
   @@map("volunteer_credit_transactions")
+}
+
+// ─── Dynamic Reward Options & Gift Vouchers ─────────────────────────────────
+
+model VolunteerRewardOption {
+  id             String   @id @default(uuid())
+  title          String   // e.g., "MHN Gift Card ₹500"
+  rewardType     String   // "MHN_GIFT_CARD" | "UPI_TRANSFER"
+  pointsRequired Int      // e.g., 50
+  valueRs        Float    // e.g., 500.0
+  description    String?  
+  isActive       Boolean  @default(true)
+  displayOrder   Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  coupons        VolunteerRewardCoupon[]
+
+  @@map("volunteer_reward_options")
+}
+
+model VolunteerRewardCoupon {
+  id              String                 @id @default(uuid())
+  code            String                 @unique // e.g., MHN-GIFT-8A49-209B
+  volunteerId     String                 // FK -> Volunteer.id
+  rewardOptionId  String?                // FK -> VolunteerRewardOption.id
+  pointsRedeemed  Int                    
+  valueRs         Float                  
+  status          String                 @default("ACTIVE") // 'ACTIVE' | 'CLAIMED' | 'EXPIRED' | 'CANCELLED'
+  claimedAt       DateTime?              
+  claimedByUserId String?                // FK to User who claimed/purchased a package with it
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+  volunteer       Volunteer              @relation(fields: [volunteerId], references: [id])
+  rewardOption    VolunteerRewardOption? @relation(fields: [rewardOptionId], references: [id])
+
+  @@map("volunteer_reward_coupons")
 }
 
 // ─── Enums ──────────────────────────────────────────────────────────────────

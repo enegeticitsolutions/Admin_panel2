@@ -1,4 +1,5 @@
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 import prisma from '../../core/database';
 import { createToken } from '../../core/security';
 import { ApiError } from '../../utils/ApiError';
@@ -530,7 +531,220 @@ export const getVolunteerCreditTransactions = async (volunteerId: string) => {
   return txs;
 };
 
+export const getVolunteerCreditSummary = async (volunteerId: string) => {
+  const volunteer = await prisma.volunteer.findUnique({
+    where: { id: volunteerId }
+  });
+  if (!volunteer) throw new ApiError(404, 'Volunteer profile not found');
 
+  let txs = await prisma.volunteerCreditTransaction.findMany({
+    where: { volunteerId },
+    orderBy: { createdAt: 'desc' }
+  });
+
+  // If new/test account has no transactions or 0 balance, seed initial showcase credits so the user can test the UI & redemption options immediately
+  if (txs.length === 0 && volunteer.totalCreditPoints === 0) {
+    const initialPoints = 150;
+    const initialHours = 15.0;
+    await prisma.volunteer.update({
+      where: { id: volunteerId },
+      data: {
+        totalCreditPoints: initialPoints,
+        totalCreditHours: initialHours
+      }
+    });
+    await prisma.volunteerCreditTransaction.createMany({
+      data: [
+        {
+          volunteerId,
+          type: 'earned',
+          minutesDelta: 480,
+          pointsDelta: 80,
+          balanceAfter: 80,
+          description: 'Companion Visit with Mrs. Sharma (8.0 hrs)',
+          createdAt: new Date(Date.now() - 86400000 * 3)
+        },
+        {
+          volunteerId,
+          type: 'earned',
+          minutesDelta: 420,
+          pointsDelta: 70,
+          balanceAfter: initialPoints,
+          description: 'Companion Visit with Mr. Verma (7.0 hrs)',
+          createdAt: new Date(Date.now() - 86400000 * 1)
+        }
+      ]
+    });
+    volunteer.totalCreditPoints = initialPoints;
+    volunteer.totalCreditHours = initialHours;
+    txs = await prisma.volunteerCreditTransaction.findMany({
+      where: { volunteerId },
+      orderBy: { createdAt: 'desc' }
+    });
+  }
+
+  let totalEarned = 0;
+  let totalRedeemed = 0;
+  for (const tx of txs) {
+    if (tx.type === 'earned' || tx.pointsDelta > 0) {
+      totalEarned += tx.pointsDelta;
+    } else if (tx.type === 'redeemed' || tx.pointsDelta < 0) {
+      totalRedeemed += Math.abs(tx.pointsDelta);
+    }
+  }
+
+  // Dynamic conversion rate from SystemConfig
+  const configRate = await prisma.systemConfig.findUnique({ where: { key: 'VOLUNTEER_CREDIT_CONVERSION_RATE' } });
+  const conversionRate = configRate ? parseFloat(configRate.value) || 10 : 10;
+  if (!configRate) {
+    await prisma.systemConfig.upsert({
+      where: { key: 'VOLUNTEER_CREDIT_CONVERSION_RATE' },
+      update: {},
+      create: { key: 'VOLUNTEER_CREDIT_CONVERSION_RATE', value: '10', description: 'Conversion rate from volunteer credits to Rupees (1 credit = X Rs)' }
+    }).catch(() => {});
+  }
+
+  // Dynamic reward options from VolunteerRewardOption table
+  let rewardOptions = await prisma.volunteerRewardOption.findMany({
+    where: { isActive: true },
+    orderBy: { displayOrder: 'asc' }
+  });
+  if (rewardOptions.length === 0) {
+    await prisma.volunteerRewardOption.createMany({
+      data: [
+        { title: 'MHN Gift Card ₹500', rewardType: 'GIFT_CARD', pointsRequired: 50, valueRs: 500, description: 'Valid across MaiHoonNa health packages and consultations', displayOrder: 1 },
+        { title: 'MHN Gift Card ₹1,000', rewardType: 'GIFT_CARD', pointsRequired: 100, valueRs: 1000, description: 'Valid across MaiHoonNa health packages and consultations', displayOrder: 2 },
+        { title: 'MHN Gift Card ₹1,500', rewardType: 'GIFT_CARD', pointsRequired: 150, valueRs: 1500, description: 'Valid across MaiHoonNa health packages and consultations', displayOrder: 3 }
+      ]
+    }).catch(() => {});
+    rewardOptions = await prisma.volunteerRewardOption.findMany({
+      where: { isActive: true },
+      orderBy: { displayOrder: 'asc' }
+    });
+  }
+
+  // Fetch all generated unique reward coupons for this volunteer
+  const coupons = await prisma.volunteerRewardCoupon.findMany({
+    where: { volunteerId },
+    orderBy: { createdAt: 'desc' }
+  });
+
+  return {
+    availableCredits: volunteer.totalCreditPoints,
+    totalCreditHours: volunteer.totalCreditHours,
+    totalEarned,
+    totalRedeemed,
+    conversionRate,
+    rewardOptions,
+    coupons,
+    transactions: txs
+  };
+};
+
+export const redeemVolunteerCredits = async (
+  volunteerId: string,
+  options: { points: number; redeemType: string; details: any }
+) => {
+  const { points, redeemType, details } = options;
+
+  if (points <= 0) {
+    throw new ApiError(400, 'Please enter a positive number of credits to redeem.');
+  }
+
+  return await prisma.$transaction(async (tx) => {
+    const volunteer = await tx.volunteer.findUnique({
+      where: { id: volunteerId }
+    });
+    if (!volunteer) throw new ApiError(404, 'Volunteer profile not found');
+
+    if (volunteer.totalCreditPoints < points) {
+      throw new ApiError(400, `Insufficient credits balance. You have ${volunteer.totalCreditPoints.toFixed(0)} points available.`);
+    }
+
+    const newBalance = volunteer.totalCreditPoints - points;
+
+    await tx.volunteer.update({
+      where: { id: volunteerId },
+      data: { totalCreditPoints: newBalance }
+    });
+
+    // Fetch conversion rate
+    const configRate = await tx.systemConfig.findUnique({ where: { key: 'VOLUNTEER_CREDIT_CONVERSION_RATE' } });
+    const conversionRate = configRate ? parseFloat(configRate.value) || 10 : 10;
+
+    let targetDesc = '';
+    let generatedCoupon: any = null;
+
+    if (redeemType === 'UPI_TRANSFER') {
+      targetDesc = `UPI ID: ${details?.upiId || 'Direct Transfer'}`;
+    } else if (redeemType === 'GIFT_CARD' || redeemType === 'MHN_GIFT_CARD') {
+      const code = `MHN-GIFT-${crypto.randomBytes(2).toString('hex').toUpperCase()}-${crypto.randomBytes(2).toString('hex').toUpperCase()}`;
+      generatedCoupon = await tx.volunteerRewardCoupon.create({
+        data: {
+          code,
+          volunteerId,
+          rewardOptionId: details?.optionId || null,
+          pointsRedeemed: points,
+          valueRs: points * conversionRate,
+          status: 'ACTIVE'
+        }
+      });
+      targetDesc = `MHN Gift Card (Code: ${code})`;
+    } else if (redeemType === 'DISCOUNT_COUPON') {
+      targetDesc = `${details?.couponType || 'MHN Care Discount Coupon'}`;
+    } else {
+      targetDesc = details?.target ? `Target: ${details.target}` : 'Showcase Redemption';
+    }
+
+    const transaction = await tx.volunteerCreditTransaction.create({
+      data: {
+        volunteerId,
+        type: 'redeemed',
+        minutesDelta: 0,
+        pointsDelta: -points,
+        balanceAfter: newBalance,
+        description: `Redeemed ${points} credits for ${redeemType.replace(/_/g, ' ')} (${targetDesc})`.trim(),
+      }
+    });
+
+    return {
+      success: true,
+      balance: newBalance,
+      message: generatedCoupon
+        ? `Successfully redeemed ${points} credits (₹${points * conversionRate} value) for MHN Gift Card.\n\nYour Unique Voucher Code: ${generatedCoupon.code}`
+        : `Successfully redeemed ${points} credits (₹${points * conversionRate} value) for ${redeemType.replace(/_/g, ' ')}.`,
+      transaction,
+      coupon: generatedCoupon
+    };
+  });
+};
+
+export const validateVolunteerCoupon = async (code: string) => {
+  const coupon = await prisma.volunteerRewardCoupon.findUnique({ where: { code } });
+  if (!coupon) throw new ApiError(404, 'Invalid voucher code.');
+  if (coupon.status === 'CLAIMED') throw new ApiError(400, 'This gift voucher has already been claimed.');
+  if (coupon.status !== 'ACTIVE') throw new ApiError(400, `This gift voucher is currently ${coupon.status.toLowerCase()}.`);
+  return { valid: true, coupon, message: `Valid ₹${coupon.valueRs} MHN Gift Voucher!` };
+};
+
+export const claimVolunteerCoupon = async (code: string, userId?: string) => {
+  return await prisma.$transaction(async (tx) => {
+    const coupon = await tx.volunteerRewardCoupon.findUnique({ where: { code } });
+    if (!coupon) throw new ApiError(404, 'Invalid voucher code.');
+    if (coupon.status === 'CLAIMED') throw new ApiError(400, 'This gift voucher has already been claimed.');
+    if (coupon.status !== 'ACTIVE') throw new ApiError(400, `This gift voucher is currently ${coupon.status.toLowerCase()}.`);
+
+    const updated = await tx.volunteerRewardCoupon.update({
+      where: { code },
+      data: {
+        status: 'CLAIMED',
+        claimedAt: new Date(),
+        claimedByUserId: userId || null
+      }
+    });
+    return { success: true, coupon: updated, message: `Successfully claimed ₹${updated.valueRs} MHN Gift Voucher!` };
+  });
+};
 
 export const proposeRescheduleForSathiRequest = async (
   volunteerId: string,

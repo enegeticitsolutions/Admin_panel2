@@ -538,23 +538,44 @@ export const purchaseSubscription = async (
 
     // 4. Record Coupon Usage (if a coupon was successfully applied)
     if (appliedCouponId && couponCode) {
-      await tx.couponUsage.create({
-        data: {
-          id: generateUUID(),
-          couponId: appliedCouponId,
-          userId,
-          subscriptionId: subscription.id,
-          orderAmount: subPackage.basePrice,
-          discountApplied: discountAmount
-        }
+      const isRegularCoupon = await tx.coupon.findUnique({
+        where: { id: appliedCouponId }
       });
 
-      await tx.coupon.update({
-        where: { id: appliedCouponId },
-        data: {
-          usedCount: { increment: 1 }
+      if (isRegularCoupon) {
+        await tx.couponUsage.create({
+          data: {
+            id: generateUUID(),
+            couponId: appliedCouponId,
+            userId,
+            subscriptionId: subscription.id,
+            orderAmount: subPackage.basePrice,
+            discountApplied: discountAmount
+          }
+        });
+
+        await tx.coupon.update({
+          where: { id: appliedCouponId },
+          data: {
+            usedCount: { increment: 1 }
+          }
+        });
+      } else {
+        // It must be a Volunteer Reward Gift Card Voucher!
+        const isGiftCoupon = await tx.volunteerRewardCoupon.findUnique({
+          where: { id: appliedCouponId }
+        });
+        if (isGiftCoupon && isGiftCoupon.status === 'ACTIVE') {
+          await tx.volunteerRewardCoupon.update({
+            where: { id: appliedCouponId },
+            data: {
+              status: 'CLAIMED',
+              claimedByUserId: userId,
+              claimedAt: new Date()
+            }
+          });
         }
-      });
+      }
     }
 
     return {
