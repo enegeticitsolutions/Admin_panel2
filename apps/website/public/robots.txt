@@ -1,0 +1,9 @@
+# MaiHoonNa - Senior Care Ecosystem
+# https://maihoonna.in
+
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /submit-form
+
+Sitemap: https://maihoonna.in/sitemap.xml
