@@ -10,6 +10,8 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
+    "export": "CI=1 EXPO_NO_INTERACTIVE=1 BROWSER=none expo export --non-interactive",
+    "build:web": "CI=1 EXPO_NO_INTERACTIVE=1 BROWSER=none expo export --platform web --non-interactive",
     "lint": "expo lint"
   },
   "dependencies": {
