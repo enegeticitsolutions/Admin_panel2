@@ -17,7 +17,9 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import DateTimePicker from '@/components/ui/DateTimePickerWrapper';
+
+
 import { API_URL } from '@/constants/api';
 import { useNavigationStack } from '@/contexts/NavigationStackContext';
 import { useAndroidBackHandler } from '@/hooks/useAndroidBackHandler';
@@ -549,7 +551,7 @@ export default function ApplyVolunteerScreen() {
                         mode="date"
                         display="spinner"
                         maximumDate={new Date(new Date().setFullYear(new Date().getFullYear() - 18))}
-                        onChange={(event, selectedDate) => {
+                        onChange={(event: any, selectedDate?: Date) => {
                           if (selectedDate) setDateOfBirth(selectedDate);
                         }}
                       />
@@ -563,7 +565,7 @@ export default function ApplyVolunteerScreen() {
                     mode="date"
                     display="default"
                     maximumDate={new Date(new Date().setFullYear(new Date().getFullYear() - 18))}
-                    onChange={(event, selectedDate) => {
+                    onChange={(event: any, selectedDate?: Date) => {
                       setShowDatePicker(false);
                       if (selectedDate) setDateOfBirth(selectedDate);
                     }}

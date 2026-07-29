@@ -12,6 +12,7 @@ import {
   Alert,
   Modal,
   TextInput,
+  Dimensions,
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter, useFocusEffect } from 'expo-router';
@@ -23,8 +24,8 @@ import { SathiBottomNav } from '@/components/shared/SathiBottomNav';
 import { useExitOnBack } from '@/hooks/useExitOnBack';
 import { useNavigationStack } from '@/contexts/NavigationStackContext';
 import { useAndroidBackHandler } from '@/hooks/useAndroidBackHandler';
-import DateTimePicker from '@react-native-community/datetimepicker';
-import { Dimensions } from 'react-native';
+import DateTimePicker from '@/components/ui/DateTimePickerWrapper';
+
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const scale = (size: number) => Math.round((SCREEN_WIDTH / 390) * size);
@@ -1261,7 +1262,7 @@ const RescheduleModal = ({ visible, requestId, onClose, onSuccess }: { visible: 
               mode={showDatePicker ? 'date' : 'time'}
               display="default"
               minimumDate={new Date()}
-              onChange={(event, selectedDate) => {
+              onChange={(event: any, selectedDate?: Date) => {
                 if (Platform.OS === 'android') {
                   setShowDatePicker(false);
                   setShowTimePicker(false);

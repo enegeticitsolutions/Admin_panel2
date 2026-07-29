@@ -13,7 +13,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as SecureStore from 'expo-secure-store';
+
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -92,8 +92,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     ];
     if (Platform.OS !== 'web') {
       promises.push(
-        SecureStore.setItemAsync('secureUserToken', token),
-        SecureStore.setItemAsync('secureUserData', JSON.stringify(userData))
+        require('expo-secure-store').setItemAsync('secureUserToken', token),
+        require('expo-secure-store').setItemAsync('secureUserData', JSON.stringify(userData))
       );
     }
     await Promise.all(promises);
@@ -114,8 +114,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     ];
     if (Platform.OS !== 'web') {
       promises.push(
-        SecureStore.setItemAsync('secureUserToken', token),
-        SecureStore.setItemAsync('secureUserData', JSON.stringify(userData))
+        require('expo-secure-store').setItemAsync('secureUserToken', token),
+        require('expo-secure-store').setItemAsync('secureUserData', JSON.stringify(userData))
       );
     }
     await Promise.all(promises);
@@ -134,8 +134,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await AsyncStorage.removeItem('userData');
       await AsyncStorage.clear();
       if (Platform.OS !== 'web') {
-        await SecureStore.deleteItemAsync('secureUserToken').catch(() => {});
-        await SecureStore.deleteItemAsync('secureUserData').catch(() => {});
+        await require('expo-secure-store').deleteItemAsync('secureUserToken').catch(() => {});
+        await require('expo-secure-store').deleteItemAsync('secureUserData').catch(() => {});
       }
     } catch (err) {
       console.error('[AuthContext] Failed to clear session on logout:', err);
