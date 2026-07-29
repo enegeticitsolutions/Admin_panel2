@@ -35,14 +35,16 @@ export default function AuthScreen() {
   const [otpSent, setOtpSent] = useState(false);
   const [otpCode, setOtpCode] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
   const { push, replace } = useNavigationStack();
   useAndroidBackHandler();
   const { login } = useAuth();
   const router = useRouter();
 
   const handleSendOtp = async () => {
+    setErrorMessage('');
     if (form.phone.length !== 10) {
-      Alert.alert('Invalid Input', 'Please enter a valid 10-digit phone number.');
+      setErrorMessage('Please enter a valid 10-digit phone number.');
       return;
     }
 
@@ -59,21 +61,21 @@ export default function AuthScreen() {
       const data = await response.json();
       if (response.ok || data.success) {
         setOtpSent(true);
-        Alert.alert('OTP Sent', 'One-Time Password has been sent to your phone.');
       } else {
-        Alert.alert('Failed to Send OTP', data.message || 'Account not found. Please register first.');
+        setErrorMessage(data.message || 'Account not found. Please register first.');
       }
     } catch (error) {
       console.error('OTP Send Error:', error);
-      Alert.alert('Network Error', 'Could not connect to the backend server.');
+      setErrorMessage('Could not connect to the backend server.');
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleVerifyOtp = async () => {
+    setErrorMessage('');
     if (otpCode.length < 4) {
-      Alert.alert('Invalid Input', 'Please enter a valid OTP code.');
+      setErrorMessage('Please enter a valid OTP code.');
       return;
     }
 
@@ -94,23 +96,24 @@ export default function AuthScreen() {
         await login(result.token, result.volunteer || result.user);
         replace('/(sathi)');
       } else {
-        Alert.alert('Verification Failed', data.message || 'Invalid or expired OTP code.');
+        setErrorMessage(data.message || 'Invalid or expired OTP code.');
       }
     } catch (error) {
       console.error('OTP Verify Error:', error);
-      Alert.alert('Network Error', 'Could not connect to the backend server.');
+      setErrorMessage('Could not connect to the backend server.');
     } finally {
       setIsLoading(false);
     }
   };
 
   const handlePasswordLogin = async () => {
+    setErrorMessage('');
     if (form.phone.length !== 10) {
-      Alert.alert('Invalid Input', 'Please enter a valid 10-digit phone number.');
+      setErrorMessage('Please enter a valid 10-digit phone number.');
       return;
     }
     if (!form.password) {
-      Alert.alert('Missing Fields', 'Please enter your password.');
+      setErrorMessage('Please enter your password.');
       return;
     }
 
@@ -135,11 +138,11 @@ export default function AuthScreen() {
         // Navigate to the volunteer layout
         replace('/(sathi)');
       } else {
-        Alert.alert('Login Failed', data.message || 'Invalid credentials or review in progress.');
+        setErrorMessage(data.message || 'Invalid credentials or review in progress.');
       }
     } catch (error) {
       console.error('Login Error:', error);
-      Alert.alert('Network Error', 'Could not connect to the backend server.');
+      setErrorMessage('Could not connect to the backend server.');
     } finally {
       setIsLoading(false);
     }
@@ -172,6 +175,13 @@ export default function AuthScreen() {
             style={styles.card}
           >
             <Text style={styles.title}>Saathi Login</Text>
+            
+            {!!errorMessage && (
+              <View style={styles.errorContainer}>
+                <MaterialCommunityIcons name="alert-circle" size={scale(18)} color="#DC2626" />
+                <Text style={styles.errorText}>{errorMessage}</Text>
+              </View>
+            )}
 
             <Text style={styles.label}>Phone Number</Text>
             <View style={styles.inputRow}>
@@ -189,6 +199,7 @@ export default function AuthScreen() {
                 onChangeText={(text) => {
                   setForm({ ...form, phone: text });
                   if (otpSent) setOtpSent(false);
+                  if (errorMessage) setErrorMessage('');
                 }}
                 editable={!isLoading}
               />
@@ -204,7 +215,10 @@ export default function AuthScreen() {
                     placeholderTextColor="#9CA3AF"
                     secureTextEntry
                     value={form.password}
-                    onChangeText={(text) => setForm({ ...form, password: text })}
+                    onChangeText={(text) => {
+                      setForm({ ...form, password: text });
+                      if (errorMessage) setErrorMessage('');
+                    }}
                     editable={!isLoading}
                   />
                 </View>
@@ -235,7 +249,10 @@ export default function AuthScreen() {
                         keyboardType="numeric"
                         maxLength={6}
                         value={otpCode}
-                        onChangeText={setOtpCode}
+                        onChangeText={(text) => {
+                          setOtpCode(text);
+                          if (errorMessage) setErrorMessage('');
+                        }}
                         editable={!isLoading}
                       />
                     </View>
@@ -264,6 +281,7 @@ export default function AuthScreen() {
                 setLoginMode(loginMode === 'password' ? 'otp' : 'password');
                 setOtpSent(false);
                 setOtpCode('');
+                setErrorMessage('');
               }}
               style={styles.modeToggleBtn}
             >
@@ -338,6 +356,21 @@ const styles = StyleSheet.create({
     color: '#111827',
     marginBottom: scale(24),
     textAlign: 'center',
+  },
+  errorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEE2E2',
+    padding: scale(12),
+    borderRadius: scale(8),
+    marginBottom: scale(16),
+  },
+  errorText: {
+    color: '#DC2626',
+    fontSize: scale(13),
+    fontWeight: '500',
+    marginLeft: scale(8),
+    flex: 1,
   },
   label: {
     fontSize: scale(13),
