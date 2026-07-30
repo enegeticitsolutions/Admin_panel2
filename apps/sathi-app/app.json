@@ -10,6 +10,7 @@
     "icon": "./assets/images/icon.png",
     "scheme": "sathinetwork",
     "userInterfaceStyle": "automatic",
+    "primaryColor": "#FE6700",
     "ios": {
       "supportsTablet": true,
       "config": {
