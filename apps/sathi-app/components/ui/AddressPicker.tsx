@@ -10,6 +10,8 @@ export interface SelectedAddress {
   city?: string;
   state?: string;
   pincode?: string;
+  flatPlot?: string;
+  streetArea?: string;
 }
 
 interface AddressPickerProps {

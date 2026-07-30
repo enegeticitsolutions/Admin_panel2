@@ -24,7 +24,7 @@ import { SathiBottomNav } from '@/components/shared/SathiBottomNav';
 import { useExitOnBack } from '@/hooks/useExitOnBack';
 import { useNavigationStack } from '@/contexts/NavigationStackContext';
 import { useAndroidBackHandler } from '@/hooks/useAndroidBackHandler';
-import DateTimePicker from '@/components/ui/DateTimePickerWrapper';
+import DateTimePickerModal from "react-native-modal-datetime-picker";
 
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -61,9 +61,11 @@ export default function SathiDashboard() {
   const [savingProfile, setSavingProfile] = useState(false);
   const [fetchingProfile, setFetchingProfile] = useState(false);
 
-  // Reschedule modal states
+  // Modal states
   const [showRescheduleModal, setShowRescheduleModal] = useState(false);
-  const [rescheduleRequestId, setRescheduleRequestId] = useState<string | null>(null);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [selectedRequest, setSelectedRequest] = useState<any | null>(null);
+  const [successMessage, setSuccessMessage] = useState<{title: string, message: string} | null>(null);
 
   // OTP Verification States
   const [showOtpModal, setShowOtpModal] = useState(false);
@@ -320,10 +322,6 @@ export default function SathiDashboard() {
     }
   };
 
-  const handleOpenReschedule = (requestId: string) => {
-    setRescheduleRequestId(requestId);
-    setShowRescheduleModal(true);
-  };
 
 
   const submitResponse = async (requestId: string, action: 'ACCEPT' | 'REJECT', reason?: string) => {
@@ -781,9 +779,12 @@ export default function SathiDashboard() {
         <View style={styles.header}>
           <View>
             <Text style={styles.welcomeText}>Welcome back, {dashboard?.name || 'Saathi'}!</Text>
-            <Text style={styles.locationText}>
-              📍 {[dashboard?.city, dashboard?.state].filter(Boolean).join(', ') || 'Location pending'}
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: scale(4) }}>
+              <Ionicons name="location-outline" size={14} color="#6B7280" />
+              <Text style={styles.locationText}>
+                {[dashboard?.city, dashboard?.state].filter(Boolean).join(', ') || 'Location pending'}
+              </Text>
+            </View>
           </View>
           <TouchableOpacity style={styles.notificationBell}>
             <Ionicons name="notifications-outline" size={24} color="#111827" />
@@ -793,8 +794,8 @@ export default function SathiDashboard() {
         {/* Stats Grid */}
         <View style={styles.statsGrid}>
           <View style={styles.statCard}>
-            <View style={[styles.statIconContainer, { backgroundColor: '#E3F2FD' }]}>
-              <Ionicons name="time" size={20} color="#2196F3" />
+            <View style={[styles.statIconContainer, { backgroundColor: '#EAF2FF' }]}>
+              <Ionicons name="time-outline" size={22} color="#4B93FF" />
             </View>
             <View>
               <Text style={styles.statVal}>{dashboard?.totalCreditHours?.toFixed(1) || '0.0'}</Text>
@@ -803,8 +804,8 @@ export default function SathiDashboard() {
           </View>
 
           <View style={styles.statCard}>
-            <View style={[styles.statIconContainer, { backgroundColor: '#E8F5E9' }]}>
-              <Ionicons name="people" size={20} color="#4CAF50" />
+            <View style={[styles.statIconContainer, { backgroundColor: '#E6F7F1' }]}>
+              <Ionicons name="people-outline" size={22} color="#1FB474" />
             </View>
             <View>
               <Text style={styles.statVal}>{dashboard?.beneficiariesCount || 0}</Text>
@@ -816,28 +817,33 @@ export default function SathiDashboard() {
         {/* Companion Rewards & Credits Banner */}
         <TouchableOpacity
           style={{
-            backgroundColor: '#111827',
+            backgroundColor: '#FFFFFF',
             borderRadius: scale(16),
             padding: scale(16),
             marginBottom: scale(16),
             flexDirection: 'row',
             alignItems: 'center',
             borderWidth: 1,
-            borderColor: '#374151',
+            borderColor: '#FFE3D1',
+            shadowColor: '#FE6700',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.05,
+            shadowRadius: 8,
+            elevation: 2,
           }}
           onPress={() => router.push('/(sathi)/credits')}
         >
-          <View style={{ width: scale(44), height: scale(44), borderRadius: scale(12), backgroundColor: '#FE6700', justifyContent: 'center', alignItems: 'center' }}>
-            <Ionicons name="gift" size={24} color="#FFFFFF" />
+          <View style={{ width: scale(44), height: scale(44), borderRadius: scale(12), backgroundColor: '#FFF5ED', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#FFE3D1' }}>
+            <Ionicons name="gift-outline" size={24} color="#FF6F00" />
           </View>
           <View style={{ flex: 1, marginLeft: scale(12) }}>
-            <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: scale(15) }}>Companion Rewards Program</Text>
-            <Text style={{ color: '#FFB74D', fontSize: scale(12), marginTop: scale(2) }}>
-              {dashboard?.totalCreditPoints !== undefined ? `${dashboard.totalCreditPoints.toFixed(0)} Credits Available (₹${dashboard.totalCreditPoints.toFixed(0) * 10} Value)` : 'Earn & redeem gift vouchers & UPI'}
+            <Text style={{ color: '#111827', fontWeight: '700', fontSize: scale(15) }}>Companion Rewards</Text>
+            <Text style={{ color: '#4B5563', fontSize: scale(12), marginTop: scale(2) }}>
+              {dashboard?.totalCreditPoints !== undefined ? `${dashboard.totalCreditPoints.toFixed(0)} Credits Available` : 'Earn & redeem vouchers'}
             </Text>
           </View>
-          <View style={{ backgroundColor: 'rgba(254, 103, 0, 0.2)', paddingHorizontal: scale(10), paddingVertical: scale(6), borderRadius: scale(10), borderWidth: 1, borderColor: '#FE6700' }}>
-            <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: scale(12) }}>Redeem →</Text>
+          <View style={{ paddingHorizontal: scale(12), paddingVertical: scale(6), borderRadius: scale(12), borderWidth: 1, borderColor: '#FF6F00' }}>
+            <Text style={{ color: '#FF6F00', fontWeight: '700', fontSize: scale(12) }}>Redeem</Text>
           </View>
         </TouchableOpacity>
 
@@ -859,7 +865,10 @@ export default function SathiDashboard() {
 
         {/* Upcoming Visits */}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Upcoming Visits</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Ionicons name="calendar-outline" size={scale(20)} color="#FF6F00" style={{ marginRight: scale(8) }} />
+            <Text style={styles.sectionTitle}>Upcoming Visits</Text>
+          </View>
         </View>
 
         {dashboard?.upcomingVisits && dashboard.upcomingVisits.length > 0 ? (
@@ -894,7 +903,7 @@ export default function SathiDashboard() {
             return (
               <View key={item.id} style={[styles.requestCard, { padding: scale(16), marginBottom: scale(16) }]}>
                 <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
-                  <Image source={{ uri: sanitizeImageUri(item.photo) }} style={{ width: scale(56), height: scale(56), borderRadius: scale(12), marginRight: scale(14) }} />
+                  <Image source={{ uri: sanitizeImageUri(item.photo) }} style={{ width: scale(56), height: scale(56), borderRadius: scale(16), marginRight: scale(14) }} />
                   <View style={{ flex: 1 }}>
                     <Text style={{ fontSize: scale(16), color: '#111827', fontFamily: 'Poppins-SemiBold', marginBottom: scale(4) }}>
                       {item.name}{item.age ? `, ${item.age}` : ''}
@@ -904,8 +913,8 @@ export default function SathiDashboard() {
                       <Text style={{ fontSize: scale(13), color: '#6B7280', fontFamily: 'Poppins-Regular', marginLeft: scale(4) }}>{item.location || 'Delhi'}</Text>
                     </View>
                   </View>
-                  <View style={{ backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#2196F3', paddingHorizontal: scale(10), paddingVertical: scale(4), borderRadius: scale(12) }}>
-                    <Text style={{ fontSize: scale(12), color: '#2196F3', fontFamily: 'Poppins-Medium' }}>{item.distance || '1.2 km'}</Text>
+                  <View style={{ backgroundColor: '#EAF2FF', borderWidth: 1, borderColor: '#4B93FF', paddingHorizontal: scale(8), paddingVertical: scale(2), borderRadius: scale(12) }}>
+                    <Text style={{ fontSize: scale(11), color: '#4B93FF', fontFamily: 'Poppins-Medium' }}>{item.distance || '1.2 km'}</Text>
                   </View>
                 </View>
 
@@ -915,7 +924,7 @@ export default function SathiDashboard() {
                 {/* Bottom Row */}
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                   <Text style={{ fontSize: scale(13), color: '#4B5563', fontFamily: 'Poppins-Medium' }}>{formattedDate}</Text>
-                  <Text style={{ fontSize: scale(13), color: '#4B5563', fontFamily: 'Poppins-Medium' }}>{formattedTime}</Text>
+                  <Text style={{ fontSize: scale(13), color: '#6B7280', fontFamily: 'Poppins-Medium' }}>{item.visitCount || 0} visits</Text>
                 </View>
 
                 {/* Start Visit Button OR Countdown OR IN PROGRESS */}
@@ -957,7 +966,13 @@ export default function SathiDashboard() {
 
         {/* Visit Requests */}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Visit Requests</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Ionicons name="people-outline" size={scale(20)} color="#FF6F00" style={{ marginRight: scale(8) }} />
+            <Text style={styles.sectionTitle}>Visit Requests</Text>
+          </View>
+          <TouchableOpacity style={{ paddingHorizontal: scale(12), paddingVertical: scale(4), borderRadius: scale(20), borderWidth: 1, borderColor: '#FF6F00' }}>
+            <Text style={{ color: '#FF6F00', fontSize: scale(12), fontFamily: 'Poppins-SemiBold' }}>View All</Text>
+          </TouchableOpacity>
         </View>
 
         {dashboard?.visitRequests && dashboard.visitRequests.length > 0 ? (
@@ -973,22 +988,22 @@ export default function SathiDashboard() {
             return (
               <View key={item.id} style={[styles.requestCard, { padding: scale(16), marginBottom: scale(16) }]}>
                 <View style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: scale(16) }}>
-                  <Image source={{ uri: sanitizeImageUri(item.photo) }} style={{ width: scale(65), height: scale(65), borderRadius: scale(12), marginRight: scale(16) }} />
-                  <View style={{ flex: 1, paddingTop: scale(4) }}>
-                    <Text style={{ fontSize: scale(18), color: '#000000', fontFamily: 'Poppins-SemiBold', marginBottom: scale(4) }}>
+                  <Image source={{ uri: sanitizeImageUri(item.photo) }} style={{ width: scale(56), height: scale(56), borderRadius: scale(16), marginRight: scale(14) }} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: scale(16), color: '#111827', fontFamily: 'Poppins-SemiBold', marginBottom: scale(4) }}>
                       {item.name}{item.age ? `, ${item.age}` : ''}
                     </Text>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: scale(4) }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                       <Ionicons name="location-outline" size={14} color="#6B7280" />
-                      <Text style={{ fontSize: scale(14), color: '#6B7280', fontFamily: 'Poppins-Regular' }}>{item.location || 'Delhi'}</Text>
+                      <Text style={{ fontSize: scale(13), color: '#6B7280', fontFamily: 'Poppins-Regular', marginLeft: scale(4) }}>{item.location || 'Delhi'}</Text>
                     </View>
                   </View>
-                  <View style={{ backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#2196F3', paddingHorizontal: scale(8), paddingVertical: scale(4), borderRadius: scale(12) }}>
-                    <Text style={{ fontSize: scale(11), color: '#2196F3', fontFamily: 'Poppins-SemiBold' }}>{item.distance || '1.2 km'}</Text>
+                  <View style={{ backgroundColor: '#EAF2FF', borderWidth: 1, borderColor: '#4B93FF', paddingHorizontal: scale(8), paddingVertical: scale(2), borderRadius: scale(12) }}>
+                    <Text style={{ fontSize: scale(11), color: '#4B93FF', fontFamily: 'Poppins-Medium' }}>{item.distance || '1.2 km'}</Text>
                   </View>
                 </View>
 
-                {item.bio && <Text style={{ fontSize: scale(14), color: '#374151', lineHeight: scale(20), marginBottom: scale(16), fontFamily: 'Poppins-Regular' }}>{item.bio}</Text>}
+                {item.bio ? <Text style={{ fontSize: scale(14), color: '#374151', lineHeight: scale(20), marginBottom: scale(16), fontFamily: 'Poppins-Regular' }}>{item.bio}</Text> : <View style={{ height: scale(8) }} />}
 
                 {/* Hobbies / Interests Tags */}
                 {item.hobbies && item.hobbies.length > 0 && (
@@ -1001,29 +1016,20 @@ export default function SathiDashboard() {
                   </View>
                 )}
 
-                {/* Date & Time Row */}
-                {(formattedDate || formattedTime) && (
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: scale(16), marginBottom: scale(20) }}>
-                    {formattedDate ? (
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: scale(6) }}>
-                        <Ionicons name="calendar-outline" size={14} color="#4B5563" />
-                        <Text style={{ fontSize: scale(13), color: '#4B5563', fontFamily: 'Poppins-Medium' }}>{formattedDate}</Text>
-                      </View>
-                    ) : null}
-                    {formattedTime ? (
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: scale(6) }}>
-                        <Ionicons name="time-outline" size={14} color="#4B5563" />
-                        <Text style={{ fontSize: scale(13), color: '#4B5563', fontFamily: 'Poppins-Medium' }}>{formattedTime}</Text>
-                      </View>
-                    ) : null}
-                  </View>
-                )}
+                {/* Date Row */}
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: scale(20) }}>
+                  <Text style={{ fontSize: scale(13), color: '#4B5563', fontFamily: 'Poppins-Medium' }}>{item.totalVisits || 0} total visits</Text>
+                  <Text style={{ fontSize: scale(13), color: '#6B7280', fontFamily: 'Poppins-Medium' }}>Last: {item.lastVisit || 'N/A'}</Text>
+                </View>
 
                 {/* Action Buttons */}
                 <View style={{ flexDirection: 'row', gap: scale(12) }}>
                   <TouchableOpacity 
                     style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#FF6F00', paddingVertical: scale(12), borderRadius: scale(20) }}
-                    onPress={() => handleRespondRequest(item.id, 'ACCEPT')}
+                    onPress={() => {
+                      setSelectedRequest(item);
+                      setShowConfirmModal(true);
+                    }}
                   >
                     <Ionicons name="heart-outline" size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
                     <Text style={{ color: '#FFFFFF', fontFamily: 'Poppins-SemiBold', fontSize: scale(14) }}>Accept</Text>
@@ -1031,7 +1037,10 @@ export default function SathiDashboard() {
                   
                   <TouchableOpacity 
                     style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFF4ED', borderWidth: 1, borderColor: '#FF6F00', paddingVertical: scale(12), borderRadius: scale(20) }}
-                    onPress={() => handleOpenReschedule(item.id)}
+                    onPress={() => {
+                      setSelectedRequest(item);
+                      setShowRescheduleModal(true);
+                    }}
                   >
                     <Ionicons name="refresh-outline" size={16} color="#FF6F00" style={{ marginRight: 6 }} />
                     <Text style={{ color: '#FF6F00', fontFamily: 'Poppins-SemiBold', fontSize: scale(14) }}>Reschedule</Text>
@@ -1046,25 +1055,63 @@ export default function SathiDashboard() {
 
         {/* Log Hours floating/bottom button */}
         <TouchableOpacity style={styles.logHoursBtn} onPress={() => replace('/(sathi)/hours')}>
-          <Ionicons name="time-outline" size={20} color="#FF6F00" style={{ marginRight: 6 }} />
+          <Ionicons name="time-outline" size={16} color="#FF6F00" style={{ marginRight: scale(8) }} />
           <Text style={styles.logHoursBtnText}>Log Hours</Text>
         </TouchableOpacity>
       </ScrollView>
 
       <SathiBottomNav />
 
+      {/* Confirm Visit Modal */}
+      {showConfirmModal && selectedRequest && (
+        <ConfirmVisitModal
+          visible={showConfirmModal}
+          request={selectedRequest}
+          onClose={() => setShowConfirmModal(false)}
+          onSuccess={() => {
+            setShowConfirmModal(false);
+            fetchDashboardData();
+          }}
+          onShowSuccess={(title, msg) => setSuccessMessage({title, message: msg})}
+        />
+      )}
+
       {/* Reschedule Proposal Modal */}
-      {showRescheduleModal && rescheduleRequestId && (
+      {showRescheduleModal && selectedRequest && (
         <RescheduleModal
           visible={showRescheduleModal}
-          requestId={rescheduleRequestId}
+          request={selectedRequest}
           onClose={() => setShowRescheduleModal(false)}
           onSuccess={() => {
             setShowRescheduleModal(false);
             fetchDashboardData();
           }}
+          onShowSuccess={(title, msg) => setSuccessMessage({title, message: msg})}
         />
       )}
+
+      {/* Success Modal */}
+      <Modal visible={!!successMessage} transparent animationType="fade" onRequestClose={() => setSuccessMessage(null)}>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)', padding: scale(20) }}>
+          <View style={{ backgroundColor: '#FFFFFF', borderRadius: 24, padding: scale(24), width: '100%', alignItems: 'center' }}>
+            <View style={{ width: scale(64), height: scale(64), borderRadius: scale(32), backgroundColor: '#FFF0E6', justifyContent: 'center', alignItems: 'center', marginBottom: scale(16) }}>
+              <Ionicons name="checkmark-circle" size={40} color="#FE6700" />
+            </View>
+            <Text style={{ fontSize: scale(20), fontFamily: 'Poppins-Bold', color: '#111827', marginBottom: scale(8), textAlign: 'center' }}>
+              {successMessage?.title}
+            </Text>
+            <Text style={{ fontSize: scale(14), fontFamily: 'Poppins-Regular', color: '#4B5563', textAlign: 'center', marginBottom: scale(24) }}>
+              {successMessage?.message}
+            </Text>
+            <TouchableOpacity
+              style={{ backgroundColor: '#FE6700', paddingVertical: scale(14), borderRadius: scale(20), width: '100%', alignItems: 'center' }}
+              onPress={() => setSuccessMessage(null)}
+            >
+              <Text style={{ color: '#FFFFFF', fontFamily: 'Poppins-Medium', fontSize: scale(14) }}>Continue</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       {/* OTP Verification Modal */}
       <Modal visible={showOtpModal} transparent animationType="slide" onRequestClose={() => setShowOtpModal(false)}>
@@ -1176,8 +1223,114 @@ export default function SathiDashboard() {
   );
 }
 
-// Extracted separate component to avoid losing keyboard focus on re-renders
-const RescheduleModal = ({ visible, requestId, onClose, onSuccess }: { visible: boolean, requestId: string, onClose: () => void, onSuccess: () => void }) => {
+const ConfirmVisitModal = ({ visible, request, onClose, onSuccess, onShowSuccess }: { visible: boolean, request: any, onClose: () => void, onSuccess: () => void, onShowSuccess: (title: string, msg: string) => void }) => {
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = async () => {
+    if (!request?.id) return;
+    try {
+      const token = await AsyncStorage.getItem('userToken');
+      if (!token) return;
+
+      setSubmitting(true);
+      const response = await fetch(`${API_URL}/sathi/visit-requests/${request.id}/respond`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ action: 'ACCEPT' }),
+      });
+
+      const data = await response.json();
+      if (response.ok || data.success) {
+        onSuccess();
+        onShowSuccess('Accepted!', 'You have successfully confirmed the visit.');
+      } else {
+        Alert.alert('Failed', data.message || 'Could not accept the request.');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Could not connect to the backend server.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const beneficiaryName = request?.beneficiary?.name || request?.name || 'the beneficiary';
+  const displayDate = request?.dateTime ? new Date(request.dateTime) : new Date();
+
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <View style={{ flex: 1, justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.5)', padding: scale(20) }}>
+        <View style={{ backgroundColor: '#FAF3EB', borderRadius: 24, padding: scale(24), position: 'relative' }}>
+          
+          <TouchableOpacity onPress={onClose} style={{ position: 'absolute', right: scale(16), top: scale(16), zIndex: 10 }}>
+            <Ionicons name="close" size={24} color="#374151" />
+          </TouchableOpacity>
+
+          <View style={{ alignItems: 'center', marginBottom: scale(24) }}>
+            <Text style={{ fontSize: scale(18), fontFamily: 'Poppins-Bold', color: '#111827', marginBottom: scale(4) }}>Confirm Visit Time</Text>
+            <Text style={{ fontSize: scale(13), fontFamily: 'Poppins-Regular', color: '#6B7280', textAlign: 'center' }}>
+              Confirm the time to meet {beneficiaryName}
+            </Text>
+          </View>
+
+          <Text style={{ fontSize: scale(14), fontFamily: 'Poppins-SemiBold', color: '#111827', marginBottom: scale(8) }}>Their message</Text>
+          <Text style={{ fontSize: scale(13), fontFamily: 'Poppins-Regular', color: '#4B5563', marginBottom: scale(24), lineHeight: scale(20) }}>
+            {request?.reason || request?.bio || "I would love some companionship on weekday mornings. I enjoy reading and light conversations."}
+          </Text>
+
+          <View style={{ flexDirection: 'row', gap: scale(12), marginBottom: scale(24) }}>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: scale(13), fontFamily: 'Poppins-SemiBold', color: '#111827', marginBottom: scale(8) }}>Date</Text>
+              <View style={{ backgroundColor: '#FFFFFF', borderRadius: scale(12), paddingHorizontal: scale(12), paddingVertical: scale(12), flexDirection: 'row', alignItems: 'center' }}>
+                <Ionicons name="calendar-outline" size={16} color="#6B7280" style={{ marginRight: scale(8) }} />
+                <Text style={{ fontSize: scale(13), fontFamily: 'Poppins-Regular', color: '#374151' }}>
+                  {displayDate.toLocaleDateString('en-US', { weekday: 'short', day: '2-digit', month: 'short' })}
+                </Text>
+              </View>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: scale(13), fontFamily: 'Poppins-SemiBold', color: '#111827', marginBottom: scale(8) }}>Time</Text>
+              <View style={{ backgroundColor: '#FFFFFF', borderRadius: scale(12), paddingHorizontal: scale(12), paddingVertical: scale(12), flexDirection: 'row', alignItems: 'center' }}>
+                <Ionicons name="time-outline" size={16} color="#6B7280" style={{ marginRight: scale(8) }} />
+                <Text style={{ fontSize: scale(13), fontFamily: 'Poppins-Regular', color: '#374151' }}>
+                  {displayDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                </Text>
+              </View>
+            </View>
+          </View>
+
+          <View style={{ flexDirection: 'row', gap: scale(12) }}>
+            <TouchableOpacity
+              style={{ flex: 1.2, paddingVertical: scale(14), borderRadius: scale(20), backgroundColor: '#FE6700', alignItems: 'center', flexDirection: 'row', justifyContent: 'center', opacity: submitting ? 0.7 : 1 }}
+              onPress={handleSubmit}
+              disabled={submitting}
+            >
+              {submitting ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <>
+                  <Ionicons name="checkmark" size={18} color="#FFFFFF" style={{ marginRight: scale(6) }} />
+                  <Text style={{ color: '#FFFFFF', fontFamily: 'Poppins-Medium', fontSize: scale(14) }}>Confirm Visit</Text>
+                </>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{ flex: 0.8, paddingVertical: scale(14), borderRadius: scale(20), borderWidth: 1, borderColor: '#D1D5DB', alignItems: 'center', justifyContent: 'center' }}
+              onPress={onClose}
+            >
+              <Text style={{ color: '#4B5563', fontFamily: 'Poppins-Medium', fontSize: scale(14) }}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+};
+
+const RescheduleModal = ({ visible, request, onClose, onSuccess, onShowSuccess }: { visible: boolean, request: any, onClose: () => void, onSuccess: () => void, onShowSuccess: (title: string, msg: string) => void }) => {
   const [proposedDate, setProposedDate] = useState(new Date(new Date().setHours(10, 0, 0, 0)));
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
@@ -1185,7 +1338,7 @@ const RescheduleModal = ({ visible, requestId, onClose, onSuccess }: { visible: 
   const [submittingReschedule, setSubmittingReschedule] = useState(false);
 
   const handleSubmitReschedule = async () => {
-    if (!requestId) return;
+    if (!request?.id) return;
 
     const proposedISO = proposedDate.toISOString();
 
@@ -1194,7 +1347,7 @@ const RescheduleModal = ({ visible, requestId, onClose, onSuccess }: { visible: 
       if (!token) return;
 
       setSubmittingReschedule(true);
-      const response = await fetch(`${API_URL}/sathi/visit-requests/${requestId}/propose-reschedule`, {
+      const response = await fetch(`${API_URL}/sathi/visit-requests/${request.id}/propose-reschedule`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -1205,8 +1358,8 @@ const RescheduleModal = ({ visible, requestId, onClose, onSuccess }: { visible: 
 
       const data = await response.json();
       if (response.ok || data.success) {
-        Alert.alert('Sent!', 'Your reschedule proposal has been sent to the beneficiary.');
         onSuccess();
+        onShowSuccess('Sent!', 'Your reschedule proposal has been sent to the beneficiary.');
       } else {
         Alert.alert('Failed', data.message || 'Could not send reschedule proposal.');
       }
@@ -1217,79 +1370,106 @@ const RescheduleModal = ({ visible, requestId, onClose, onSuccess }: { visible: 
     }
   };
 
+  const beneficiaryName = request?.beneficiary?.name || request?.name || 'the beneficiary';
+  const displayDate = request?.dateTime ? new Date(request.dateTime) : new Date();
+
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)' }}>
-        <View style={{ backgroundColor: '#FFFFFF', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: scale(24), paddingBottom: scale(40) }}>
-          <Text style={{ fontSize: scale(18), fontFamily: 'Poppins-Bold', color: '#111827', marginBottom: scale(4) }}>Propose New Schedule</Text>
-          <Text style={{ fontSize: scale(13), fontFamily: 'Poppins-Regular', color: '#6B7280', marginBottom: scale(24) }}>Suggest a new date and time. The beneficiary will review your proposal.</Text>
-
-          <Text style={{ fontSize: scale(13), fontFamily: 'Poppins-SemiBold', color: '#374151', marginBottom: scale(8) }}>Proposed Date</Text>
-          <TouchableOpacity
-            style={{ borderWidth: 1, borderColor: '#E5E7EB', borderRadius: scale(12), paddingHorizontal: scale(16), paddingVertical: scale(12), marginBottom: scale(16), backgroundColor: '#F9FAFB', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
-            onPress={() => setShowDatePicker(true)}
-          >
-            <Text style={{ fontSize: scale(14), fontFamily: 'Poppins-Regular', color: '#111827' }}>
-              {proposedDate.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' })}
-            </Text>
-            <Ionicons name="calendar-outline" size={20} color="#9CA3AF" />
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <View style={{ flex: 1, justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.5)', padding: scale(20) }}>
+        <View style={{ backgroundColor: '#FAF3EB', borderRadius: 24, padding: scale(24), position: 'relative' }}>
+          
+          <TouchableOpacity onPress={onClose} style={{ position: 'absolute', right: scale(16), top: scale(16), zIndex: 10 }}>
+            <Ionicons name="close" size={24} color="#374151" />
           </TouchableOpacity>
 
-          <Text style={{ fontSize: scale(13), fontFamily: 'Poppins-SemiBold', color: '#374151', marginBottom: scale(8) }}>Proposed Time</Text>
-          <TouchableOpacity
-            style={{ borderWidth: 1, borderColor: '#E5E7EB', borderRadius: scale(12), paddingHorizontal: scale(16), paddingVertical: scale(12), marginBottom: scale(16), backgroundColor: '#F9FAFB', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
-            onPress={() => setShowTimePicker(true)}
-          >
-            <Text style={{ fontSize: scale(14), fontFamily: 'Poppins-Regular', color: '#111827' }}>
-              {proposedDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+          <View style={{ alignItems: 'center', marginBottom: scale(24) }}>
+            <Text style={{ fontSize: scale(18), fontFamily: 'Poppins-Bold', color: '#111827', marginBottom: scale(4) }}>Ask to Reschedule</Text>
+            <Text style={{ fontSize: scale(13), fontFamily: 'Poppins-Regular', color: '#6B7280', textAlign: 'center' }}>
+              Suggest a new time to {beneficiaryName}
             </Text>
-            <Ionicons name="time-outline" size={20} color="#9CA3AF" />
-          </TouchableOpacity>
+          </View>
 
-          <Text style={{ fontSize: scale(13), fontFamily: 'Poppins-SemiBold', color: '#374151', marginBottom: scale(8) }}>Message (Optional)</Text>
+          <Text style={{ fontSize: scale(13), fontFamily: 'Poppins-Regular', color: '#4B5563', marginBottom: scale(4) }}>Their preferred time</Text>
+          <Text style={{ fontSize: scale(15), fontFamily: 'Poppins-Medium', color: '#111827', marginBottom: scale(24) }}>
+            {displayDate.toLocaleDateString('en-US', { weekday: 'short', day: '2-digit', month: 'short' })} at {displayDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+          </Text>
+
+          <Text style={{ fontSize: scale(13), fontFamily: 'Poppins-Medium', color: '#111827', marginBottom: scale(8) }}>Suggest a new time</Text>
+          <View style={{ flexDirection: 'row', gap: scale(12), marginBottom: scale(20) }}>
+            <TouchableOpacity
+              style={{ flex: 1, backgroundColor: '#FFFFFF', borderRadius: scale(12), paddingHorizontal: scale(12), paddingVertical: scale(12) }}
+              onPress={() => setShowDatePicker(true)}
+            >
+              <Text style={{ fontSize: scale(13), fontFamily: 'Poppins-Regular', color: '#111827', textAlign: 'center' }}>
+                {proposedDate.toLocaleDateString('en-US', { weekday: 'short', day: '2-digit', month: 'short' })}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{ flex: 1, backgroundColor: '#FFFFFF', borderRadius: scale(12), paddingHorizontal: scale(12), paddingVertical: scale(12) }}
+              onPress={() => setShowTimePicker(true)}
+            >
+              <Text style={{ fontSize: scale(13), fontFamily: 'Poppins-Regular', color: '#111827', textAlign: 'center' }}>
+                {proposedDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          <Text style={{ fontSize: scale(13), fontFamily: 'Poppins-Medium', color: '#111827', marginBottom: scale(8) }}>Reason / Note</Text>
           <TextInput
-            style={{ borderWidth: 1, borderColor: '#E5E7EB', borderRadius: scale(12), paddingHorizontal: scale(16), paddingVertical: scale(12), fontSize: scale(14), fontFamily: 'Poppins-Regular', color: '#111827', marginBottom: scale(28), backgroundColor: '#F9FAFB', height: scale(80), textAlignVertical: 'top' }}
-            placeholder="e.g. I have an exam in the morning, can we do afternoon?"
+            style={{ backgroundColor: '#FFFFFF', borderRadius: scale(12), paddingHorizontal: scale(16), paddingVertical: scale(16), fontSize: scale(13), fontFamily: 'Poppins-Regular', color: '#111827', marginBottom: scale(28), height: scale(90), textAlignVertical: 'top' }}
+            placeholder="e.g. I have a prior commitment that morning, can we meet in the afternoon?"
             placeholderTextColor="#9CA3AF"
             value={rescheduleMessage}
             onChangeText={setRescheduleMessage}
             multiline
           />
 
-          {(showDatePicker || showTimePicker) && (
-            <DateTimePicker
-              value={proposedDate}
-              mode={showDatePicker ? 'date' : 'time'}
-              display="default"
-              minimumDate={new Date()}
-              onChange={(event: any, selectedDate?: Date) => {
-                if (Platform.OS === 'android') {
-                  setShowDatePicker(false);
-                  setShowTimePicker(false);
-                }
-                if (selectedDate) {
-                  setProposedDate(selectedDate);
-                }
-              }}
-            />
-          )}
+          <DateTimePickerModal
+            isVisible={showDatePicker || showTimePicker}
+            mode={showDatePicker ? 'date' : 'time'}
+            date={proposedDate}
+            minimumDate={new Date()}
+            buttonTextColorIOS="#FE6700"
+            accentColor="#FE6700"
+            onConfirm={(date) => {
+              const updatedDate = new Date(proposedDate);
+              if (showDatePicker) {
+                updatedDate.setFullYear(date.getFullYear(), date.getMonth(), date.getDate());
+              } else {
+                updatedDate.setHours(date.getHours(), date.getMinutes(), 0, 0);
+              }
+              setProposedDate(updatedDate);
+              setShowDatePicker(false);
+              setShowTimePicker(false);
+            }}
+            onCancel={() => {
+              setShowDatePicker(false);
+              setShowTimePicker(false);
+            }}
+          />
 
           <View style={{ flexDirection: 'row', gap: scale(12) }}>
             <TouchableOpacity
-              style={{ flex: 1, paddingVertical: scale(14), borderRadius: scale(20), borderWidth: 1, borderColor: '#E5E7EB', alignItems: 'center' }}
-              onPress={onClose}
-            >
-              <Text style={{ color: '#6B7280', fontFamily: 'Poppins-SemiBold', fontSize: scale(14) }}>Cancel</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={{ flex: 1, paddingVertical: scale(14), borderRadius: scale(20), backgroundColor: '#FF6F00', alignItems: 'center', opacity: submittingReschedule ? 0.7 : 1 }}
+              style={{ flex: 1.2, paddingVertical: scale(14), borderRadius: scale(20), backgroundColor: '#FE6700', alignItems: 'center', flexDirection: 'row', justifyContent: 'center', opacity: submittingReschedule ? 0.7 : 1 }}
               onPress={handleSubmitReschedule}
               disabled={submittingReschedule}
             >
-              {submittingReschedule
-                ? <ActivityIndicator size="small" color="#FFFFFF" />
-                : <Text style={{ color: '#FFFFFF', fontFamily: 'Poppins-SemiBold', fontSize: scale(14) }}>Send Proposal</Text>
-              }
+              {submittingReschedule ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <>
+                  <Ionicons name="paper-plane-outline" size={18} color="#FFFFFF" style={{ marginRight: scale(6) }} />
+                  <Text style={{ color: '#FFFFFF', fontFamily: 'Poppins-Medium', fontSize: scale(14) }}>Send Request</Text>
+                </>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{ flex: 0.8, paddingVertical: scale(14), borderRadius: scale(20), borderWidth: 1, borderColor: '#D1D5DB', alignItems: 'center', justifyContent: 'center' }}
+              onPress={onClose}
+            >
+              <Text style={{ color: '#4B5563', fontFamily: 'Poppins-Medium', fontSize: scale(14) }}>Cancel</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -1408,7 +1588,7 @@ const styles = StyleSheet.create({
   },
   progressTrack: {
     height: scale(8),
-    backgroundColor: '#F3F4F6',
+    backgroundColor: '#FFF0E6',
     borderRadius: scale(4),
     overflow: 'hidden',
   },
@@ -1519,21 +1699,25 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FFF5ED',
-    borderWidth: 1.5,
-    borderColor: '#FF6F00',
-    paddingVertical: scale(12),
-    borderRadius: scale(24),
+    backgroundColor: '#FFF0E6',
+    borderWidth: 1.18,
+    borderColor: '#FE6700',
+    width: 184.56,
+    height: 36,
+    borderRadius: 14,
     marginTop: scale(16),
+    alignSelf: 'center',
   },
   logHoursBtnText: {
-    color: '#FF6F00',
-    fontWeight: '600',
-    fontSize: scale(14),
+    color: '#FE6700',
+    fontWeight: '500',
+    fontFamily: 'Poppins-Medium',
+    fontSize: 14,
+    lineHeight: 20,
   },
   requestCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: scale(16),
+    borderRadius: scale(20),
     borderWidth: 1,
     borderColor: '#FFE3D1',
     padding: scale(16),
