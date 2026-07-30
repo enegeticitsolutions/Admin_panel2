@@ -15,8 +15,5 @@
     "dev:admin": "npm run dev --workspace=apps/admin-backend",
     "dev:admin-ui": "npm run dev --workspace=apps/admin-frontend",
     "build:packages": "npm run build --workspaces --if-present"
-  },
-  "devDependencies": {
-    "@expo/metro-config": "~54.0.0"
   }
 }
