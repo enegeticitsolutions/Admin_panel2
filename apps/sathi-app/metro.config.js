@@ -1,7 +1,18 @@
 const { getDefaultConfig } = require('expo/metro-config');
 const path = require('path');
 
+const monorepoRoot = path.resolve(__dirname, '../..');
+
 const config = getDefaultConfig(__dirname);
+
+// Watch the entire monorepo so Metro can find shared packages
+config.watchFolders = [monorepoRoot];
+
+// Tell Metro where to find node_modules (local first, then root)
+config.resolver.nodeModulesPaths = [
+  path.resolve(__dirname, 'node_modules'),
+  path.resolve(monorepoRoot, 'node_modules'),
+];
 
 config.resolver.blockList = [
   /.*node_modules\/.*\/bin\/\.gradle\/.*/,
