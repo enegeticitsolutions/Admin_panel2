@@ -5,7 +5,7 @@ import visionIcon from "./assets/vision.png";
 import empathyIcon from "./assets/empathy.png";
 import connectionIcon from "./assets/connection.png";
 import demoVideo from "./assets/Video.mp4";
-import heroBg from "./assets/back.jpg";
+import heroBg from "./assets/herobg.png";
 import logo from "./assets/logo.svg";
 import healthcareIcon from "./assets/healthcare1.png";
 import "./style.css";
@@ -238,9 +238,9 @@ const App = () => {
           <button className={activePage === "home" ? "active" : ""} onClick={() => setActivePage("home")}>Home</button>
           <button className={activePage === "services" ? "active" : ""} onClick={() => setActivePage("services")}>Our Services</button>
           <button onClick={() => setActivePage("home")}>Saathi Network</button>
-          <button onClick={() => setActivePage("home")}>Legacy Circles</button>
+          {/* <button onClick={() => setActivePage("home")}>Legacy Circles</button>
           <button onClick={() => setActivePage("home")}>Blog</button>
-          <button onClick={() => setActivePage("home")}>Partners</button>
+          <button onClick={() => setActivePage("home")}>Partners</button> */}
         </nav>
         <div className="topbar__actions">
           <button className="view-plan-button" onClick={() => setActivePage("plans")}>View Plan</button>
@@ -252,7 +252,7 @@ const App = () => {
 
       {activePage === "home" ? (
       <main>
-        <section className="hero" id="home" style={{ backgroundImage: `linear-gradient(105deg, rgba(255, 249, 212, 0.92), rgba(255, 214, 194, 0.9)), url(${heroBg})` }}>
+        <section className="hero" id="home" style={{ backgroundImage: `url(${heroBg})` }}>
           <div className="hero__inner">
             <div className="hero__copy">
               <div className="eyebrow">
@@ -264,7 +264,7 @@ const App = () => {
                 <span>We help them live with purpose.</span>
               </h1>
               <p>
-                Comprehensive Care Mitras, a volunteer Saathi Network, real-time family visibility, and a community ecosystem - all in one subscription.
+                Compassionate Care Mitras, a volunteer Saathi Network, real-time family visibility, and a community ecosystem — all in one subscription.
               </p>
 
               <div className="hero-form" aria-label="Join the waitlist">
@@ -289,18 +289,32 @@ const App = () => {
 
             <div className="hero-card" aria-label="Care status summary">
               <div className="hero-card__top">
-                <span className="status-dot" />
                 <div>
-                  <strong>Meena Sharma is here</strong>
-                  <small>Care Mitra - 48 min in</small>
+                  <span className="status-dot" />
+                  <strong>Live Care Mitra Visit</strong>
                 </div>
                 <small>Today 10:30 AM</small>
               </div>
-              <div className="score-panel">
-                <small>Happiness score</small>
-                <strong>82</strong>
-                <span>/100 - Doing great today</span>
+
+              <div className="hero-card__mitra">
+                <div className="hero-card__mitra-avatar">M</div>
+                <div className="hero-card__mitra-info">
+                  <strong>Meena Sharma is here</strong>
+                  <small>Care Mitra · 48 min in</small>
+                </div>
               </div>
+
+              <div className="score-panel">
+                <small>Happiness Score</small>
+                <div className="score-panel__value">
+                  <strong>82</strong>
+                  <span>/100 · Doing great today</span>
+                </div>
+                <div className="score-panel__bar">
+                  <div className="score-panel__bar-fill" />
+                </div>
+              </div>
+
               <ul className="mini-list">
                 <li>Background-verified Care Mitras</li>
                 <li>Geo-fenced visit tracking</li>
@@ -317,7 +331,7 @@ const App = () => {
             <h2>
               See Why Families Trust <em>MaiHoonNa</em>
             </h2>
-            <p>A 2-minute story about what it means to care - and why we built an entire ecosystem around it.</p>
+            <p>A 2-minute story about what it means to care — and why we built an entire ecosystem around it.</p>
           </div>
 
           <div className="video-frame">
