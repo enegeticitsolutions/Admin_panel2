@@ -3,6 +3,7 @@
     "name": "maihoonna",
     "slug": "maihoonna",
     "version": "1.0.0",
+    "sdkVersion": "54.0.0",
     "orientation": "portrait",
     "updates": {
       "enabled": false
