@@ -3,11 +3,13 @@
   "version": "1.0.0",
   "private": true,
   "engines": {
-    "node": ">=22.0.0",
+    "node": ">=20.0.0",
     "npm": ">=10.0.0"
   },
   "workspaces": [
-    "apps/*",
+    "apps/api",
+    "apps/admin-backend",
+    "apps/admin-frontend",
     "packages/*"
   ],
   "scripts": {
