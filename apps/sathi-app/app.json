@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "sathi-network",
-    "slug": "sathi-network",
+    "slug": "sathi-app",
     "version": "1.0.0",
     "sdkVersion": "54.0.0",
     "orientation": "portrait",
@@ -66,7 +66,7 @@
     ],
     "extra": {
       "eas": {
-        "projectId": "5d0036fa-6e0c-47ed-9213-c8ed8ebaee75"
+        "projectId": "7c449368-29dc-48a2-9387-83f1e3858fbb"
       }
     }
   }
