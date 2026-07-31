@@ -3,459 +3,1012 @@ import ReactDOM from "react-dom/client";
 import missionIcon from "./assets/mission.png";
 import visionIcon from "./assets/vision.png";
 import empathyIcon from "./assets/empathy.png";
-import trustIcon from "./assets/trust.png";
-import innovationIcon from "./assets/innovation.png";
 import connectionIcon from "./assets/connection.png";
-import hiFiIcon from "./assets/hifi.png";
-import touchIcon from "./assets/touch.png";
-import peaceIcon from "./assets/peace.png";
 import demoVideo from "./assets/Video.mp4";
 import heroBg from "./assets/back.jpg";
 import logo from "./assets/logo.svg";
 import healthcareIcon from "./assets/healthcare1.png";
 import "./style.css";
 
-/**
- * MaiHoonNa - Senior Care Ecosystem
- * A single-file React implementation of the landing page.
- * The primary component 'App' is exported as default to handle environment rendering.
- */
+const promiseStats = [
+  { value: "90 day", label: "wellness loop" },
+  { value: "24/7", label: "emergency support" },
+  { value: "15K+", label: "families onboarded" },
+];
+
+const trustSignals = [
+  { title: "ISO 9001 Verified", text: "Senior care system" },
+  { title: "Data Secured", text: "Family updates protected" },
+  { title: "Registered Company", text: "Transparent service" },
+  { title: "4.8/5 Rating", text: "Family satisfaction" },
+];
+
+const impactStats = [
+  { value: "72M+", label: "Seniors living alone in India" },
+  { value: "30M+", label: "NRI families away from parents" },
+  { value: "1 in 3", label: "Seniors experience loneliness" },
+];
+
+const processSteps = [
+  {
+    title: "Tell us about your family",
+    text: "Share your loved one's routine, health conditions, and the kind of support they need.",
+  },
+  {
+    title: "Choose a plan",
+    text: "Pick Senior, Pro, or Premium. Adjust any time as your needs evolve.",
+  },
+  {
+    title: "Meet your Care Mitra",
+    text: "We match a trained Care Mitra by location, language, gender preference, and specific needs.",
+  },
+  {
+    title: "Visits begin on schedule",
+    text: "Care happens at home with vitals, mood, and medication adherence logged each visit.",
+  },
+  {
+    title: "Stay connected from anywhere",
+    text: "Family CareOS shares visit history, alerts, trends, and a live Happiness Score.",
+  },
+];
+
+const services = [
+  {
+    icon: missionIcon,
+    title: "Care Mitra Visits",
+    text: "Trained, verified companions who visit on schedule and help with daily wellbeing.",
+  },
+  {
+    icon: empathyIcon,
+    title: "Health Network",
+    text: "Community volunteers for companionship between Care Mitra visits.",
+  },
+  {
+    icon: visionIcon,
+    title: "Legacy Circles",
+    text: "A platform for seniors to share decades of expertise and rediscover purpose.",
+  },
+  {
+    icon: connectionIcon,
+    title: "Hobby Circles",
+    text: "Peer connections built around shared interests like chess, gardening, music, cooking, or fitness.",
+  },
+];
+
+const visitFeatures = [
+  "Real-time family visibility",
+  "Multilingual alerts",
+  "Vitals trends dashboard",
+  "Care happiness score",
+  "App and email access",
+];
+
+const faqs = [
+  "What is a Care Mitra?",
+  "How is MaiHoonNa different from hiring a caregiver directly?",
+  "What happens if I am not happy with my Care Mitra?",
+  "How does the Happiness Score work?",
+  "Can I manage care from abroad as an NRI?",
+  "Is MaiHoonNa available outside Gurugram?",
+  "What does the Saathi Network do?",
+  "Can I change or cancel my plan?",
+];
+
+const pricingPlans = [
+  {
+    name: "Saathi Starter",
+    description: "For families who want a regular check-in and peace of mind.",
+    hours: "10",
+    tone: "light",
+    features: [
+      "Monthly Care Mitra hours",
+      "Vitals monitoring (BP, O2, weight)",
+      "Medication reminders",
+      "Emergency support button",
+      "Visit history in Family Connect",
+      "WhatsApp alerts to family",
+    ],
+    muted: ["Mood tracking & Happiness Score", "Saathi Network access"],
+  },
+  {
+    name: "Saathi Plus",
+    description: "For loved ones who need more frequent, family-first support.",
+    hours: "25",
+    tone: "featured",
+    badge: "Most Popular",
+    features: [
+      "Monthly Care Mitra hours",
+      "Vitals monitoring (BP, O2, weight)",
+      "Medication reminders",
+      "Emergency support button",
+      "Visit history in Family Connect",
+      "WhatsApp alerts to family",
+      "Mood tracking & Happiness Score",
+    ],
+    muted: ["Dedicated Field Manager", "Hospital & lab coordination"],
+  },
+  {
+    name: "Saathi Premium",
+    description: "For higher-acuity care needs, wanting maximum coverage.",
+    hours: "50",
+    tone: "light",
+    features: [
+      "Monthly Care Mitra hours",
+      "Vitals monitoring (BP, O2, weight)",
+      "Medication reminders",
+      "Emergency support button",
+      "Visit history in Family Connect",
+      "WhatsApp alerts to family",
+      "Mood tracking & Happiness Score",
+    ],
+  },
+];
+
+const comparisonRows = [
+  ["Monthly Care Mitra hours", true, true, true],
+  ["Vitals monitoring (BP, O2, weight)", true, true, true],
+  ["Medication reminders", true, true, true],
+  ["Emergency support button", true, true, true],
+  ["Visit history in Family Connect", true, true, true],
+  ["WhatsApp alerts to family", true, true, true],
+  ["Mood tracking & Happiness Score", false, true, true],
+  ["Saathi Network access", false, true, true],
+  ["Priority rescheduling", false, true, true],
+  ["Clinic visit accompaniment", false, true, true],
+  ["Dedicated Field Manager", false, false, true],
+  ["Hospital & lab coordination", false, false, true],
+];
+
 const App = () => {
+  const [activePage, setActivePage] = useState("home");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
-  const [submitError, setSubmitError] = useState('');
+  const [submitError, setSubmitError] = useState("");
   const [formData, setFormData] = useState({
-    name: '',
-    phone: '',
-    pinCode: '',
-    email: ''
+    name: "",
+    phone: "",
+    pinCode: "",
+    email: "",
   });
 
   const openForm = () => setIsModalOpen(true);
   const closeForm = () => {
     setIsModalOpen(false);
     setShowSuccess(false);
-    setSubmitError('');
+    setSubmitError("");
   };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
-    setSubmitError('');
+    setSubmitError("");
 
-    // Use relative path so Vite proxy forwards to backend (no CORS)
-    const apiBase = import.meta.env.VITE_API_URL || '';
+    const apiBase = import.meta.env.VITE_API_URL || "";
     const payload = {
       name: formData.name,
       phone: formData.phone,
       pinCode: formData.pinCode,
-      email: formData.email
+      email: formData.email,
     };
 
     try {
       const response = await fetch(`${apiBase}/submit-form`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 
       const data = await response.json();
 
       if (response.ok && data.success) {
-        setFormData({ name: '', phone: '', pinCode: '', email: '' });
+        setFormData({ name: "", phone: "", pinCode: "", email: "" });
         setShowSuccess(true);
         setTimeout(() => {
           closeForm();
         }, 3000);
       } else {
-        // Show server-provided error message
-        setSubmitError(data.message || 'Something went wrong. Please try again.');
+        setSubmitError(data.message || "Something went wrong. Please try again.");
       }
     } catch (err) {
-      setSubmitError('Network error — please make sure the backend server is running on port 3000.');
+      setSubmitError("Network error. Please make sure the backend server is running on port 3000.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="font-sans text-gray-800 bg-white min-h-screen selection:bg-orange-100">
+    <div className="site-shell">
       <noscript>
-        <div style={{padding:'2rem',textAlign:'center',fontSize:'1.2rem'}}>
-          MaiHoonNa — India's first connected senior care ecosystem. Please enable JavaScript to use the full site experience.
+        <div className="noscript">
+          MaiHoonNa - India's first connected senior care ecosystem. Please enable JavaScript to use the full site experience.
         </div>
       </noscript>
 
-      {/* ================= HEADER ================= */}
-      {/* ================= WRAPPER (Header + Hero Common BG) ================= */}
-      <div className="relative min-h-[750px] overflow-hidden">
-        <div
-          className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat"
-          style={{ backgroundImage: `url(${heroBg})` }}
-        />
-        <div className="absolute inset-0 z-10 bg-white/40"></div>
-        <div className="relative z-20 px-4 sm:px-6 md:px-16">
+      <header className="topbar" role="banner">
+        <a href="/" aria-label="MaiHoonNa home" className="topbar__brand">
+          <img src={logo} alt="MaiHoonNa" />
+        </a>
+        <nav className="topbar__nav" aria-label="Main navigation">
+          <button className={activePage === "home" ? "active" : ""} onClick={() => setActivePage("home")}>Home</button>
+          <button className={activePage === "services" ? "active" : ""} onClick={() => setActivePage("services")}>Our Services</button>
+          <button onClick={() => setActivePage("home")}>Saathi Network</button>
+          <button onClick={() => setActivePage("home")}>Legacy Circles</button>
+          <button onClick={() => setActivePage("home")}>Blog</button>
+          <button onClick={() => setActivePage("home")}>Partners</button>
+        </nav>
+        <div className="topbar__actions">
+          <button className="view-plan-button" onClick={() => setActivePage("plans")}>View Plan</button>
+          <button className="pill-button pill-button--light" onClick={openForm}>
+            Join Waitlist
+          </button>
+        </div>
+      </header>
 
-          {/* ================= HEADER ================= */}
-          <header className="flex justify-between items-center px-4 sm:px-6 md:px-16 py-4 max-w-7xl mx-auto" role="banner">
+      {activePage === "home" ? (
+      <main>
+        <section className="hero" id="home" style={{ backgroundImage: `linear-gradient(105deg, rgba(255, 249, 212, 0.92), rgba(255, 214, 194, 0.9)), url(${heroBg})` }}>
+          <div className="hero__inner">
+            <div className="hero__copy">
+              <div className="eyebrow">
+                <img src={healthcareIcon} alt="" />
+                India's connected senior care ecosystem
+              </div>
+              <h1>
+                We don't just care for your parents.
+                <span>We help them live with purpose.</span>
+              </h1>
+              <p>
+                Comprehensive Care Mitras, a volunteer Saathi Network, real-time family visibility, and a community ecosystem - all in one subscription.
+              </p>
 
-            <nav aria-label="Main navigation" className="flex items-center gap-3 ml-4 md:ml-12">
-
-              <a href="/" aria-label="MaiHoonNa – Home">
-                <img
-                  src={logo}
-                  alt="MaiHoonNa Logo"
-                  className="w-[120px] sm:w-[150px] md:w-[178px] h-auto object-contain"
+              <div className="hero-form" aria-label="Join the waitlist">
+                <input
+                  type="email"
+                  name="email"
+                  placeholder="Your email address"
+                  value={formData.email}
+                  onChange={handleInputChange}
                 />
-              </a>
+                <button onClick={openForm}>Join Waitlist</button>
+              </div>
 
-            </nav>
+              <p className="hero-location">Launching in Gurugram Sectors 54-57 - Limited early access</p>
 
-            <button
-              id="header-waitlist-btn"
-              onClick={() => setIsModalOpen(true)}
-              className="bg-orange-500 text-white px-4 sm:px-5 py-2 rounded-full text-xs sm:text-sm font-bold hover:bg-orange-600 transition whitespace-nowrap"
-              aria-label="Join the MaiHoonNa waitlist"
-            >
-              Join the Waitlist
-            </button>
-
-          </header>
-
-          <div className="w-full h-px bg-gray-200"></div>
-
-          {/* ================= HERO SECTION ================= */}
-          <main role="main">
-          <section id="hero" className="relative min-h-[600px] sm:min-h-[674px]" aria-label="Hero">
-            <div className="max-w-[1394px] mx-auto px-4 sm:px-6 md:px-16 h-full">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-16 items-center h-full">
-
-                {/* LEFT SIDE (UNCHANGED) */}
-                <div className="flex flex-col justify-center h-full space-y-4 md:space-y-4 px-4 sm:px-0 md:pl-16 pt-12">
-                  <div className="inline-flex items-center gap-2 bg-[#FFE1CC] border border-orange-100 px-2 py-1 rounded-full w-fit">
-                    <img src={healthcareIcon} alt="Healthcare" className="w-5 h-5 object-contain" />
-                    <p className="text-xs font-semibold text-gray-700 tracking-tight">
-                      India's first ecosystem of connected senior care
-                    </p>
-                  </div>
-
-                  <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 leading-relaxed md:leading-snug">
-                    We don't just care <br className="hidden md:block" />
-                    for your parents.
-
-                    {/* Mobile par ye 'block' ban kar naye line pe aa jayega, Desktop pe 'inline' rahega */}
-                    <span className="text-orange-500 block md:inline">
-                      <br className="hidden md:block" /> {/* Desktop layout ke liye purana break */}
-                      We help them live <br className="hidden md:block" /> with purpose.
-                    </span>
-                  </h1>
-
-                  <p className="text-black-500 text-[15px] sm:text-[16px] max-w-lg leading-relaxed md:leading-[1.6]">
-                    By blending compassionate human support with thoughtful technology,
-                    we ensure every senior feels cared for, confident, and never alone
-                    at home, empowering them to pursue their passions and embrace
-                    ageing as a meaningful, dignified stage.
-                  </p>
-                  <div className="flex flex-col sm:flex-row gap-4 pt-4">
-                    <input
-                      type="email"
-                      name="email"
-                      placeholder="Email Address"
-                      value={formData.email}
-                      onChange={handleInputChange}
-                      className="w-full sm:w-60 px-4 py-2 rounded-full border border-gray-200 w-50 max-w-sm outline-none text-base placeholder:text-[12px] focus:ring-2 focus:ring-orange-500/20"
-                    />
-                    <button
-                      id="hero-waitlist-btn"
-                      onClick={() => setIsModalOpen(true)}
-                      className="bg-orange-500 text-white px-5 py-2 rounded-full text-sm font-bold shadow-lg shadow-none hover:bg-orange-600 transition whitespace-nowrap"
-                      aria-label="Join the MaiHoonNa waitlist"
-                    >
-                      Join the Waitlist
-                    </button>
-                  </div>
-
-                  <p className="text-xs text-gray-400 ml-4 md:mt-0 mt-2">
-                    Launching soon. Limited early access.
-                  </p>
-                </div>
-                {/* RIGHT SIDE (RESPONSIVE VIDEO) */}
-                <div className="relative flex justify-center md:justify-end mt-0 md:mt-10 mb-12 md:mb-0">
-                  <div className="w-[90%] sm:w-[400px] md:w-[592px] h-[200px] sm:h-[300px] md:h-[500px] rounded-[20px] overflow-hidden shadow-2xl">
-                    <video
-                      src={demoVideo}
-                      autoPlay
-                      loop
-                      muted
-                      playsInline
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  {/* Testimonial Box */}
-                  <div className="absolute -bottom-6 -left-4 md:-left-12 bg-white/95 backdrop-blur-md p-2 md:p-4 rounded-2xl shadow-xl border border-white/50 max-w-[280px] md:max-w-[400px]">
-                    <p className="text-xs text-black font-semibold leading-tight">
-                      "Finally, a way to remain meaningfully<br />involved in my mother's health,<br />
-                      wellbeing, and the life she loves, even<br /> from overseas."
-                    </p>
-                  </div>
-                </div>
-
+              <div className="hero-stats" aria-label="MaiHoonNa benefits">
+                <span><strong>100%</strong> BGV-Verified Mitras</span>
+                <span><strong>24/7</strong> Emergency Support</span>
+                <span><strong>NCR</strong> Pilot Underway</span>
               </div>
             </div>
 
-          </section>
-          </main>
+            <div className="hero-card" aria-label="Care status summary">
+              <div className="hero-card__top">
+                <span className="status-dot" />
+                <div>
+                  <strong>Meena Sharma is here</strong>
+                  <small>Care Mitra - 48 min in</small>
+                </div>
+                <small>Today 10:30 AM</small>
+              </div>
+              <div className="score-panel">
+                <small>Happiness score</small>
+                <strong>82</strong>
+                <span>/100 - Doing great today</span>
+              </div>
+              <ul className="mini-list">
+                <li>Background-verified Care Mitras</li>
+                <li>Geo-fenced visit tracking</li>
+                <li>Real-time Family Connect app</li>
+                <li>Registered company, Gurugram</li>
+              </ul>
+            </div>
+          </div>
+        </section>
 
-        </div>
-      </div>
-      {/* ================= CHALLENGE SECTION ================= */}
-      <section id="challenge" className="bg-[#FFE1cc] py-12 sm:py-16 text-center px-4 sm:px-6 md:px-16" aria-label="The Challenge">
-        <p className="text-orange-600 text-sm tracking-wide mb-4">
-          The Challenge
-        </p>
-        <h2 className="text-3xl md:text-4xl font-bold mb-6">
-          Growing Old Shouldn't Mean<br />Growing Lonely
-        </h2>
-        <p className="max-w-3xl mx-auto text-black-600 text-[16px] leading-relaxed">
-          Millions of seniors in India live alone, while their families live far away. Worried but<br />
-          helpless. Healthcare is fragmented. Care is inconsistent. Connection fades.
-        </p>
-        <p className="mt-6 font-semibold max-w-3xl mx-auto text-lg italic">
-          <span className="text-black-500">MaiHoonNa changes that. </span>
-          We bring human companionship + <br /> connected healthcare + and family transparency
-          into one trusted <br />ecosystem.
-        </p>
-      </section>
+        <section className="video-section">
+          <div className="section-heading">
+            <span>Our Promise</span>
+            <h2>
+              See Why Families Trust <em>MaiHoonNa</em>
+            </h2>
+            <p>A 2-minute story about what it means to care - and why we built an entire ecosystem around it.</p>
+          </div>
 
-      {/* ================= MISSION / VISION ================= */}
-      <section id="mission-vision" className="py-10 md:py-20 px-6" aria-label="Our Mission and Vision">
-        <div className="max-w-5xl mx-auto grid md:grid-cols-2 gap-4 md:gap-8">
-          <div className="border border-gray-100 rounded-4xl p-10 text-center shadow-sm hover:shadow-md transition text-left">
-            <img src={missionIcon} alt="Mission" className="w-[66px] h-[66px] mb-4" />
-            <h3 className="text-2xl mb-4">Our Mission</h3>
-            <p className="text-[18px] font-light leading-[29.25px] text-black">
-              "To bridge human touch and technology by creating a trusted ecosystem
-              of care companions and healthcare support for seniors."
+          <div className="video-frame">
+            <video src={demoVideo} autoPlay loop muted playsInline />
+            <div className="play-button" aria-hidden="true" />
+            <p>"Mai Hoon Na - We are here for you."</p>
+          </div>
+
+          <div className="trust-row">
+            {trustSignals.map((item) => (
+              <div key={item.title}>
+                <span />
+                <strong>{item.title}</strong>
+                <small>{item.text}</small>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="challenge">
+          <div className="section-heading">
+            <span>The Challenge</span>
+            <h2>Growing old shouldn't mean growing lonely</h2>
+            <p>
+              Millions of seniors in India live alone while their adult children live far away. MaiHoonNa brings human companionship, connected health monitoring, and family transparency into one trusted subscription.
             </p>
           </div>
-          <div className="bg-black/80 text-white rounded-4xl p-10 text-center shadow-sm hover:shadow-lg transition text-left">
-            <img src={visionIcon} alt="Vision" className="w-[66px] h-[66px] mb-4" />
-            <h3 className="text-2xl font-normal mb-4">Our Vision</h3>
-            <p className="text-[18px] font-light leading-[29.25px] text-white">
-              "To build India's most trusted connected care ecosystem,
-              where every home has a companion and every family feels supported."
+
+          <div className="impact-grid">
+            {impactStats.map((item) => (
+              <div key={item.value}>
+                <strong>{item.value}</strong>
+                <span>{item.label}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="process">
+          <div className="section-heading">
+            <span>How It Works</span>
+            <h2>From the first call to the first visit</h2>
+            <p>Simple, transparent, and human - every step of the way.</p>
+          </div>
+
+          <div className="timeline">
+            {processSteps.map((step, index) => (
+              <div className="timeline__item" key={step.title}>
+                <div className="timeline__number">{index + 1}</div>
+                <div>
+                  <h3>{step.title}</h3>
+                  <p>{step.text}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="visits" id="services">
+          <div className="section-heading">
+            <span>Our Ecosystem</span>
+            <h2>More than visits</h2>
+            <p>A full ecosystem designed to help seniors live with dignity, connection, and joy - not just receive care.</p>
+          </div>
+
+          <div className="service-grid">
+            {services.map((service) => (
+              <article className="service-card" key={service.title}>
+                <img src={service.icon} alt="" />
+                <h3>{service.title}</h3>
+                <p>{service.text}</p>
+                <button onClick={openForm}>Learn more</button>
+              </article>
+            ))}
+          </div>
+
+          <div className="nri-banner">
+            <div>
+              <span>Built for NRI families</span>
+              <h2>
+                Built for NRI Families Who Want to Stay <em>Genuinely Involved</em>
+              </h2>
+              <p>
+                Real-time visit logs, WhatsApp alerts, vitals trends, and a Happiness Score that tells you how your parent is actually feeling today.
+              </p>
+              <button onClick={openForm}>Join an NRI family</button>
+            </div>
+            <ul>
+              {visitFeatures.map((feature) => (
+                <li key={feature}>{feature}</li>
+              ))}
+            </ul>
+          </div>
+        </section>
+
+        <section className="home-visits">
+          <div className="home-visits__copy">
+            <span>Human Support</span>
+            <h2>
+              Care Mitra
+              <em>Home Visits</em>
+            </h2>
+            <p>
+              Your parent's Care Mitra visits on a schedule you set. Every visit is geo-fenced, encounter-tracked, and logged - so you always know what happened, not just that someone showed up.
             </p>
           </div>
-        </div>
-      </section>
 
-      {/* ================= CORE VALUES ================= */}
-      <section id="core-values" className="py-6 md:py-10 px-6 bg-white text-center mb-6 md:mb-12" aria-label="Core Values">
-
-        <h3 className="text-2xl mb-8 text-black tracking-widest text-semibold">
-          Core Values
-        </h3>
-
-        <div className="max-w-5xl mx-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
-
-          {[
-            { title: "Empathy", desc: "We listen first", icon: empathyIcon },
-            { title: "Trust", desc: "We protect dignity", icon: trustIcon },
-            { title: "Innovation", desc: "We evolve with care", icon: innovationIcon },
-            { title: "Connection", desc: "We keep families close", icon: connectionIcon }
-          ].map((val, idx) => (
-
-            <div
-              key={idx}
-              className={`p-5 rounded-xl ${idx === 0 || idx === 2
-                ? "bg-[#FFF7ED]"
-                : "bg-[#F1F1F1]"
-                }`}
-            >
-
-              <img
-                src={val.icon}
-                alt={val.title}
-                className="w-6 h-6 mx-auto mb-1"
-              />
-
-              <h4 className="text-sm text-black-800 mb-1">
-                {val.title}
-              </h4>
-
-              <p className="text-xs text-black-600">
-                {val.desc}
-              </p>
-
+          <div className="dashboard-mock">
+            <div className="mock-tabs">
+              <button className="active">Vitals Monitoring</button>
+              <button>Medication Adherence</button>
+              <button>Mental Happiness Logging</button>
+              <button>Circle Accompaniment</button>
             </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ================= ALWAYS PRESENT ================= */}
-      <section id="why-maihoonna" className="bg-orange-500 text-white py-20 text-center px-6 mt-12" aria-label="Why MaiHoonNa">
-        <p className="text-[16px] font-medium tracking-widest mb-4 opacity-80">
-          Why "MaiHoonNa"
-        </p>
-        <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-6">Always Present</h2>
-        <p className="italic text-xl mb-4 opacity-90">"Mai Hoon Na" means "I am here for you."</p>
-        <p className="max-w-2xl mx-auto text-lg leading-relaxed opacity-80">
-          Our name is our promise. We stand beside seniors and their<br />
-          families, 24/7, without judgment, without compromise.
-        </p>
-      </section>
-
-      {/* ================= WHAT MAKES US DIFFERENT ================= */}
-
-      <section id="differentiators" className="py-18 px-6 text-center bg-white" aria-label="What Makes Us Different">
-        <h2 className="text-3xl mb-16">What Makes Us Different</h2>
-
-        <div className="max-w-6xl mx-auto grid md:grid-cols-3 gap-4">
-          {[
-            {
-              h: "Human Touch",
-              p: (<>Our companions are not just caregivers. They<br /> are listeners, friends, and motivators, helping<br /> seniors live with dignity.</>),
-              icon: touchIcon,
-            },
-            {
-              h: "Connected Ecosystem",
-              p: (<>Smart technology that keeps families <br />informed—health updates, daily check-ins,<br /> and care visibility in real time.</>),
-              icon: hiFiIcon,
-            },
-            {
-              h: "Peace of Mind",
-              p: (<>Know your parents are safe and<br /> emotionally fulfilled, even when you’re<br /> thousands of miles away.</>),
-              icon: peaceIcon,
-            },
-          ].map((item, i) => (
-            <div
-              key={i}
-            >
-              <img
-                src={item.icon}
-                alt={item.h}
-                className="w-[66px] h-[66px] mx-auto mb-6"
-              />
-
-              <h3 className="text-xl mb-3 text-black-500">
-                {item.h}
-              </h3>
-
-              <p className="text-[13px] text-black-600 leading-relaxed">
-                {item.p}
-              </p>
+            <div className="mock-card">
+              <div className="mock-card__header">
+                <strong>Vitals Monitoring</strong>
+                <small>Active</small>
+              </div>
+              <div className="mock-metrics">
+                <span><strong>120/80</strong>Blood pressure</span>
+                <span><strong>98%</strong>SpO2</span>
+                <span><strong>98.4</strong>Temp</span>
+              </div>
+              <div className="mock-list">
+                {["Today, 10:30 AM", "Yesterday, 8:15 AM", "Mon, 9:00 AM"].map((item) => (
+                  <div key={item}>
+                    <span />
+                    <strong>{item}</strong>
+                    <small>Completed</small>
+                  </div>
+                ))}
+              </div>
             </div>
-          ))}
-        </div>
-      </section>
+          </div>
+        </section>
 
-      {/* ================= WAITLIST CTA ================= */}
-      <section id="waitlist" className="bg-[#2f2f2f] py-24 text-center px-6" aria-label="Join the Waitlist">
+        <section className="testimonial">
+          <div className="section-heading section-heading--dark">
+            <span>Testimonials</span>
+            <h2>Families Who Trust Us</h2>
+          </div>
+          <div className="testimonial-card">
+            <div className="portrait" />
+            <div className="quote">
+              <div className="stars" aria-label="5 star rating">+ + + + +</div>
+              <blockquote>
+                MaiHoonNa found us a wonderful Care Mitra in just 2 days. She is now like family to my mother. What gave us the most peace of mind was the 24/7 support line - knowing someone is always there, even at 2 AM.
+              </blockquote>
+              <strong>Ankit Kapoor</strong>
+              <small>Family subscriber</small>
+            </div>
+          </div>
+        </section>
 
-        <h2 className="text-4xl md:text-5xl font-semibold text-white mb-6 max-w-4xl mx-auto leading-tight px-4">
-          Be Part of India's
-          <span className="inline-block md:block">
-            <span className="whitespace-nowrap">Senior Care</span> Revolution
-          </span>
-        </h2>
+        <section className="app-cta">
+          <div>
+            <span>Family Connected App</span>
+            <h2>
+              Stay Connected to Your Parent's World -
+              <em>From Anywhere</em>
+            </h2>
+            <p>
+              Real-time visit logs, vitals trends, and a Happiness Score that tells you how your parent is actually feeling today.
+            </p>
+            <ul>
+              <li>Instant WhatsApp alerts on every visit</li>
+              <li>Live Happiness Score updated after each visit</li>
+              <li>One-tap access to your Care Mitra and support team</li>
+              <li>Download care reports as PDFs for doctors</li>
+            </ul>
+            <div className="store-row">
+              <button>Google Play</button>
+              <button>App Store</button>
+            </div>
+          </div>
+          <div className="phone-mock">
+            <div>
+              <small>Happiness score</small>
+              <strong>82</strong>
+              <span>Going good</span>
+            </div>
+            <div>
+              <small>Today's visit</small>
+              <strong>Done</strong>
+              <span>Vitals logged</span>
+            </div>
+          </div>
+        </section>
 
-        <p className="text-white max-w-2xl mx-auto mb-10 text-[15px]">
-          Early members get priority access, updates, and exclusive benefits.<br />
-          Join us in building the ecosystem India’s seniors deserve.
-        </p>
-
-        {/* Email + Button Row */}
-        <div className="max-w-2xl mx-auto mb-6 flex flex-col sm:flex-row gap-4 justify-center items-center">
-
-          <input
-            type="email"
-            name="email"
-            placeholder="Email address"
-            value={formData.email}
-            onChange={handleInputChange}
-            className="w-[200px] px-4 h-11 rounded-full bg-[#808080] text-white text-[16px] placeholder:text-[12px] focus:outline-none focus:ring-2 focus:ring-orange-500"
-          />
-
-          <button
-            id="cta-waitlist-btn"
-            onClick={openForm}
-            className="bg-orange-500 text-white px-5 h-11 rounded-full text-[13px] font-semibold hover:bg-orange-600 transition active:scale-95 whitespace-nowrap flex items-center justify-center"
-            aria-label="Join the MaiHoonNa waitlist"
-          >
-            Join the Waitlist
-          </button>
-
-        </div>
-
-        <div className="flex items-center justify-center gap-2 text-xs text-[#828282] mt-6">
-          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-          </svg>
-          <span>We respect your privacy. No spam.</span>
-        </div>
-
-      </section>
-
-      {/* ================= FOOTER ================= */}
-      <footer className="border-t border-gray-100 py-10 px-6 sm:px-8 md:px-36 lg:px-44 bg-white" role="contentinfo">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 text-sm text-gray-500">
-
-          <div className="flex items-center gap-3">
-            <img
-              src={logo}
-              alt="MaiHoonNa Logo"
-              style={{ width: '177.97px', height: '40px' }} className="object-contain"
-            />
+        <section className="faq">
+          <div className="section-heading">
+            <span>FAQ</span>
+            <h2>Questions we hear often</h2>
+            <p>Can't find what you're looking for? Write to us at <a href="mailto:hello@maihoonna.in">hello@maihoonna.in</a></p>
           </div>
 
-          <p className="text-center text-[10px] font-medium">
-            © 2026 MaiHoonNa. India's trusted senior care ecosystem.
+          <div className="faq-list">
+            {faqs.map((question) => (
+              <details key={question}>
+                <summary>{question}</summary>
+                <p>Our team will help you understand the right care flow, plan, and support model for your family.</p>
+              </details>
+            ))}
+          </div>
+        </section>
+      </main>
+      ) : activePage === "services" ? (
+      <main className="services-page">
+        {/* ── Services Hero ── */}
+        <section className="services-hero">
+          <div className="services-hero__inner">
+            <div className="services-hero__copy">
+              <span>Our Services</span>
+              <h1>
+                Everything your loved one needs,
+                <em> delivered at their door.</em>
+              </h1>
+              <p>
+                Care Mitra home visits, health monitoring, emergency support, and a full family ecosystem — all under one trusted subscription.
+              </p>
+              <div className="services-hero__actions">
+                <button className="pill-button pill-button--orange" onClick={openForm}>Get Started</button>
+                <button className="pill-button pill-button--ghost" onClick={() => setActivePage("plans")}>View Plans</button>
+              </div>
+            </div>
+            <div className="services-hero__features">
+              {[
+                { icon: "🏠", label: "Care Mitra Home Visits" },
+                { icon: "📊", label: "Vitals & Health Monitoring" },
+                { icon: "🚨", label: "24/7 Emergency Support" },
+                { icon: "📱", label: "Family Connect App" },
+                { icon: "😊", label: "Happiness Score" },
+                { icon: "🤝", label: "Saathi Network" },
+              ].map((item) => (
+                <div className="services-hero__feature-item" key={item.label}>
+                  <span>{item.icon}</span>
+                  <strong>{item.label}</strong>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ── Care Mitra Home Visits ── */}
+        <section className="svc-visits">
+          <div className="svc-visits__header">
+            <div className="svc-visits__heading">
+              <span className="svc-visits__eyebrow">Services</span>
+              <h2>Care Mitra<br /><em>Home Visits</em></h2>
+            </div>
+            <p className="svc-visits__desc">
+              Your parent's Care Mitra visits on a schedule you set. Every visit is geo-fenced, encounter-tracked, and logged — so you always know what happened, not just that someone showed up.
+            </p>
+          </div>
+
+          <div className="svc-visits__grid">
+            {/* Left: Feature List */}
+            <div className="svc-visits__features">
+
+              {/* Active card — Vitals Monitoring */}
+              <div className="svc-fcard svc-fcard--active">
+                <div className="svc-fcard__top">
+                  <div className="svc-fcard__icon-wrap">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FE6700" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                  </div>
+                  <div className="svc-fcard__info">
+                    <div className="svc-fcard__title-row">
+                      <strong>Vitals Monitoring</strong>
+                      <span className="svc-fcard__badge">Every visit</span>
+                    </div>
+                    <p className="svc-fcard__sub">Medical-grade logging</p>
+                  </div>
+                  <span className="svc-fcard__dot svc-fcard__dot--active" />
+                </div>
+                <p className="svc-fcard__detail">
+                  BP, O2, temperature, weight — logged with date, time, and location after every single visit. Trends visible on your Family Connect dashboard.
+                </p>
+              </div>
+
+              {/* Collapsed cards */}
+              {[
+                { icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#999" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>, title: "Medication Adherence", badge: "Automated", sub: "Zero missed doses" },
+                { icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#999" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>, title: "Mood & Happiness Logging", badge: "Real-time alerts", sub: "Feel the difference" },
+                { icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#999" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>, title: "Clinic Accompaniment", badge: "On request", sub: "Never go alone" },
+              ].map((item) => (
+                <div className="svc-fcard" key={item.title}>
+                  <div className="svc-fcard__top">
+                    <div className="svc-fcard__icon-wrap svc-fcard__icon-wrap--muted">
+                      {item.icon}
+                    </div>
+                    <div className="svc-fcard__info">
+                      <div className="svc-fcard__title-row">
+                        <strong>{item.title}</strong>
+                        <span className="svc-fcard__badge svc-fcard__badge--muted">{item.badge}</span>
+                      </div>
+                      <p className="svc-fcard__sub">{item.sub}</p>
+                    </div>
+                    <span className="svc-fcard__dot" />
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Right: Dashboard mock */}
+            <div className="svc-visits__mock">
+              <div className="svc-dash">
+                {/* Orange vitals header */}
+                <div className="svc-dash__header">
+                  <div className="svc-dash__header-icon">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                  </div>
+                  <div>
+                    <strong>Vitals Monitoring</strong>
+                    <span>Medical-grade logging</span>
+                  </div>
+                </div>
+
+                {/* Metrics row */}
+                <div className="svc-dash__metrics">
+                  <div className="svc-dash__metric">
+                    <small>BP</small>
+                    <strong>120/80</strong>
+                    <span>Normal</span>
+                  </div>
+                  <div className="svc-dash__metric">
+                    <small>SpO2</small>
+                    <strong>98%</strong>
+                    <span>Excellent</span>
+                  </div>
+                  <div className="svc-dash__metric">
+                    <small>Temp</small>
+                    <strong>98.4°F</strong>
+                    <span>Normal</span>
+                  </div>
+                </div>
+
+                {/* Recent Visit Log */}
+                <div className="svc-dash__log">
+                  <div className="svc-dash__log-header">
+                    <span>Recent Visit Log</span>
+                    <span className="svc-dash__auto-sync">
+                      <span className="svc-dash__sync-dot" />
+                      Auto-synced
+                    </span>
+                  </div>
+
+                  {[
+                    { date: "Today, 10:30 AM", name: "Meena S. · 52 min" },
+                    { date: "Yesterday, 9:45 AM", name: "Meena S. · 48 min" },
+                    { date: "Mon, 10:30 AM", name: "Meena S. · 55 min" },
+                  ].map((visit) => (
+                    <div className="svc-dash__visit" key={visit.date}>
+                      <div className="svc-dash__avatar">M</div>
+                      <div className="svc-dash__visit-info">
+                        <strong>{visit.date}</strong>
+                        <span>{visit.name}</span>
+                      </div>
+                      <span className="svc-dash__completed">Completed</span>
+                    </div>
+                  ))}
+
+                  {/* Geo-fenced note */}
+                  <div className="svc-dash__geo">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FE6700" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                    <div>
+                      <strong>Geo-fenced &amp; verified</strong>
+                      <span>Every visit confirmed within 50m of home address</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+
+        {/* ── Full Ecosystem ── */}
+        <section className="svc-ecosystem">
+          <div className="section-heading">
+            <span>The Ecosystem</span>
+            <h2>The full MaiHoonNa ecosystem</h2>
+            <p>Every service is connected through the Family Connect App and the Care OS — giving you complete visibility.</p>
+          </div>
+
+          <div className="svc-eco-grid">
+            {[
+              { icon: "📱", title: "Family Connect App", desc: "Real-time visit logs, Happiness Score, WhatsApp alerts, and one-tap support — all in one app.", badge: "Core Product", highlight: true },
+              { icon: "🚨", title: "Emergency Response", desc: "One-tap emergency button connects to our 24/7 support team within minutes.", badge: "24/7" },
+              { icon: "🩺", title: "Health Monitoring", desc: "Vitals, medication adherence, and mood tracked and shared with family in real time.", badge: null },
+              { icon: "👥", title: "Saathi Network", desc: "Trained community volunteers for companionship between Care Mitra visits.", badge: null },
+              { icon: "🎯", title: "Legacy Circles", desc: "A platform for seniors to share expertise, mentor others, and rediscover purpose.", badge: null },
+              { icon: "♟️", title: "Hobby Circles", desc: "Peer connections built around chess, gardening, music, cooking, or fitness.", badge: null },
+            ].map((item) => (
+              <article className={`svc-eco-card${item.highlight ? " svc-eco-card--highlight" : ""}`} key={item.title}>
+                {item.badge && <div className="svc-eco-badge">{item.badge}</div>}
+                <span className="svc-eco-icon">{item.icon}</span>
+                <h3>{item.title}</h3>
+                <p>{item.desc}</p>
+                <button onClick={openForm}>Learn more →</button>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        {/* ── CTA Banner ── */}
+        <section className="svc-cta">
+          <div className="svc-cta__inner">
+            <span>Get Started Today</span>
+            <h2>Ready to bring care home?</h2>
+            <p>Join families across Gurugram who trust MaiHoonNa with the people they love most.</p>
+            <div className="svc-cta__actions">
+              <button className="pill-button pill-button--orange" onClick={openForm}>Join Waitlist</button>
+              <button className="pill-button pill-button--ghost-light" onClick={() => setActivePage("plans")}>Register as Caregiver</button>
+            </div>
+          </div>
+        </section>
+
+        {/* ── FAQ ── */}
+        <section className="faq">
+          <div className="section-heading">
+            <span>FAQ</span>
+            <h2>Questions we hear often</h2>
+            <p>Can't find what you're looking for? Write to us at <a href="mailto:hello@maihoonna.in">hello@maihoonna.in</a></p>
+          </div>
+          <div className="faq-list">
+            {faqs.map((question) => (
+              <details key={question}>
+                <summary>{question}</summary>
+                <p>Our team will help you understand the right care flow, plan, and support model for your family.</p>
+              </details>
+            ))}
+          </div>
+        </section>
+      </main>
+      ) : (
+      <main className="plans-page">
+        <section className="plans-hero">
+          <div className="plans-hero__inner">
+            <div className="plans-hero__copy">
+              <span>Plans</span>
+              <h1>
+                Built around hours,
+                <em>not fine print.</em>
+              </h1>
+              <p>
+                Prepaid hours of in-home care. You always know exactly what you've used and what's left - no surprises, no caps.
+              </p>
+              <div className="plans-hero__badges">
+                <span>No hidden fees</span>
+                <span>Hours roll over 30 days</span>
+                <span>Cancel anytime</span>
+              </div>
+            </div>
+
+            <div className="hours-card" aria-label="Your hours always visible">
+              <h2>Your hours - always visible</h2>
+              {[
+                ["Saathi Starter", "7", "10", "3", "#10b981"],
+                ["Saathi Plus", "18", "25", "7", "#fe6700"],
+                ["Saathi Premium", "31", "50", "19", "#8b45ff"],
+              ].map(([name, used, total, remaining, color]) => (
+                <div className="hours-row" key={name}>
+                  <div>
+                    <strong>{name}</strong>
+                    <span>{used} hrs used</span>
+                  </div>
+                  <small>{used} / {total} hrs used</small>
+                  <div className="hours-bar">
+                    <span style={{ width: `${(Number(used) / Number(total)) * 100}%`, background: color }} />
+                  </div>
+                  <em style={{ color }}>{remaining} hrs remaining</em>
+                </div>
+              ))}
+              <div className="rollover-note">Unused hours roll over for 30 days automatically</div>
+            </div>
+          </div>
+        </section>
+
+        <section className="pricing-section" id="plans">
+          <div className="pricing-toolbar">
+            <strong>All prices on enquiry - GST applicable</strong>
+            <div className="billing-toggle" aria-label="Billing options">
+              <button className="active">Monthly</button>
+              <button>Quarterly <span>Save 10%</span></button>
+              <button>Annual <span>Save 20%</span></button>
+            </div>
+          </div>
+
+          <div className="plan-grid">
+            {pricingPlans.map((plan) => (
+              <article className={`plan-card plan-card--${plan.tone}`} key={plan.name}>
+                {plan.badge && <div className="plan-badge">{plan.badge}</div>}
+                <h2>{plan.name}</h2>
+                <p>{plan.description}</p>
+                <div className="plan-hours">
+                  <strong>{plan.hours}</strong>
+                  <span>hrs</span>
+                  <small>per month - pricing on enquiry</small>
+                </div>
+                <ul>
+                  {plan.features.map((feature) => (
+                    <li key={feature}>{feature}</li>
+                  ))}
+                  {plan.muted?.map((feature) => (
+                    <li className="muted" key={feature}>{feature}</li>
+                  ))}
+                </ul>
+                <button onClick={openForm}>Get Started <span>+</span></button>
+              </article>
+            ))}
+          </div>
+
+          <p className="pricing-note">
+            No hidden caps - No surprise renewals - Plans available monthly, quarterly, and annually - Pricing on enquiry
           </p>
 
-          <div className="flex gap-6 font-medium text-gray-600 text-xs">
-            <a href="#" className="hover:text-orange-500 transition">Privacy Policy</a>
-            <a href="#" className="hover:text-orange-500 transition">Terms &amp; Conditions</a>
+          <div className="comparison">
+            <div className="comparison__heading">
+              <h2>Full feature comparison</h2>
+              <p>Everything side by side, so you can choose with clarity.</p>
+            </div>
+            <div className="comparison-table" role="table" aria-label="Full feature comparison">
+              <div className="comparison-row comparison-row--head" role="row">
+                <span>Feature</span>
+                <strong>Saathi Starter</strong>
+                <strong>Saathi Plus</strong>
+                <strong>Saathi Premium</strong>
+              </div>
+              {comparisonRows.map(([feature, starter, plus, premium]) => (
+                <div className="comparison-row" role="row" key={feature}>
+                  <span>{feature}</span>
+                  {[starter, plus, premium].map((included, index) => (
+                    <strong className={included ? "included" : "not-included"} key={`${feature}-${index}`}>
+                      {included ? "✓" : "-"}
+                    </strong>
+                  ))}
+                </div>
+              ))}
+            </div>
           </div>
 
+          <div className="bespoke-banner">
+            <div>
+              <span>Bespoke Plans</span>
+              <h2>Bespoke Palliative Plans</h2>
+              <p>
+                For families navigating advanced illness. Custom-built hours, specialist Care Mitra matching, and coordinated multi-disciplinary support - designed together with your family.
+              </p>
+              <ul>
+                <li>Custom hours & schedule</li>
+                <li>Specialist Mitra matching</li>
+                <li>Palliative care coordination</li>
+                <li>Family counselling support</li>
+              </ul>
+            </div>
+            <button onClick={openForm}>Contact Us</button>
+          </div>
+        </section>
+
+        <section className="quote-section">
+          <form className="quote-card" onSubmit={handleSubmit}>
+            <h2>Get a personalised quote</h2>
+            <p>Tell us which plan interests you and we'll call back within 2 hours with pricing and availability for your area.</p>
+            <div className="quote-grid">
+              <label>
+                Your name
+                <input name="name" placeholder="Rahul Gupta" value={formData.name} onChange={handleInputChange} />
+              </label>
+              <label>
+                Phone
+                <input name="phone" placeholder="+91 98765 43210" value={formData.phone} onChange={handleInputChange} />
+              </label>
+            </div>
+            <div className="plan-pills" aria-label="Interested plan">
+              <button type="button">Saathi Starter</button>
+              <button type="button">Saathi Plus</button>
+              <button type="button">Saathi Premium</button>
+              <button type="button">Bespoke</button>
+            </div>
+            <label>
+              Your area
+              <input name="pinCode" placeholder="e.g. Gurugram Sector 55" value={formData.pinCode} onChange={handleInputChange} />
+            </label>
+            <button type="submit" disabled={isSubmitting || showSuccess}>
+              {isSubmitting ? "Requesting..." : "Request a Callback"}
+            </button>
+          </form>
+        </section>
+
+        <section className="faq plans-faq">
+          <div className="section-heading">
+            <span>FAQ</span>
+            <h2>Questions we hear often</h2>
+            <p>Can't find what you're looking for? Write to us at <a href="mailto:hello@maihoonna.in">hello@maihoonna.in</a></p>
+          </div>
+
+          <div className="faq-list">
+            {faqs.map((question) => (
+              <details key={question}>
+                <summary>{question}</summary>
+                <p>Our team will help you understand the right care flow, plan, and support model for your family.</p>
+              </details>
+            ))}
+          </div>
+        </section>
+      </main>
+      )}
+
+      <footer className="site-footer" role="contentinfo">
+        <div className="footer-inner">
+          <div className="footer-brand">
+            <img src={logo} alt="MaiHoonNa" />
+            <p>India's connected senior care ecosystem for families, seniors, Care Mitras, Saathi volunteers, and healthcare partners.</p>
+            <div className="social-row">
+              <a href="https://facebook.com" aria-label="Facebook" target="_blank" rel="noopener noreferrer">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
+              </a>
+              <a href="https://linkedin.com" aria-label="LinkedIn" target="_blank" rel="noopener noreferrer">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>
+              </a>
+              <a href="https://twitter.com" aria-label="Twitter / X" target="_blank" rel="noopener noreferrer">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+              </a>
+              <a href="https://instagram.com" aria-label="Instagram" target="_blank" rel="noopener noreferrer">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+              </a>
+            </div>
+          </div>
+
+          <div className="footer-links">
+            <div>
+              <h3>About Us</h3>
+              <a href="#">Our Story</a>
+              <a href="#">Mission and Vision</a>
+              <a href="#">Leadership Team</a>
+              <a href="#">Careers</a>
+            </div>
+            <div>
+              <h3>Services</h3>
+              <a onClick={() => setActivePage("services")} href="#">Care Mitra Visits</a>
+              <a onClick={() => setActivePage("services")} href="#">Saathi Network</a>
+              <a onClick={() => setActivePage("services")} href="#">Legacy Circles</a>
+              <a onClick={() => setActivePage("services")} href="#">Medical Care</a>
+            </div>
+            <div>
+              <h3>Terms and Policies</h3>
+              <a href="#">Privacy Policy</a>
+              <a href="#">Terms of Service</a>
+              <a href="#">Subscription Terms</a>
+              <a href="#">Refund Policy</a>
+            </div>
+            <div>
+              <h3>Connect</h3>
+              <a href="mailto:hello@maihoonna.in">hello@maihoonna.in</a>
+              <a href="tel:+919999999999">+91 99999 99999</a>
+              <a href="#">Gurugram, Haryana</a>
+              <a onClick={() => setActivePage("plans")} href="#">Join Waitlist</a>
+            </div>
+          </div>
+        </div>
+
+        <div className="footer-bottom">
+          <span>© {new Date().getFullYear()} MaiHoonNa Technologies Pvt. Ltd. All rights reserved.</span>
+          <span>Made with ❤️ for Indian families</span>
         </div>
       </footer>
-      {/* ================= FORM MODAL ================= */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-300" role="dialog" aria-modal="true" aria-label="Waitlist registration form">
-          <div className="bg-white w-full max-w-xl rounded-3xl shadow-2xl p-8 relative overflow-hidden animate-in zoom-in slide-in-from-bottom-4 duration-300">
 
-            <button
-              onClick={closeForm}
-              className="absolute top-4 right-4 text-gray-400 hover:text-black text-2xl transition"
-            >
-              ✕
+      {isModalOpen && (
+        <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Waitlist registration form">
+          <div className="modal-card">
+            <button onClick={closeForm} className="modal-close" aria-label="Close form">
+              x
             </button>
 
-            <h2 className="text-3xl font-bold text-center mb-2">Share Your Details</h2>
-            <p className="text-center text-gray-500 mb-8">
-              Help us understand you better so we can serve you right.
-            </p>
+            <h2>Share Your Details</h2>
+            <p>Help us understand you better so we can serve you right.</p>
 
             {showSuccess && (
-              <div className="mb-6 text-center text-green-700 font-bold bg-green-50 p-4 rounded-xl border border-green-100">
-                ✅ Form submitted successfully! We'll get back to you soon.
+              <div className="form-message form-message--success">
+                Form submitted successfully. We'll get back to you soon.
               </div>
             )}
 
             {submitError && (
-              <div className="mb-6 text-center text-red-600 font-semibold bg-red-50 p-4 rounded-xl border border-red-100">
-                ⚠️ {submitError}
+              <div className="form-message form-message--error">
+                {submitError}
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-4" aria-label="Waitlist registration">
-
+            <form onSubmit={handleSubmit} className="waitlist-form" aria-label="Waitlist registration">
               <input
                 id="form-name"
                 type="text"
@@ -466,7 +1019,6 @@ const App = () => {
                 autoComplete="name"
                 value={formData.name}
                 onChange={handleInputChange}
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none transition"
               />
 
               <input
@@ -479,7 +1031,6 @@ const App = () => {
                 autoComplete="tel"
                 value={formData.phone}
                 onChange={handleInputChange}
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none transition"
               />
 
               <input
@@ -495,7 +1046,6 @@ const App = () => {
                 pattern="[0-9]{6}"
                 maxLength={6}
                 title="Enter a valid 6-digit pin code"
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none"
               />
 
               <input
@@ -508,19 +1058,11 @@ const App = () => {
                 autoComplete="email"
                 value={formData.email}
                 onChange={handleInputChange}
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none transition"
               />
 
-              <button
-                id="form-submit-btn"
-                type="submit"
-                disabled={isSubmitting || showSuccess}
-                className="w-full bg-orange-500 text-white py-4 rounded-2xl font-bold text-lg hover:bg-orange-600 transition shadow-lg active:scale-95 disabled:bg-gray-300"
-                aria-label="Submit your details"
-              >
-                {isSubmitting ? "Submitting..." : showSuccess ? "Done!" : "Submit Details"}
+              <button type="submit" disabled={isSubmitting || showSuccess}>
+                {isSubmitting ? "Submitting..." : showSuccess ? "Done" : "Submit Details"}
               </button>
-
             </form>
           </div>
         </div>
@@ -530,9 +1072,6 @@ const App = () => {
 };
 
 export default App;
-
-
-
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
