@@ -5,7 +5,8 @@
   "scripts": {
     "start": "expo start --port 8082",
     "dev": "expo start --port 8082",
-    "postinstall": "patch-package",
+    "postinstall": "chmod +x node_modules/react-native/sdks/hermesc/linux64-bin/hermesc 2>/dev/null || true",
+    "eas-build-post-install": "chmod +x node_modules/react-native/sdks/hermesc/linux64-bin/hermesc 2>/dev/null || true",
     "reset-project": "node ./scripts/reset-project.js",
     "android": "expo run:android",
     "ios": "expo run:ios",
@@ -65,8 +66,7 @@
     "@types/react": "~19.2.10",
     "@types/react-native": "^0.72.8",
     "eslint": "^9.25.0",
-    "eslint-config-expo": "~10.0.0",
-    "patch-package": "^8.0.1",
+    "eslint-config-expo": "~55.0.1",
     "typescript": "~5.9.2"
   },
   "overrides": {
