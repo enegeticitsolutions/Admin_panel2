@@ -5,7 +5,8 @@
   "scripts": {
     "start": "expo start --port 8082",
     "dev": "expo start --port 8082",
-    "postinstall": "echo 'patch-package skipped in monorepo install'",
+    "postinstall": "chmod +x node_modules/react-native/sdks/hermesc/linux64-bin/hermesc 2>/dev/null || true",
+    "eas-build-post-install": "chmod +x node_modules/react-native/sdks/hermesc/linux64-bin/hermesc 2>/dev/null || true",
     "reset-project": "node ./scripts/reset-project.js",
     "android": "expo run:android",
     "ios": "expo run:ios",
