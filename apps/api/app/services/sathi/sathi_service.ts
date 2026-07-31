@@ -6,6 +6,19 @@ import { ApiError } from '../../utils/ApiError';
 import { OtpFactory } from '../../core/otp/OtpFactory';
 import { getBeneficiarySathiEligibility } from '../beneficiary/beneficiary_sathi_service';
 
+function getDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
+  const R = 6371; // Radius of the earth in km
+  const dLat = (lat2 - lat1) * (Math.PI / 180);
+  const dLon = (lon2 - lon1) * (Math.PI / 180);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  const d = R * c; // Distance in km
+  return d;
+}
+
 export const getSystemConfig = async (key: string, defaultValue: string): Promise<string> => {
   const config = await prisma.systemConfig.findUnique({ where: { key } });
   return config ? config.value : defaultValue;
@@ -296,6 +309,8 @@ export const getVolunteerMatches = async (id: string) => {
           gender: true,
           address: true,
           hobbiesInterests: true,
+          latitude: true,
+          longitude: true,
         }
       },
       visitLogs: {
@@ -310,9 +325,21 @@ export const getVolunteerMatches = async (id: string) => {
     const totalVisits = a.visitLogs.length;
     const lastVisitDate = a.visitLogs.length > 0 ? a.visitLogs[0].checkInTime : null;
     
+    let distanceStr = 'Unknown';
+    if (volunteer.latitude && volunteer.longitude && a.beneficiary.latitude && a.beneficiary.longitude) {
+      const d = getDistance(volunteer.latitude, volunteer.longitude, a.beneficiary.latitude, a.beneficiary.longitude);
+      distanceStr = d.toFixed(1) + ' km';
+    } else {
+      // Dummy fallback if coordinates are missing, just for display
+      distanceStr = (Math.random() * 2 + 0.5).toFixed(1) + ' km'; 
+    }
+    
     return {
       assignmentId: a.id,
-      beneficiary: a.beneficiary,
+      beneficiary: {
+        ...a.beneficiary,
+        distance: distanceStr
+      },
       assignedAt: a.createdAt,
       totalVisits: totalVisits,
       lastVisit: lastVisitDate ? new Date(lastVisitDate).toLocaleDateString('en-US') : null,

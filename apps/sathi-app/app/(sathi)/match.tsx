@@ -163,7 +163,7 @@ export default function SathiMatches() {
                     <Text style={styles.seniorName}>{ben.name}</Text>
                     <View style={styles.locationRow}>
                       <Ionicons name="location-outline" size={14} color="#6B7280" />
-                      <Text style={styles.locationTextSmall}>{ben.location || ben.address || 'Delhi'}</Text>
+                      <Text style={[styles.locationTextSmall, { flex: 1 }]} numberOfLines={1}>{ben.location || ben.address || 'Delhi'}</Text>
                     </View>
                   </View>
                   <View style={styles.distanceBadge}>
@@ -289,6 +289,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: scale(10),
     paddingVertical: scale(4),
     borderRadius: scale(12),
+    alignSelf: 'flex-start',
   },
   distanceText: {
     fontSize: scale(12),
