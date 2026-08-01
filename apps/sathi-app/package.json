@@ -5,6 +5,7 @@
   "scripts": {
     "start": "expo start --port 8082",
     "dev": "expo start --port 8082",
+    "eas-build-pre-install": "rm -rf package-lock.json && rm -rf ../../package-lock.json",
     "postinstall": "echo postinstall complete",
     "reset-project": "node ./scripts/reset-project.js",
     "android": "expo run:android",
