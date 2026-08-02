@@ -14,7 +14,7 @@
  * Web: all push logic is safely skipped — no errors thrown.
  */
 
-import * as Notifications from 'expo-notifications';
+import type * as NotificationsType from 'expo-notifications';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -60,6 +60,7 @@ export async function registerForPushNotifications(): Promise<string | null> {
 
   try {
     // Check / request permission
+    const Notifications = require('expo-notifications');
     const { status: existingStatus } = await Notifications.getPermissionsAsync();
     let finalStatus = existingStatus;
 
@@ -146,8 +147,10 @@ async function syncTokenToBackend(token: string): Promise<void> {
  * Returns a subscription — call .remove() to clean up.
  */
 export function addNotificationReceivedListener(
-  handler: (notification: Notifications.Notification) => void
-): Notifications.EventSubscription {
+  handler: (notification: NotificationsType.Notification) => void
+): NotificationsType.EventSubscription | null {
+  if (isRunningInExpoGo) return null;
+  const Notifications = require('expo-notifications');
   return Notifications.addNotificationReceivedListener(handler);
 }
 
@@ -156,8 +159,10 @@ export function addNotificationReceivedListener(
  * Returns a subscription — call .remove() to clean up.
  */
 export function addNotificationResponseListener(
-  handler: (response: Notifications.NotificationResponse) => void
-): Notifications.EventSubscription {
+  handler: (response: NotificationsType.NotificationResponse) => void
+): NotificationsType.EventSubscription | null {
+  if (isRunningInExpoGo) return null;
+  const Notifications = require('expo-notifications');
   return Notifications.addNotificationResponseReceivedListener(handler);
 }
 
@@ -165,7 +170,8 @@ export function addNotificationResponseListener(
  * Dismiss all notifications from the tray and reset badge count.
  */
 export async function clearAllNotifications(): Promise<void> {
-  if (Platform.OS === 'web') return;
+  if (Platform.OS === 'web' || isRunningInExpoGo) return;
+  const Notifications = require('expo-notifications');
   await Notifications.dismissAllNotificationsAsync();
   await Notifications.setBadgeCountAsync(0);
 }

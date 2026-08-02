@@ -147,6 +147,9 @@ export default function SathiProfile() {
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <View style={styles.header}>
         <Text style={styles.title}>My Profile</Text>
+        <TouchableOpacity onPress={() => router.push('/(sathi)/edit-profile')} style={styles.editHeaderBtn}>
+          <Ionicons name="pencil" size={20} color="#111827" />
+        </TouchableOpacity>
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -284,9 +287,22 @@ const styles = StyleSheet.create({
     fontFamily: 'Poppins-Medium',
   },
   header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: scale(18),
     paddingVertical: scale(16),
     backgroundColor: '#FAF3EB',
+  },
+  editHeaderBtn: {
+    padding: scale(8),
+    backgroundColor: '#FFFFFF',
+    borderRadius: scale(12),
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
   title: {
     fontSize: scale(22),
