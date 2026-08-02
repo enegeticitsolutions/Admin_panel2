@@ -16,6 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { SathiBottomNav } from '@/components/shared/SathiBottomNav';
 import { useExitOnBack } from '@/hooks/useExitOnBack';
 import { useAndroidBackHandler } from '@/hooks/useAndroidBackHandler';
+import { API_URL } from '@/constants/api';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -49,9 +50,7 @@ export default function SathiGuide() {
 
   const fetchGuideData = async () => {
     try {
-      // Use EXPO_PUBLIC_API_URL or fallback to localhost
-      const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://10.0.2.2:8001/api';
-      const response = await fetch(`${apiUrl}/public/sathi-guide`);
+      const response = await fetch(`${API_URL}/public/sathi-guide`);
       const json = await response.json();
       
       if (json.success) {

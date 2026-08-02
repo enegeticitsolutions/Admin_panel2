@@ -2081,3 +2081,12 @@ model SaathiFaq {
 
   @@map("saathi_faqs")
 }
+
+model WebsiteContent {
+  id        String   @id @default(uuid())
+  pageKey   String   @unique
+  content   Json
+  updatedAt DateTime @updatedAt
+
+  @@map("website_content")
+}

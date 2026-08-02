@@ -8,6 +8,7 @@ import demoVideo from "./assets/Video.mp4";
 import heroBg from "./assets/herobg.png";
 import logo from "./assets/logo.svg";
 import healthcareIcon from "./assets/healthcare1.png";
+import SaathiPage from "./pages/SaathiPage";
 import "./style.css";
 
 const promiseStats = [
@@ -237,7 +238,7 @@ const App = () => {
         <nav className="topbar__nav" aria-label="Main navigation">
           <button className={activePage === "home" ? "active" : ""} onClick={() => setActivePage("home")}>Home</button>
           <button className={activePage === "services" ? "active" : ""} onClick={() => setActivePage("services")}>Our Services</button>
-          <button onClick={() => setActivePage("home")}>Saathi Network</button>
+          <button className={activePage === "saathi" ? "active" : ""} onClick={() => setActivePage("saathi")}>Saathi Network</button>
           {/* <button onClick={() => setActivePage("home")}>Legacy Circles</button>
           <button onClick={() => setActivePage("home")}>Blog</button>
           <button onClick={() => setActivePage("home")}>Partners</button> */}
@@ -767,6 +768,8 @@ const App = () => {
           </div>
         </section>
       </main>
+      ) : activePage === "saathi" ? (
+        <SaathiPage />
       ) : (
       <main className="plans-page">
         <section className="plans-hero">
