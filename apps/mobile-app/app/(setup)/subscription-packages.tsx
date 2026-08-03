@@ -31,6 +31,7 @@ export default function SubscriptionPackagesScreen() {
     const [selectedRegionId, setSelectedRegionId] = useState('');
     const [selectedLat, setSelectedLat] = useState<number | null>(null);
     const [selectedLng, setSelectedLng] = useState<number | null>(null);
+    const [selectedCycle, setSelectedCycle] = useState<string>('1');
 
     const [mapModalVisible, setMapModalVisible] = useState(false);
 
@@ -322,10 +323,84 @@ export default function SubscriptionPackagesScreen() {
                     ) : null}
                 </View>
 
+                {/* Duration Cycle Selector Toggle Bar */}
+                <View style={{
+                    flexDirection: 'row',
+                    backgroundColor: '#F1F5F9',
+                    borderRadius: 14,
+                    padding: 4,
+                    marginBottom: 20,
+                    borderWidth: 1,
+                    borderColor: '#E2E8F0',
+                }}>
+                    {[
+                        { key: '1', label: '1 Month', badge: '' },
+                        { key: '3', label: '3 Months', badge: '5% OFF' },
+                        { key: '6', label: '6 Months', badge: '10% OFF' },
+                        { key: '12', label: '1 Year', badge: '20% OFF' },
+                    ].map((item) => {
+                        const isActive = selectedCycle === item.key;
+                        return (
+                            <TouchableOpacity
+                                key={item.key}
+                                onPress={() => setSelectedCycle(item.key)}
+                                style={{
+                                    flex: 1,
+                                    paddingVertical: 10,
+                                    borderRadius: 10,
+                                    backgroundColor: isActive ? '#FE6700' : 'transparent',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                }}
+                            >
+                                <Text style={{
+                                    fontSize: 12,
+                                    fontWeight: '800',
+                                    color: isActive ? '#FFFFFF' : '#1E293B',
+                                }}>
+                                    {item.label}
+                                </Text>
+                                {item.badge ? (
+                                    <Text style={{
+                                        fontSize: 9,
+                                        fontWeight: '700',
+                                        color: isActive ? '#FFE4CC' : '#16A34A',
+                                        marginTop: 2,
+                                    }}>
+                                        {item.badge}
+                                    </Text>
+                                ) : null}
+                            </TouchableOpacity>
+                        );
+                    })}
+                </View>
+
                 {/* Dynamic DB Driven Cards */}
                 {packages.map((pkg: any) => {
                     const isPopular = pkg.isPopular;
                     const isRegional = !pkg.isGlobal;
+
+                    const base = pkg.basePrice || 0;
+                    const durNum = parseInt(selectedCycle, 10);
+                    let displayPrice = base;
+                    let cycleSubtext = '/ month';
+
+                    if (durNum === 3) {
+                        const disc = pkg.discountThreeMonths ?? 5;
+                        displayPrice = pkg.priceThreeMonths ? pkg.priceThreeMonths : Math.round(base * 3 * (1 - disc / 100));
+                        const monthly = Math.round(displayPrice / 3);
+                        cycleSubtext = `(₹${monthly.toLocaleString('en-IN')}/mo for 3 mo)`;
+                    } else if (durNum === 6) {
+                        const disc = pkg.discountSixMonths ?? 10;
+                        displayPrice = pkg.priceSixMonths ? pkg.priceSixMonths : Math.round(base * 6 * (1 - disc / 100));
+                        const monthly = Math.round(displayPrice / 6);
+                        cycleSubtext = `(₹${monthly.toLocaleString('en-IN')}/mo for 6 mo)`;
+                    } else if (durNum === 12) {
+                        const disc = pkg.discountAnnual ?? 20;
+                        displayPrice = pkg.priceTwelveMonths ? pkg.priceTwelveMonths : Math.round(base * 12 * (1 - disc / 100));
+                        const monthly = Math.round(displayPrice / 12);
+                        cycleSubtext = `(₹${monthly.toLocaleString('en-IN')}/mo for 1 yr)`;
+                    }
 
                     return (
                         <View key={pkg.id} style={[styles.card, isPopular && styles.popularCard, isRegional && styles.regionalCard]}>
@@ -348,16 +423,11 @@ export default function SubscriptionPackagesScreen() {
                                     <Text style={styles.planName}>{pkg.name}</Text>
                                     <View style={styles.priceRow}>
                                         <Text style={isRegional ? styles.planPriceRegional : (isPopular ? styles.planPriceColor : styles.planPrice)}>
-                                            ₹{getPrice(pkg).toLocaleString('en-IN')}
+                                            ₹{displayPrice.toLocaleString('en-IN')}
                                         </Text>
-                                        {pkg.mrp > pkg.basePrice && (
-                                            <View style={styles.discountInfo}>
-                                                <Text style={styles.mrpText}>₹{pkg.mrp.toLocaleString('en-IN')}</Text>
-                                                <View style={styles.discountBadge}>
-                                                    <Text style={styles.discountBadgeText}>{pkg.discountPercentage}% OFF</Text>
-                                                </View>
-                                            </View>
-                                        )}
+                                        <Text style={{ fontSize: 11, color: '#6B7280', fontWeight: '600', marginLeft: 4, alignSelf: 'center' }}>
+                                            {cycleSubtext}
+                                        </Text>
                                     </View>
                                 </View>
                                 <Image
