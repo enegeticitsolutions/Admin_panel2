@@ -1,10 +1,14 @@
 import { defineConfig } from '@prisma/config';
 import * as dotenv from 'dotenv';
-dotenv.config();
+import * as path from 'path';
+
+// Load .env file from packages/database or root if needed
+dotenv.config({ path: path.resolve(__dirname, '.env') });
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
 export default defineConfig({
   datasource: {
-    url: process.env.DATABASE_URL || 'postgresql://postgres.ggjbkdlioayfegcsbprv:HarHarMahadev%4007@aws-1-ap-south-1.pooler.supabase.com:5432/postgres',
-    directUrl: process.env.DIRECT_URL || 'postgresql://postgres.ggjbkdlioayfegcsbprv:HarHarMahadev%4007@aws-1-ap-south-1.pooler.supabase.com:5432/postgres',
+    url: process.env.DATABASE_URL || '',
+    directUrl: process.env.DIRECT_URL || process.env.DATABASE_URL || '',
   },
 });

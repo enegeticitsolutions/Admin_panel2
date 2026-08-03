@@ -1,6 +1,7 @@
-import { Client } from 'pg';
+import * as dotenv from 'dotenv';
+dotenv.config();
 
-const DIRECT_URL = "postgresql://postgres.ggjbkdlioayfegcsbprv:HarHarMahadev%4007@aws-1-ap-south-1.pooler.supabase.com:5432/postgres";
+const DIRECT_URL = process.env.DIRECT_URL || process.env.DATABASE_URL || '';
 
 async function main() {
   const client = new Client({ connectionString: DIRECT_URL });
