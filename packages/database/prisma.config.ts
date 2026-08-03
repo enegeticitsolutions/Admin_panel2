@@ -1,10 +1,7 @@
 import { defineConfig } from '@prisma/config';
 import * as dotenv from 'dotenv';
-import * as path from 'path';
 
-// Load .env file from packages/database or root if needed
-dotenv.config({ path: path.resolve(__dirname, '.env') });
-dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+dotenv.config();
 
 export default defineConfig({
   datasource: {
