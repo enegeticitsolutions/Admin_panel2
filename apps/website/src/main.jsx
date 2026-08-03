@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import ReactDOM from "react-dom/client";
 import missionIcon from "./assets/mission.png";
 import visionIcon from "./assets/vision.png";
@@ -12,6 +12,10 @@ import appStoreImg from "./assets/appstore.png";
 import logo from "./assets/logo.svg";
 import healthcareIcon from "./assets/healthcare1.png";
 import SaathiPage from "./pages/SaathiPage";
+import AuthPage from "./pages/AuthPage";
+import AccountPage from "./pages/AccountPage";
+import CheckoutPage from "./pages/CheckoutPage";
+import { fetchSubscriptionPackages } from "./services/api";
 import "./style.css";
 
 const promiseStats = [
@@ -239,6 +243,75 @@ const App = () => {
     email: "",
   });
 
+  // User Auth State
+  const [user, setUser] = useState(() => {
+    try {
+      const u = localStorage.getItem("mhn_user");
+      return u ? JSON.parse(u) : null;
+    } catch (e) {
+      return null;
+    }
+  });
+  const [token, setToken] = useState(() => localStorage.getItem("mhn_token") || "");
+
+  // Modals state
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
+  const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
+  const [selectedPackageForCheckout, setSelectedPackageForCheckout] = useState(null);
+  const [pendingPackageForCheckout, setPendingPackageForCheckout] = useState(null);
+
+  // Live Subscription Packages from API
+  const [livePackages, setLivePackages] = useState([]);
+
+  useEffect(() => {
+    fetchSubscriptionPackages()
+      .then((pkgs) => {
+        if (Array.isArray(pkgs) && pkgs.length > 0) {
+          setLivePackages(pkgs);
+        }
+      })
+      .catch((err) => console.log("Backend offline or packages endpoint unavailable, falling back to static plans.", err));
+  }, []);
+
+  const handleAuthSuccess = (userData, tokenData) => {
+    setUser(userData);
+    setToken(tokenData);
+    try {
+      localStorage.setItem("mhn_user", JSON.stringify(userData));
+      localStorage.setItem("mhn_token", tokenData);
+    } catch (e) {}
+
+    // If user attempted to buy a package before logging in, proceed to full-page checkout
+    if (pendingPackageForCheckout) {
+      setSelectedPackageForCheckout(pendingPackageForCheckout);
+      setPendingPackageForCheckout(null);
+      setActivePage("checkout");
+    } else {
+      setActivePage("account");
+    }
+  };
+
+  const handleLogout = () => {
+    setUser(null);
+    setToken("");
+    try {
+      localStorage.removeItem("mhn_user");
+      localStorage.removeItem("mhn_token");
+    } catch (e) {}
+    setActivePage("home");
+  };
+
+  const handleSelectPackageForBuy = (plan) => {
+    if (!token || !user) {
+      setPendingPackageForCheckout(plan);
+      setActivePage("auth");
+    } else {
+      setSelectedPackageForCheckout(plan);
+      setActivePage("checkout");
+    }
+  };
+
   const openForm = () => setIsModalOpen(true);
   const closeForm = () => {
     setIsModalOpen(false);
@@ -289,6 +362,35 @@ const App = () => {
     }
   };
 
+  // Full-page Views for Auth, Account, and Checkout
+  if (activePage === "auth") {
+    return <AuthPage onAuthSuccess={handleAuthSuccess} onGoBack={() => setActivePage("home")} />;
+  }
+
+  if (activePage === "account") {
+    return (
+      <AccountPage
+        user={user}
+        token={token}
+        onLogout={handleLogout}
+        onNavigateToPlans={() => setActivePage("plans")}
+        onGoHome={() => setActivePage("home")}
+      />
+    );
+  }
+
+  if (activePage === "checkout") {
+    return (
+      <CheckoutPage
+        selectedPackage={selectedPackageForCheckout}
+        token={token}
+        user={user}
+        onSuccess={() => setActivePage("account")}
+        onGoBack={() => setActivePage("plans")}
+      />
+    );
+  }
+
   return (
     <div className="site-shell">
       <noscript>
@@ -305,12 +407,48 @@ const App = () => {
           <button className={activePage === "home" ? "active" : ""} onClick={() => setActivePage("home")}>Home</button>
           <button className={activePage === "services" ? "active" : ""} onClick={() => setActivePage("services")}>Our Services</button>
           <button className={activePage === "saathi" ? "active" : ""} onClick={() => setActivePage("saathi")}>Saathi Network</button>
-          {/* <button onClick={() => setActivePage("home")}>Legacy Circles</button>
-          <button onClick={() => setActivePage("home")}>Blog</button>
-          <button onClick={() => setActivePage("home")}>Partners</button> */}
         </nav>
-        <div className="topbar__actions">
-          <button className="view-plan-button" onClick={() => setActivePage("plans")}>View Plan</button>
+        <div className="topbar__actions" style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+          <button className="view-plan-button" onClick={() => setActivePage("plans")}>View Plans</button>
+          
+          {user ? (
+            <button
+              onClick={() => setActivePage("account")}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                padding: "8px 16px",
+                borderRadius: "20px",
+                background: "var(--orange-soft, #fff0e7)",
+                color: "var(--orange, #fe6700)",
+                fontWeight: "700",
+                fontSize: "13px",
+                border: "1px solid rgba(254, 103, 0, 0.2)",
+                cursor: "pointer",
+              }}
+            >
+              👤 {user.name || "My Account"}
+            </button>
+          ) : (
+            <button
+              className="pill-button"
+              onClick={() => setActivePage("auth")}
+              style={{
+                padding: "8px 18px",
+                borderRadius: "20px",
+                background: "var(--orange, #fe6700)",
+                color: "#ffffff",
+                fontWeight: "700",
+                fontSize: "13px",
+                border: "none",
+                cursor: "pointer",
+              }}
+            >
+              Login / Sign Up
+            </button>
+          )}
+
           <button className="pill-button pill-button--light" onClick={openForm}>
             Join Waitlist
           </button>
@@ -1059,27 +1197,104 @@ const App = () => {
             </div>
 
             <div className="plan-grid">
-              {pricingPlans.map((plan) => (
-                <article className={`plan-card plan-card--${plan.tone}`} key={plan.name}>
-                  {plan.badge && <div className="plan-badge">{plan.badge}</div>}
-                  <h2>{plan.name}</h2>
-                  <p>{plan.description}</p>
-                  <div className="plan-hours">
-                    <strong>{plan.hours}</strong>
-                    <span>hrs</span>
-                    <small>per month - pricing on enquiry</small>
-                  </div>
-                  <ul>
-                    {plan.features.map((feature) => (
-                      <li key={feature}>{feature}</li>
-                    ))}
-                    {plan.muted?.map((feature) => (
-                      <li className="muted" key={feature}>{feature}</li>
-                    ))}
-                  </ul>
-                  <button onClick={openForm}>Get Started <span>+</span></button>
-                </article>
-              ))}
+              {(livePackages.length > 0 ? livePackages : pricingPlans).map((plan) => {
+                const planName = plan.name;
+                const planDesc = plan.description || "Care Mitra visits & family connectivity";
+                const basePrice = plan.basePrice || 4999;
+                const isFeatured = plan.isPopular || plan.tone === "featured";
+
+                // Highlight top units (hours or visits)
+                let topHighlightNum = plan.hoursPerMonth || plan.totalHours || plan.hours;
+                let topHighlightUnit = "hrs";
+
+                if (!topHighlightNum && plan.visitsPerWeek) {
+                  topHighlightNum = plan.visitsPerWeek;
+                  topHighlightUnit = "visits/wk";
+                }
+
+                if (!topHighlightNum && Array.isArray(plan.packageBenefits)) {
+                  const hourBenefit = plan.packageBenefits.find((pb) => pb.benefit?.name?.toLowerCase().includes("hour"));
+                  if (hourBenefit) {
+                    topHighlightNum = hourBenefit.unitsIncluded;
+                    topHighlightUnit = "hrs";
+                  } else {
+                    const visitBenefit = plan.packageBenefits.find((pb) => pb.benefit?.name?.toLowerCase().includes("visit"));
+                    if (visitBenefit) {
+                      topHighlightNum = visitBenefit.unitsIncluded;
+                      topHighlightUnit = "visits";
+                    }
+                  }
+                }
+
+                return (
+                  <article className={`plan-card ${isFeatured ? "plan-card--featured" : "plan-card--light"}`} key={plan.id || planName}>
+                    {(plan.isPopular || plan.badge) && <div className="plan-badge">{plan.badge || "Most Popular"}</div>}
+                    <h2>{planName}</h2>
+                    <p>{planDesc}</p>
+                    
+                    <div className="plan-hours">
+                      {topHighlightNum ? (
+                        <>
+                          <strong>{topHighlightNum}</strong>
+                          <span>{topHighlightUnit}</span>
+                        </>
+                      ) : (
+                        <>
+                          <strong style={{ fontSize: "2rem" }}>₹{basePrice.toLocaleString("en-IN")}</strong>
+                          <span>/ mo</span>
+                        </>
+                      )}
+                      <small>₹{basePrice.toLocaleString("en-IN")} / month</small>
+                    </div>
+
+                    {/* Render Real Package Benefits from API or Features array */}
+                    {Array.isArray(plan.packageBenefits) && plan.packageBenefits.length > 0 ? (
+                      <ul>
+                        {plan.packageBenefits.map((pb, idx) => {
+                          const benefitName = pb.benefit?.name || "Included Benefit";
+                          const rawLabel = (pb.benefit?.unitLabel || "").replace(/^per\s+/i, "").trim();
+                          const unitText = pb.unitsIncluded ? ` (${pb.unitsIncluded}${rawLabel ? " " + rawLabel : ""})` : "";
+                          return <li key={pb.id || idx}>✓ {benefitName}{unitText}</li>;
+                        })}
+                      </ul>
+                    ) : Array.isArray(plan.features) && plan.features.length > 0 ? (
+                      <ul>
+                        {plan.features.map((feature, idx) => (
+                          <li key={idx}>✓ {feature}</li>
+                        ))}
+                        {plan.muted?.map((feature, idx) => (
+                          <li className="muted" key={`muted-${idx}`}>{feature}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <ul>
+                        <li>✓ Care Mitra Home Visits</li>
+                        <li>✓ Vitals Monitoring (BP, SpO2, Weight)</li>
+                        <li>✓ Medication Reminders & Schedule</li>
+                        <li>✓ 24/7 Emergency Support Line</li>
+                        <li>✓ Family Connect Mobile App Access</li>
+                      </ul>
+                    )}
+
+                    <button
+                      onClick={() => handleSelectPackageForBuy(plan)}
+                      style={{
+                        width: "100%",
+                        padding: "12px",
+                        borderRadius: "10px",
+                        background: "var(--orange, #fe6700)",
+                        color: "#fff",
+                        fontWeight: "700",
+                        border: "none",
+                        marginTop: "auto",
+                        cursor: "pointer",
+                      }}
+                    >
+                      Buy Subscription <span>→</span>
+                    </button>
+                  </article>
+                );
+              })}
             </div>
 
             <p className="pricing-note">
