@@ -65,6 +65,10 @@ import devRouter from './api/dev/dev.routes';
 
 const app = express();
 
+// Trust proxy is required if the API is behind a load balancer (Nginx, AWS, Cloudflare, etc.)
+// Without this, rate limiting will block the load balancer's IP for everyone!
+app.set('trust proxy', 1);
+
 // ─── Middleware ────────────────────────────────────────────────────────────────
 const globalLimiter = rateLimit({
   windowMs: config.rateLimitWindowMs,
