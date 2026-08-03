@@ -1,3 +1,21 @@
+## Session: Minimalist Website Redesign, Razorpay Payment & Unlinked Subscription Sync (2026-08-03)
+
+### Full-Page Minimalist Website UI & Role Security
+- **Auth & Role Access**: Restricted website login strictly to `subscriber` and `prospect` roles (`checkWebsiteRoleAccess()`).
+- **Create Account Flow**: Full-page `AuthPage.jsx` allows new users to register with password, creating a PostgreSQL user with `prospect` role.
+- **Role Upgrade on Purchase**: Buying a subscription executes a database transaction upgrading `User.role` from `prospect` to `subscriber`.
+
+### Streamlined Web Checkout & Native Razorpay Integration
+- **2-Step Checkout**: `CheckoutPage.jsx` handles plan duration selection (1M, 3M, 6M, 12M with discount percentages) and order summary. Beneficiary onboarding is offloaded to Step 2 inside the MaiHoonNa Mobile App.
+- **Native Browser Razorpay**: Integrated `checkout.js` dynamically via `window.Razorpay`, calling `POST /api/subscriber/subscriptions/create-order` to generate official Razorpay order IDs and verify HMAC signatures.
+- **Fallback Safety**: Added `fallbackPackage` to prevent blank screens if package state is uninitialized.
+
+### Real-Time Live Benefits & Unlinked Care Plans Sync
+- **Live Package Rendering**: Updated `main.jsx` plan cards to render real `packageBenefits`, `hoursPerMonth`, and `visitsPerWeek` directly from `GET /api/subscriber/subscriptions/packages`.
+- **Account Dashboard Sync**: Fixed `fetchSubscriberDashboard()` API unwrapping in `api.js` (`return data.data || data`), rendering active and unlinked care plan cards (`⚠ Unassigned — Enroll a Beneficiary` vs `✓ Assigned to [Beneficiary]`) on `AccountPage.jsx` matching the mobile app.
+
+---
+
 - Added URL encoding for DATABASE_URL password in .env
 - Synchronized database schema with Prisma (db push/generate)
 - Fixed missing columns in zones table

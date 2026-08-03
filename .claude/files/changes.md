@@ -1,3 +1,24 @@
+# Implementation: Minimalist Website Redesign, Razorpay Payment & Unlinked Subscription Sync (2026-08-03)
+
+## Overview
+Engineered a minimalist, full-page website experience (Uber/Swiggy-inspired), integrated native browser Razorpay web checkout with backend order ID generation & signature verification, enforced subscriber/prospect role security, updated live package rendering to match real backend benefits, and synced active & unlinked subscriptions on the website dashboard matching the mobile app.
+
+## Files Modified
+- [modify] [apps/website/src/main.jsx](file:///c:/Users/91930/OneDrive/Desktop/Mai-Hoonaa/apps/website/src/main.jsx): Integrated full-page view router (`auth`, `account`, `checkout`), package selection state handling, and live package benefits rendering (`packageBenefits`, `hoursPerMonth`, `visitsPerWeek`).
+- [modify] [apps/website/src/services/api.js](file:///c:/Users/91930/OneDrive/Desktop/Mai-Hoonaa/apps/website/src/services/api.js): Added `ALLOWED_WEBSITE_ROLES` role restriction guard (`checkWebsiteRoleAccess`), `createRazorpayOrder`, and fixed `fetchSubscriberDashboard` payload unwrapping (`return data.data || data`).
+- [modify] [apps/website/src/pages/AuthPage.jsx](file:///c:/Users/91930/OneDrive/Desktop/Mai-Hoonaa/apps/website/src/pages/AuthPage.jsx): Implemented full-page segmented auth UI ("Log In" and "Create Account") registering users as `prospect` role.
+- [modify] [apps/website/src/pages/CheckoutPage.jsx](file:///c:/Users/91930/OneDrive/Desktop/Mai-Hoonaa/apps/website/src/pages/CheckoutPage.jsx): Streamlined 2-step checkout (1. Select Duration, 2. Summary & Razorpay Payment), removed duplicate beneficiary inputs (offloaded to Mobile App setup Step 2), implemented native browser `window.Razorpay` checkout.js loader, and added safe `fallbackPackage`.
+- [modify] [apps/website/src/pages/AccountPage.jsx](file:///c:/Users/91930/OneDrive/Desktop/Mai-Hoonaa/apps/website/src/pages/AccountPage.jsx): Rendered subscriber profile dashboard, active & unlinked care plan cards (`⚠ Unassigned — Enroll a Beneficiary` vs `✓ Assigned to [Beneficiary]`) matching mobile app dashboard data.
+- [modify] [apps/website/package.json](file:///c:/Users/91930/OneDrive/Desktop/Mai-Hoonaa/apps/website/package.json): Removed redundant `react-razorpay` dependency in favor of native script loading.
+
+## Actions Taken
+- **Role Enforcement & User Lifecycle**: Standardized role access so only `subscriber` and `prospect` roles can log in on the website. Account registration assigns `prospect` role, and purchasing a package automatically updates `User.role` to `subscriber` in PostgreSQL.
+- **Native Razorpay Payment**: Connected client checkout to backend `POST /api/subscriber/subscriptions/create-order` endpoint, executing native `window.Razorpay` modal popup supporting UPI, Cards, NetBanking with HMAC signature verification.
+- **Live Benefits & Unlinked Plans Sync**: Replaced hardcoded plan attributes with live `packageBenefits` from backend API, and fixed dashboard API unwrapping so unlinked subscriptions appear on website account dashboard identical to mobile app.
+- **Verification**: Built production bundle with `npm run build` in `apps/website` (1.44s build time, ZERO compilation errors).
+
+---
+
 # Implementation: Saathi Volunteer Credits & MHN Gift Card Redemption System (2026-07-27)
 
 ## Overview

@@ -9,10 +9,11 @@ For full session details, see `.claude/context/changes.md` and `.claude/files/ch
 
 ```
 apps/
-  admin-backend/     Express.js + Prisma 7 (Node)  — Admin Panel API (port 3001)
+  admin-backend/     Express.js + Prisma (Node)      — Admin Panel API (port 3001)
   admin-frontend/    React + Vite (TypeScript)      — Admin dashboard UI (port 5173)
-  mobile-backend/    Fastify + Prisma 7 (TypeScript) — Subscriber/CC/Beneficiary API (port 3000)
+  api/               Express.js + Prisma (TypeScript)— Subscriber/CC/Beneficiary API (port 3000)
   mobile-app/        Expo + React Native             — Mobile app (Expo Go / port 8081)
+  website/           React + Vite (JavaScript)       — Public & Subscriber Portal (port 5174)
 ```
 
 Database: **Supabase PostgreSQL** (pooled via `aws-1-ap-south-1.pooler.supabase.com`, port 5432 only — IPv6/6543 not supported on free tier)
@@ -20,6 +21,14 @@ Database: **Supabase PostgreSQL** (pooled via `aws-1-ap-south-1.pooler.supabase.
 ---
 
 ## Major Completed Features
+
+### ✅ Minimalist Web Portal & Razorpay Integration (2026-08-03)
+- Full-page Uber/Swiggy-inspired views for Auth (`AuthPage.jsx`), Account (`AccountPage.jsx`), and Checkout (`CheckoutPage.jsx`).
+- Strict Role Access Guard (`checkWebsiteRoleAccess`): restricted website login to `subscriber` and `prospect` roles.
+- Dynamic Create Account flow registering users as `prospect` role, automatically upgraded to `subscriber` upon plan purchase.
+- Native browser Razorpay integration loading `checkout.js` with server-side order generation (`POST /api/subscriber/subscriptions/create-order`) and HMAC signature verification.
+- Real live package benefits rendering from `GET /api/subscriber/subscriptions/packages`.
+- Account Dashboard displaying active & unlinked care plans (`⚠ Unassigned — Enroll a Beneficiary` vs `✓ Assigned to [Beneficiary]`) matching mobile app payload.
 
 ### ✅ Staff & Zone Management
 - Full CRUD for Zones, Operations Managers, Field Managers, Care Companions
