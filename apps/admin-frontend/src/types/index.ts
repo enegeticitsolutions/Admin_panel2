@@ -335,6 +335,12 @@ export interface SubscriptionPackage {
   basePrice?: number;
   mrp?: number;
   discountPercentage?: number;
+  discountThreeMonths?: number;
+  discountSixMonths?: number;
+  discountAnnual?: number;
+  priceThreeMonths?: number;
+  priceSixMonths?: number;
+  priceTwelveMonths?: number;
   miscellaneousCost?: number;
   isActive: boolean;
   activeFrom: string;

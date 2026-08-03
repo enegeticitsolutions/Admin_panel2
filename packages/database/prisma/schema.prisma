@@ -644,6 +644,12 @@ model PackageVersion {
   isActive           Boolean                 @default(true)
   sortOrder          Int                     @default(0)
   discountPercentage Float                   @default(0)
+  discountThreeMonths Float                  @default(5.0)
+  discountSixMonths  Float                   @default(10.0)
+  discountAnnual     Float                   @default(20.0)
+  priceThreeMonths   Float?
+  priceSixMonths     Float?
+  priceTwelveMonths  Float?
   miscellaneousCost  Float                   @default(0)
   createdAt          DateTime                @default(now())
   updatedAt          DateTime                @updatedAt
@@ -689,8 +695,12 @@ model SubscriptionPackage {
   trialDurationDays  Int?
   activeFrom         DateTime          @default(now())
   activeTo           DateTime?
+  discountThreeMonths Float             @default(5.0)
   discountSixMonths  Float             @default(10.0)
   discountAnnual     Float             @default(20.0)
+  priceThreeMonths   Float?
+  priceSixMonths     Float?
+  priceTwelveMonths  Float?
   durationMonths     Int               @default(1)
   visitsPerWeek      Int               @default(0)
   hoursPerMonth      Float             @default(0)

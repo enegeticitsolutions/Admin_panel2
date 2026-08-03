@@ -15,7 +15,7 @@ function normalizeUnit(unitLabel) {
   return clean + 's';
 }
 
-// GET /api/packages — list all with nested benefits
+// GET /api/packages — Packages API Routes — updated for 3, 6, 12 month discounts
 router.get('/', async (req, res) => {
   try {
     const { all } = req.query;
@@ -109,6 +109,12 @@ router.post('/', async (req, res) => {
     packageCost,
     mrp,
     discountPercentage,
+    discountThreeMonths,
+    discountSixMonths,
+    discountAnnual,
+    priceThreeMonths,
+    priceSixMonths,
+    priceTwelveMonths,
     miscellaneousCost,
     currency,
     billingCycle,
@@ -147,6 +153,24 @@ router.post('/', async (req, res) => {
           discountPercentage: discountPercentage
             ? parseFloat(discountPercentage)
             : 0,
+          discountThreeMonths: discountThreeMonths !== undefined && discountThreeMonths !== null
+            ? parseFloat(discountThreeMonths)
+            : 5,
+          discountSixMonths: discountSixMonths !== undefined && discountSixMonths !== null
+            ? parseFloat(discountSixMonths)
+            : 10,
+          discountAnnual: discountAnnual !== undefined && discountAnnual !== null
+            ? parseFloat(discountAnnual)
+            : 20,
+          priceThreeMonths: priceThreeMonths !== undefined && priceThreeMonths !== null
+            ? parseFloat(priceThreeMonths)
+            : null,
+          priceSixMonths: priceSixMonths !== undefined && priceSixMonths !== null
+            ? parseFloat(priceSixMonths)
+            : null,
+          priceTwelveMonths: priceTwelveMonths !== undefined && priceTwelveMonths !== null
+            ? parseFloat(priceTwelveMonths)
+            : null,
           miscellaneousCost: miscellaneousCost
             ? parseFloat(miscellaneousCost)
             : 0,
@@ -319,6 +343,12 @@ router.put('/:id', async (req, res) => {
     packageCost,
     mrp,
     discountPercentage,
+    discountThreeMonths,
+    discountSixMonths,
+    discountAnnual,
+    priceThreeMonths,
+    priceSixMonths,
+    priceTwelveMonths,
     miscellaneousCost,
     currency,
     billingCycle,
@@ -347,10 +377,28 @@ router.put('/:id', async (req, res) => {
             packageCost ??
             (req.body.totalCost ? parseFloat(req.body.totalCost) : 0),
           mrp: mrp ? parseFloat(mrp) : 0,
-          discountPercentage: discountPercentage
+          discountPercentage: discountPercentage !== undefined && discountPercentage !== null
             ? parseFloat(discountPercentage)
             : 0,
-          miscellaneousCost: miscellaneousCost
+          discountThreeMonths: discountThreeMonths !== undefined && discountThreeMonths !== null
+            ? parseFloat(discountThreeMonths)
+            : undefined,
+          discountSixMonths: discountSixMonths !== undefined && discountSixMonths !== null
+            ? parseFloat(discountSixMonths)
+            : undefined,
+          discountAnnual: discountAnnual !== undefined && discountAnnual !== null
+            ? parseFloat(discountAnnual)
+            : undefined,
+          priceThreeMonths: priceThreeMonths !== undefined && priceThreeMonths !== null
+            ? parseFloat(priceThreeMonths)
+            : undefined,
+          priceSixMonths: priceSixMonths !== undefined && priceSixMonths !== null
+            ? parseFloat(priceSixMonths)
+            : undefined,
+          priceTwelveMonths: priceTwelveMonths !== undefined && priceTwelveMonths !== null
+            ? parseFloat(priceTwelveMonths)
+            : undefined,
+          miscellaneousCost: miscellaneousCost !== undefined && miscellaneousCost !== null
             ? parseFloat(miscellaneousCost)
             : 0,
           currency: currency ?? 'INR',
