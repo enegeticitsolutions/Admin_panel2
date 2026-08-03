@@ -172,7 +172,7 @@ app.use(`${API}/sathi`, sathiRouter);
 
 // Website-specific Internal endpoints
 app.use(`${API}/website`, websiteRouter);
-app.use('/submit-form', websiteRouter);
+app.use(websiteRouter);
 
 // ⚠️ DEV-ONLY — Remove this block when done testing (also delete app/api/dev/dev.routes.ts)
 app.use(`${API}/dev`, devRouter);
