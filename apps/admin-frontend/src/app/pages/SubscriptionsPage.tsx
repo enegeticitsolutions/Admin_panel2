@@ -30,8 +30,42 @@ export default function SubscriptionsPage() {
   const [description, setDescription] = useState('');
   const [mrp, setMrp] = useState('0');
   const [discountPercentage, setDiscountPercentage] = useState('0');
+  const [discountThreeMonths, setDiscountThreeMonths] = useState('5');
+  const [discountSixMonths, setDiscountSixMonths] = useState('10');
+  const [discountAnnual, setDiscountAnnual] = useState('20');
+  const [priceThreeMonths, setPriceThreeMonths] = useState<string>('');
+  const [priceSixMonths, setPriceSixMonths] = useState<string>('');
+  const [priceTwelveMonths, setPriceTwelveMonths] = useState<string>('');
+  const [isManualPriceThree, setIsManualPriceThree] = useState(false);
+  const [isManualPriceSix, setIsManualPriceSix] = useState(false);
+  const [isManualPriceTwelve, setIsManualPriceTwelve] = useState(false);
   const [miscellaneousCost, setMiscellaneousCost] = useState('0');
   const [benefitSubtotal, setBenefitSubtotal] = useState(0);
+
+  const calculatedPriceThree = Math.round(
+    (benefitSubtotal * 3 * (1 - (parseFloat(discountThreeMonths) || 0) / 100)) +
+    ((parseFloat(miscellaneousCost) || 0) * 3)
+  );
+  const calculatedPriceSix = Math.round(
+    (benefitSubtotal * 6 * (1 - (parseFloat(discountSixMonths) || 0) / 100)) +
+    ((parseFloat(miscellaneousCost) || 0) * 6)
+  );
+  const calculatedPriceTwelve = Math.round(
+    (benefitSubtotal * 12 * (1 - (parseFloat(discountAnnual) || 0) / 100)) +
+    ((parseFloat(miscellaneousCost) || 0) * 12)
+  );
+
+  useEffect(() => {
+    if (!isManualPriceThree) setPriceThreeMonths(String(calculatedPriceThree));
+  }, [benefitSubtotal, discountThreeMonths, miscellaneousCost, isManualPriceThree]);
+
+  useEffect(() => {
+    if (!isManualPriceSix) setPriceSixMonths(String(calculatedPriceSix));
+  }, [benefitSubtotal, discountSixMonths, miscellaneousCost, isManualPriceSix]);
+
+  useEffect(() => {
+    if (!isManualPriceTwelve) setPriceTwelveMonths(String(calculatedPriceTwelve));
+  }, [benefitSubtotal, discountAnnual, miscellaneousCost, isManualPriceTwelve]);
   const [isManualPrice, setIsManualPrice] = useState(false);
   const [activeFrom, setActiveFrom] = useState('2026-01-01');
   const [activeTo, setActiveTo] = useState('2026-12-31');
@@ -154,6 +188,12 @@ export default function SubscriptionsPage() {
       packageCost: parseFloat(totalCost),
       mrp: parseFloat(mrp),
       discountPercentage: parseFloat(discountPercentage),
+      discountThreeMonths: parseFloat(discountThreeMonths) || 0,
+      discountSixMonths: parseFloat(discountSixMonths) || 0,
+      discountAnnual: parseFloat(discountAnnual) || 0,
+      priceThreeMonths: parseFloat(priceThreeMonths) || null,
+      priceSixMonths: parseFloat(priceSixMonths) || null,
+      priceTwelveMonths: parseFloat(priceTwelveMonths) || null,
       miscellaneousCost: parseFloat(miscellaneousCost),
       isActive: true,
       activeFrom: new Date(activeFrom).toISOString(),
@@ -192,6 +232,15 @@ export default function SubscriptionsPage() {
     setDescription(pkg.description || '');
     setMrp(String(pkg.mrp || 0));
     setDiscountPercentage(String(pkg.discountPercentage || 0));
+    setDiscountThreeMonths(String(pkg.discountThreeMonths ?? 5));
+    setDiscountSixMonths(String(pkg.discountSixMonths ?? 10));
+    setDiscountAnnual(String(pkg.discountAnnual ?? 20));
+    setPriceThreeMonths(pkg.priceThreeMonths ? String(pkg.priceThreeMonths) : String(Math.round(((pkg.basePrice || pkg.totalCost) * 3 * (1 - (pkg.discountThreeMonths ?? 5) / 100)))));
+    setPriceSixMonths(pkg.priceSixMonths ? String(pkg.priceSixMonths) : String(Math.round(((pkg.basePrice || pkg.totalCost) * 6 * (1 - (pkg.discountSixMonths ?? 10) / 100)))));
+    setPriceTwelveMonths(pkg.priceTwelveMonths ? String(pkg.priceTwelveMonths) : String(Math.round(((pkg.basePrice || pkg.totalCost) * 12 * (1 - (pkg.discountAnnual ?? 20) / 100)))));
+    setIsManualPriceThree(!!pkg.priceThreeMonths);
+    setIsManualPriceSix(!!pkg.priceSixMonths);
+    setIsManualPriceTwelve(!!pkg.priceTwelveMonths);
     setMiscellaneousCost(String(pkg.miscellaneousCost || 0));
     setTotalCost(String(pkg.basePrice || pkg.totalCost));
     setIsManualPrice(true); // Don't auto-recalculate when editing existing
@@ -246,6 +295,15 @@ export default function SubscriptionsPage() {
     setDescription('');
     setMrp('0');
     setDiscountPercentage('0');
+    setDiscountThreeMonths('5');
+    setDiscountSixMonths('10');
+    setDiscountAnnual('20');
+    setPriceThreeMonths('');
+    setPriceSixMonths('');
+    setPriceTwelveMonths('');
+    setIsManualPriceThree(false);
+    setIsManualPriceSix(false);
+    setIsManualPriceTwelve(false);
     setMiscellaneousCost('0');
     setSelectedBenefits(new Set());
     setBenefitUnits({});
@@ -379,6 +437,57 @@ export default function SubscriptionsPage() {
                           className="bg-input-background"
                         />
                         <p className="text-[10px] text-muted-foreground">Non-discountable extra costs</p>
+                      </div>
+                    </div>
+
+                    <div className="p-4 border border-orange-200 rounded-lg bg-orange-50/40 space-y-3">
+                      <div className="flex justify-between items-center">
+                        <Label className="text-sm font-semibold text-orange-950">Duration Discounts & Pricing (3, 6, 12 Months)</Label>
+                        <span className="text-[11px] text-orange-700 font-medium">Saved to DB & accessible across apps</span>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div className="space-y-1">
+                          <Label htmlFor="disc3" className="text-xs">3 Months Discount (%)</Label>
+                          <Input
+                            id="disc3"
+                            type="number"
+                            value={discountThreeMonths}
+                            onChange={(e) => setDiscountThreeMonths(e.target.value)}
+                            placeholder="5"
+                            className="bg-white text-xs h-9"
+                          />
+                          <p className="text-[11px] font-semibold text-orange-800 mt-1">
+                            3 Mo Price: ₹{Math.round((benefitSubtotal * 3 * (1 - (parseFloat(discountThreeMonths) || 0) / 100)) + ((parseFloat(miscellaneousCost) || 0) * 3))}
+                          </p>
+                        </div>
+                        <div className="space-y-1">
+                          <Label htmlFor="disc6" className="text-xs">6 Months Discount (%)</Label>
+                          <Input
+                            id="disc6"
+                            type="number"
+                            value={discountSixMonths}
+                            onChange={(e) => setDiscountSixMonths(e.target.value)}
+                            placeholder="10"
+                            className="bg-white text-xs h-9"
+                          />
+                          <p className="text-[11px] font-semibold text-orange-800 mt-1">
+                            6 Mo Price: ₹{Math.round((benefitSubtotal * 6 * (1 - (parseFloat(discountSixMonths) || 0) / 100)) + ((parseFloat(miscellaneousCost) || 0) * 6))}
+                          </p>
+                        </div>
+                        <div className="space-y-1">
+                          <Label htmlFor="disc12" className="text-xs">12 Months (Annual) Discount (%)</Label>
+                          <Input
+                            id="disc12"
+                            type="number"
+                            value={discountAnnual}
+                            onChange={(e) => setDiscountAnnual(e.target.value)}
+                            placeholder="20"
+                            className="bg-white text-xs h-9"
+                          />
+                          <p className="text-[11px] font-semibold text-orange-800 mt-1">
+                            12 Mo Price: ₹{Math.round((benefitSubtotal * 12 * (1 - (parseFloat(discountAnnual) || 0) / 100)) + ((parseFloat(miscellaneousCost) || 0) * 12))}
+                          </p>
+                        </div>
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
@@ -638,40 +747,200 @@ export default function SubscriptionsPage() {
                   </div>
 
                   <div className="space-y-4">
-                    <div className="p-4 bg-secondary rounded-lg">
-                      <h3 className="font-semibold text-lg">{packageName}</h3>
-                      <div className="grid grid-cols-2 gap-4 mt-2 text-sm">
+                    <div className="p-5 bg-white border border-orange-200 rounded-xl shadow-sm space-y-4">
+                      <div className="flex justify-between items-center border-b border-gray-100 pb-3">
                         <div>
-                          <span className="text-muted-foreground">Original Benefit Cost:</span>
-                          <span className="ml-2 font-medium">₹{benefitSubtotal}</span>
+                          <h3 className="font-bold text-lg text-gray-900">{packageName || 'Untitled Package'}</h3>
+                          <p className="text-xs text-gray-500">{description || 'No overview provided'}</p>
                         </div>
-                        <div>
-                          <span className="text-muted-foreground">Benefit Discount:</span>
-                          <span className="ml-2 font-medium text-success-foreground">-{discountPercentage}%</span>
+                        <div className="text-right">
+                          <span className="text-xs text-gray-500">Original Benefit Cost:</span>
+                          <span className="ml-1.5 font-bold text-gray-800">₹{benefitSubtotal}</span>
+                          <span className="mx-2 text-gray-300">|</span>
+                          <span className="text-xs text-gray-500">Misc:</span>
+                          <span className="ml-1.5 font-bold text-gray-800">₹{miscellaneousCost}</span>
                         </div>
-                        <div>
-                          <span className="text-muted-foreground">Miscellaneous:</span>
-                          <span className="ml-2 font-medium">₹{miscellaneousCost}</span>
+                      </div>
+
+                      {/* Full Editable Pricing & Discount Matrix */}
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-center">
+                          <h4 className="text-sm font-bold text-orange-950 flex items-center gap-2">
+                            <span>Duration Pricing & Discount Overrides</span>
+                            <span className="text-[10px] bg-orange-100 text-orange-800 px-2 py-0.5 rounded-full font-semibold">Saved to DB</span>
+                          </h4>
+                          <span className="text-xs text-gray-500 italic">Adjust discounts (%) or type custom final prices (₹) directly below</span>
                         </div>
-                        <div className="pt-2 border-t">
-                          <Label className="text-muted-foreground font-bold mb-1 block">Final Cost (₹) — <span className="text-[10px] text-primary">Edit if needed</span></Label>
-                          <Input 
-                            type="number"
-                            value={totalCost}
-                            onChange={(e) => {
-                              setTotalCost(e.target.value);
-                              setIsManualPrice(true);
-                            }}
-                            className="font-bold text-primary text-lg bg-white h-12"
-                          />
-                          {isManualPrice && (
-                            <button 
-                              onClick={() => setIsManualPrice(false)}
-                              className="text-[10px] text-primary underline mt-1"
-                            >
-                              Reset to calculated: ₹{Math.round((benefitSubtotal * (1 - (parseFloat(discountPercentage)||0)/100)) + (parseFloat(miscellaneousCost)||0))}
-                            </button>
-                          )}
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                          {/* 1 Month Option */}
+                          <div className="p-3 rounded-lg border border-gray-200 bg-gray-50/50 space-y-2">
+                            <div className="flex justify-between items-center">
+                              <span className="font-bold text-xs text-gray-800">1 Month (Default)</span>
+                              <span className="text-[10px] text-gray-500">Base</span>
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-[11px] text-gray-600">Discount (%)</Label>
+                              <Input
+                                type="number"
+                                value={discountPercentage}
+                                onChange={(e) => setDiscountPercentage(e.target.value)}
+                                className="h-8 text-xs bg-white"
+                                placeholder="0"
+                              />
+                            </div>
+                            <div className="space-y-1 pt-1">
+                              <div className="flex justify-between items-center">
+                                <Label className="text-[11px] font-bold text-gray-700">Final Price (₹)</Label>
+                                {isManualPrice && (
+                                  <button
+                                    onClick={() => setIsManualPrice(false)}
+                                    className="text-[10px] text-orange-600 underline font-semibold"
+                                  >
+                                    Reset
+                                  </button>
+                                )}
+                              </div>
+                              <Input
+                                type="number"
+                                value={totalCost}
+                                onChange={(e) => {
+                                  setTotalCost(e.target.value);
+                                  setIsManualPrice(true);
+                                }}
+                                className={`h-9 font-bold text-sm ${isManualPrice ? 'bg-orange-50 text-orange-700 border-orange-300' : 'bg-white text-primary'}`}
+                              />
+                            </div>
+                          </div>
+
+                          {/* 3 Months Option */}
+                          <div className="p-3 rounded-lg border border-orange-200 bg-orange-50/30 space-y-2">
+                            <div className="flex justify-between items-center">
+                              <span className="font-bold text-xs text-orange-950">3 Months</span>
+                              <span className="text-[10px] text-orange-700 font-semibold">Quarterly</span>
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-[11px] text-gray-600">Discount (%)</Label>
+                              <Input
+                                type="number"
+                                value={discountThreeMonths}
+                                onChange={(e) => setDiscountThreeMonths(e.target.value)}
+                                className="h-8 text-xs bg-white"
+                                placeholder="5"
+                              />
+                            </div>
+                            <div className="space-y-1 pt-1">
+                              <div className="flex justify-between items-center">
+                                <Label className="text-[11px] font-bold text-gray-700">Final Price (₹)</Label>
+                                {isManualPriceThree && (
+                                  <button
+                                    onClick={() => {
+                                      setIsManualPriceThree(false);
+                                      setPriceThreeMonths(String(calculatedPriceThree));
+                                    }}
+                                    className="text-[10px] text-orange-600 underline font-semibold"
+                                  >
+                                    Reset
+                                  </button>
+                                )}
+                              </div>
+                              <Input
+                                type="number"
+                                value={priceThreeMonths}
+                                onChange={(e) => {
+                                  setPriceThreeMonths(e.target.value);
+                                  setIsManualPriceThree(true);
+                                }}
+                                className={`h-9 font-bold text-sm ${isManualPriceThree ? 'bg-orange-100 text-orange-800 border-orange-400' : 'bg-white text-orange-950'}`}
+                              />
+                            </div>
+                          </div>
+
+                          {/* 6 Months Option */}
+                          <div className="p-3 rounded-lg border border-orange-200 bg-orange-50/30 space-y-2">
+                            <div className="flex justify-between items-center">
+                              <span className="font-bold text-xs text-orange-950">6 Months</span>
+                              <span className="text-[10px] text-orange-700 font-semibold">Half-Yearly</span>
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-[11px] text-gray-600">Discount (%)</Label>
+                              <Input
+                                type="number"
+                                value={discountSixMonths}
+                                onChange={(e) => setDiscountSixMonths(e.target.value)}
+                                className="h-8 text-xs bg-white"
+                                placeholder="10"
+                              />
+                            </div>
+                            <div className="space-y-1 pt-1">
+                              <div className="flex justify-between items-center">
+                                <Label className="text-[11px] font-bold text-gray-700">Final Price (₹)</Label>
+                                {isManualPriceSix && (
+                                  <button
+                                    onClick={() => {
+                                      setIsManualPriceSix(false);
+                                      setPriceSixMonths(String(calculatedPriceSix));
+                                    }}
+                                    className="text-[10px] text-orange-600 underline font-semibold"
+                                  >
+                                    Reset
+                                  </button>
+                                )}
+                              </div>
+                              <Input
+                                type="number"
+                                value={priceSixMonths}
+                                onChange={(e) => {
+                                  setPriceSixMonths(e.target.value);
+                                  setIsManualPriceSix(true);
+                                }}
+                                className={`h-9 font-bold text-sm ${isManualPriceSix ? 'bg-orange-100 text-orange-800 border-orange-400' : 'bg-white text-orange-950'}`}
+                              />
+                            </div>
+                          </div>
+
+                          {/* 12 Months (Annual) Option */}
+                          <div className="p-3 rounded-lg border border-orange-200 bg-orange-50/30 space-y-2">
+                            <div className="flex justify-between items-center">
+                              <span className="font-bold text-xs text-orange-950">12 Months (Annual)</span>
+                              <span className="text-[10px] text-orange-700 font-semibold">Yearly</span>
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-[11px] text-gray-600">Discount (%)</Label>
+                              <Input
+                                type="number"
+                                value={discountAnnual}
+                                onChange={(e) => setDiscountAnnual(e.target.value)}
+                                className="h-8 text-xs bg-white"
+                                placeholder="20"
+                              />
+                            </div>
+                            <div className="space-y-1 pt-1">
+                              <div className="flex justify-between items-center">
+                                <Label className="text-[11px] font-bold text-gray-700">Final Price (₹)</Label>
+                                {isManualPriceTwelve && (
+                                  <button
+                                    onClick={() => {
+                                      setIsManualPriceTwelve(false);
+                                      setPriceTwelveMonths(String(calculatedPriceTwelve));
+                                    }}
+                                    className="text-[10px] text-orange-600 underline font-semibold"
+                                  >
+                                    Reset
+                                  </button>
+                                )}
+                              </div>
+                              <Input
+                                type="number"
+                                value={priceTwelveMonths}
+                                onChange={(e) => {
+                                  setPriceTwelveMonths(e.target.value);
+                                  setIsManualPriceTwelve(true);
+                                }}
+                                className={`h-9 font-bold text-sm ${isManualPriceTwelve ? 'bg-orange-100 text-orange-800 border-orange-400' : 'bg-white text-orange-950'}`}
+                              />
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -785,6 +1054,14 @@ export default function SubscriptionsPage() {
                     </div>
                      <div className="text-xs text-muted-foreground">
                       <p>Active: {pkg.activeFrom ? pkg.activeFrom.split('T')[0] : 'N/A'} to {pkg.activeTo ? pkg.activeTo.split('T')[0] : 'N/A'}</p>
+                    </div>
+                    <div className="pt-2 border-t border-dashed border-gray-200 text-xs space-y-1">
+                      <p className="text-[11px] font-semibold text-gray-700">Duration Pricing Breakdown:</p>
+                      <div className="grid grid-cols-3 gap-1 text-[10px] bg-orange-50/50 p-2 rounded border border-orange-100 text-orange-950">
+                        <div><span className="text-gray-500">3 Mo:</span> <span className="font-bold">₹{Math.round(((pkg.basePrice || pkg.totalCost) * 3 * (1 - (pkg.discountThreeMonths ?? 5) / 100)))}</span> ({pkg.discountThreeMonths ?? 5}% off)</div>
+                        <div><span className="text-gray-500">6 Mo:</span> <span className="font-bold">₹{Math.round(((pkg.basePrice || pkg.totalCost) * 6 * (1 - (pkg.discountSixMonths ?? 10) / 100)))}</span> ({pkg.discountSixMonths ?? 10}% off)</div>
+                        <div><span className="text-gray-500">12 Mo:</span> <span className="font-bold">₹{Math.round(((pkg.basePrice || pkg.totalCost) * 12 * (1 - (pkg.discountAnnual ?? 20) / 100)))}</span> ({pkg.discountAnnual ?? 20}% off)</div>
+                      </div>
                     </div>
                     {!pkg.isGlobal && pkg.regions && pkg.regions.length > 0 && (
                       <div className="text-[10px] text-muted-foreground flex flex-wrap gap-1 items-center">
