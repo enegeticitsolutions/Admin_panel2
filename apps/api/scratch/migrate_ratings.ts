@@ -1,3 +1,4 @@
+import { Client } from 'pg';
 import * as dotenv from 'dotenv';
 dotenv.config();
 

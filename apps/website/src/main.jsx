@@ -986,6 +986,12 @@ const App = () => {
           </section>
 
           {/* ── FAQ ── */}
+          <section className="faq">
+            <div className="section-heading">
+              <span>FAQ</span>
+              <h2>Questions we hear often</h2>
+              <p>Can't find what you're looking for? Write to us at <a href="mailto:hello@maihoonna.in">hello@maihoonna.in</a></p>
+            </div>
             <div className="faq-list">
               {faqs.map((question) => (
                 <details key={question}>
