@@ -15,9 +15,12 @@ const SaathiPage = () => {
     state: '',
     city: '',
     pincode: '',
-    whyJoin: ''
+    area: '',
+    whyJoin: '',
+    dob: ''
   });
   
+  const [agreementChecked, setAgreementChecked] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitMessage, setSubmitMessage] = useState(null);
   
@@ -55,15 +58,34 @@ const SaathiPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!agreementChecked) {
+      setSubmitMessage({ type: 'error', text: 'You must agree to the background verification to proceed.' });
+      return;
+    }
+
     setIsSubmitting(true);
     setSubmitMessage(null);
+    
+    // Calculate age from dob
+    let age = null;
+    if (formData.dob) {
+      const birthDate = new Date(formData.dob);
+      const today = new Date();
+      age = today.getFullYear() - birthDate.getFullYear();
+      const m = today.getMonth() - birthDate.getMonth();
+      if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+      }
+    }
+    
+    const payload = { ...formData, age };
     
     try {
       const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:8001';
       const res = await fetch(`${apiBase}/api/website/saathi-enrollment`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(payload)
       });
       
       const data = await res.json();
@@ -71,8 +93,9 @@ const SaathiPage = () => {
         setSubmitMessage({ type: 'success', text: "Thank you! Your application has been submitted successfully." });
         setFormData({
           firstName: '', lastName: '', email: '', phone: '', gender: '',
-          state: '', city: '', pincode: '', whyJoin: ''
+          state: '', city: '', pincode: '', area: '', whyJoin: '', dob: ''
         });
+        setAgreementChecked(false);
       } else {
         setSubmitMessage({ type: 'error', text: data.message || "Something went wrong. Please try again." });
       }
@@ -300,77 +323,199 @@ const SaathiPage = () => {
 
       {/* ── ENROLLMENT FORM ── */}
       <section id="enrollment-form" className="py-24 px-6 md:px-20 bg-[#F7F7F7]">
-        <div className="max-w-[700px] mx-auto bg-white rounded-2xl shadow-xl p-8 md:p-12">
-          <div className="text-center mb-10">
-            <h2 className="text-3xl font-bold text-[#111111] mb-2">Become a Saathi</h2>
-            <p className="text-[#666666]">Fill out your details below and our team will get in touch.</p>
+        <div className="max-w-[1200px] mx-auto flex flex-col lg:flex-row gap-12 lg:gap-20">
+          
+          {/* Left Side: Steps and Information */}
+          <div className="lg:w-1/2 flex flex-col justify-start">
+            <span className="text-[#FE6700] text-sm font-semibold tracking-wider uppercase mb-2 block">READY TO JOIN?</span>
+            <h2 className="text-4xl md:text-[42px] font-bold text-[#111111] mb-6 leading-tight">
+              Saathi Enrollment Application
+            </h2>
+            <p className="text-[#666666] text-lg mb-12">
+              Your application first takes about 10-14 days. Here's what to expect:
+            </p>
+
+            <div className="flex flex-col gap-8">
+              {/* Step 1 */}
+              <div className="flex items-start gap-5">
+                <div className="w-12 h-12 rounded-xl bg-[#FFF1E8] flex items-center justify-center shrink-0">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#FE6700" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                </div>
+                <div>
+                  <span className="text-[#FE6700] text-xs font-bold uppercase tracking-wider block mb-1">STEP 1</span>
+                  <h4 className="text-[17px] font-bold text-[#111111] mb-1">Share your info</h4>
+                  <p className="text-[#666666] text-sm">Fill the form · 10 mins</p>
+                </div>
+              </div>
+
+              {/* Step 2 */}
+              <div className="flex items-start gap-5">
+                <div className="w-12 h-12 rounded-xl bg-[#FFF1E8] flex items-center justify-center shrink-0">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#FE6700" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><polyline points="9 12 11 14 15 10"></polyline></svg>
+                </div>
+                <div>
+                  <span className="text-[#FE6700] text-xs font-bold uppercase tracking-wider block mb-1">STEP 2</span>
+                  <h4 className="text-[17px] font-bold text-[#111111] mb-1">Background verification</h4>
+                  <p className="text-[#666666] text-sm">3-5 working days</p>
+                </div>
+              </div>
+
+              {/* Step 3 */}
+              <div className="flex items-start gap-5">
+                <div className="w-12 h-12 rounded-xl bg-[#FFF1E8] flex items-center justify-center shrink-0">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#FE6700" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                </div>
+                <div>
+                  <span className="text-[#FE6700] text-xs font-bold uppercase tracking-wider block mb-1">STEP 3</span>
+                  <h4 className="text-[17px] font-bold text-[#111111] mb-1">You go live</h4>
+                  <p className="text-[#666666] text-sm">First assignments begin</p>
+                </div>
+              </div>
+            </div>
           </div>
 
-          {submitMessage && (
-            <div className={`p-4 rounded-lg mb-6 ${submitMessage.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
-              {submitMessage.text}
-            </div>
-          )}
+          {/* Right Side: Form Card */}
+          <div className="lg:w-1/2">
+            <div className="bg-white rounded-3xl shadow-[0_8px_40px_rgba(0,0,0,0.06)] p-8 md:p-10 border border-[#E5E5E5]">
+              {submitMessage && (
+                <div className={`p-4 rounded-lg mb-6 ${submitMessage.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
+                  {submitMessage.text}
+                </div>
+              )}
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">First Name *</label>
-                <input required type="text" name="firstName" value={formData.firstName} onChange={handleChange} className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#FE6700]/50 focus:border-[#FE6700]" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
-                <input type="text" name="lastName" value={formData.lastName} onChange={handleChange} className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#FE6700]/50 focus:border-[#FE6700]" />
-              </div>
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-[13px] font-bold text-[#111111] mb-2">First Name *</label>
+                    <input required type="text" name="firstName" value={formData.firstName} onChange={handleChange} className="w-full bg-[#FAFAFA] border border-[#E5E5E5] rounded-xl px-4 py-3.5 focus:outline-none focus:ring-2 focus:ring-[#FE6700]/30 focus:border-[#FE6700] transition-all" />
+                  </div>
+                  <div>
+                    <label className="block text-[13px] font-bold text-[#111111] mb-2">Last Name *</label>
+                    <input required type="text" name="lastName" value={formData.lastName} onChange={handleChange} className="w-full bg-[#FAFAFA] border border-[#E5E5E5] rounded-xl px-4 py-3.5 focus:outline-none focus:ring-2 focus:ring-[#FE6700]/30 focus:border-[#FE6700] transition-all" />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-[13px] font-bold text-[#111111] mb-2">Email *</label>
+                    <input required type="email" name="email" value={formData.email} onChange={handleChange} className="w-full bg-[#FAFAFA] border border-[#E5E5E5] rounded-xl px-4 py-3.5 focus:outline-none focus:ring-2 focus:ring-[#FE6700]/30 focus:border-[#FE6700] transition-all" />
+                  </div>
+                  <div>
+                    <label className="block text-[13px] font-bold text-[#111111] mb-2">Phone Number *</label>
+                    <input required type="tel" name="phone" value={formData.phone} onChange={handleChange} className="w-full bg-[#FAFAFA] border border-[#E5E5E5] rounded-xl px-4 py-3.5 focus:outline-none focus:ring-2 focus:ring-[#FE6700]/30 focus:border-[#FE6700] transition-all" />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-[13px] font-bold text-[#111111] mb-2">Gender *</label>
+                    <select required name="gender" value={formData.gender} onChange={handleChange} className="w-full bg-[#FAFAFA] border border-[#E5E5E5] rounded-xl px-4 py-3.5 focus:outline-none focus:ring-2 focus:ring-[#FE6700]/30 focus:border-[#FE6700] transition-all">
+                      <option value="">Select</option>
+                      <option value="Male">Male</option>
+                      <option value="Female">Female</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[13px] font-bold text-[#111111] mb-2">Date of Birth *</label>
+                    <input required type="date" name="dob" value={formData.dob} onChange={handleChange} className="w-full bg-[#FAFAFA] border border-[#E5E5E5] rounded-xl px-4 py-3.5 focus:outline-none focus:ring-2 focus:ring-[#FE6700]/30 focus:border-[#FE6700] transition-all text-[#111111]" />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-[13px] font-bold text-[#111111] mb-2">State *</label>
+                    <input required type="text" name="state" value={formData.state} onChange={handleChange} className="w-full bg-[#FAFAFA] border border-[#E5E5E5] rounded-xl px-4 py-3.5 focus:outline-none focus:ring-2 focus:ring-[#FE6700]/30 focus:border-[#FE6700] transition-all" />
+                  </div>
+                  <div>
+                    <label className="block text-[13px] font-bold text-[#111111] mb-2">City *</label>
+                    <input required type="text" name="city" value={formData.city} onChange={handleChange} className="w-full bg-[#FAFAFA] border border-[#E5E5E5] rounded-xl px-4 py-3.5 focus:outline-none focus:ring-2 focus:ring-[#FE6700]/30 focus:border-[#FE6700] transition-all" />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-[13px] font-bold text-[#111111] mb-2">Area / Sector *</label>
+                    <input required type="text" name="area" value={formData.area} onChange={handleChange} className="w-full bg-[#FAFAFA] border border-[#E5E5E5] rounded-xl px-4 py-3.5 focus:outline-none focus:ring-2 focus:ring-[#FE6700]/30 focus:border-[#FE6700] transition-all" />
+                  </div>
+                  <div>
+                    <label className="block text-[13px] font-bold text-[#111111] mb-2">Pin Code *</label>
+                    <input required type="text" name="pincode" value={formData.pincode} onChange={handleChange} className="w-full bg-[#FAFAFA] border border-[#E5E5E5] rounded-xl px-4 py-3.5 focus:outline-none focus:ring-2 focus:ring-[#FE6700]/30 focus:border-[#FE6700] transition-all" />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[13px] font-bold text-[#111111] mb-2">Why do you want to be a Saathi? *</label>
+                  <textarea required name="whyJoin" rows="4" placeholder="Tell us what motivates you to volunteer..." value={formData.whyJoin} onChange={handleChange} className="w-full bg-[#FAFAFA] border border-[#E5E5E5] rounded-xl px-4 py-3.5 focus:outline-none focus:ring-2 focus:ring-[#FE6700]/30 focus:border-[#FE6700] transition-all resize-none"></textarea>
+                </div>
+
+                <div className="bg-[#FFF1E8] border border-[#FFE4D6] rounded-xl p-4 flex items-start gap-3 mt-4">
+                  <div className="pt-0.5 shrink-0">
+                    <input 
+                      type="checkbox" 
+                      id="agreement" 
+                      checked={agreementChecked}
+                      onChange={(e) => setAgreementChecked(e.target.checked)}
+                      className="w-5 h-5 rounded border-gray-300 text-[#FE6700] focus:ring-[#FE6700]" 
+                    />
+                  </div>
+                  <label htmlFor="agreement" className="text-sm text-[#111111] leading-relaxed cursor-pointer">
+                    I agree to undergo background verification (Aadhaar-linked identity + police check). I confirm the information above is accurate and I will abide by MaiHoonNa's Saathi code of conduct.
+                  </label>
+                </div>
+
+                <button disabled={isSubmitting || !agreementChecked} type="submit" className="w-full py-4 bg-[#FE6700] text-white rounded-xl font-bold text-[15px] hover:bg-[#E55A00] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-[0_4px_14px_rgba(254,103,0,0.39)] mt-6">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                  {isSubmitting ? 'Submitting...' : 'Submit Enrollment Application'}
+                </button>
+                
+                <p className="text-center text-[#999999] text-[13px] mt-4">
+                  We respond within 24 hours · Your data stays private
+                </p>
+              </form>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── SUBSCRIBERS SECTION ── */}
+      <section className="py-24 px-6 md:px-20 bg-[#111111] text-white">
+        <div className="max-w-[1200px] mx-auto">
+          <div className="text-center mb-16">
+            <span className="text-[#FE6700] text-xs font-bold tracking-widest uppercase mb-3 block">FOR SUBSCRIBERS</span>
+            <h2 className="text-3xl md:text-[42px] font-bold text-white">
+              How to access the Saathi Network
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Card 1 */}
+            <div className="bg-[#1A1A1A] rounded-3xl p-8 md:p-10">
+              <div className="text-3xl mb-6">📦</div>
+              <h3 className="text-xl font-bold text-white mb-3">Included in Plus & Premium</h3>
+              <p className="text-[#999999] text-[15px] leading-relaxed">
+                Saathi Network visits are included in Saathi Plus and Premium plans at no extra cost. Starter members can add on.
+              </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
-                <input type="email" name="email" value={formData.email} onChange={handleChange} className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#FE6700]/50 focus:border-[#FE6700]" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number *</label>
-                <input required type="tel" name="phone" value={formData.phone} onChange={handleChange} className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#FE6700]/50 focus:border-[#FE6700]" />
-              </div>
+            {/* Card 2 */}
+            <div className="bg-[#1A1A1A] rounded-3xl p-8 md:p-10">
+              <div className="text-3xl mb-6">🛡️</div>
+              <h3 className="text-xl font-bold text-white mb-3">Privacy by design</h3>
+              <p className="text-[#999999] text-[15px] leading-relaxed">
+                Care Mitras never share your family's personal information. All visits are logged but contact details stay private.
+              </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Gender</label>
-                <select name="gender" value={formData.gender} onChange={handleChange} className="w-full border border-gray-300 rounded-lg px-4 py-3 bg-white focus:outline-none focus:ring-2 focus:ring-[#FE6700]/50 focus:border-[#FE6700]">
-                  <option value="">Select Gender</option>
-                  <option value="Male">Male</option>
-                  <option value="Female">Female</option>
-                  <option value="Other">Other</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Pin Code</label>
-                <input type="text" name="pincode" value={formData.pincode} onChange={handleChange} className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#FE6700]/50 focus:border-[#FE6700]" />
-              </div>
+            {/* Card 3 */}
+            <div className="bg-[#1A1A1A] rounded-3xl p-8 md:p-10">
+              <div className="text-3xl mb-6">📍</div>
+              <h3 className="text-xl font-bold text-white mb-3">All visits tracked</h3>
+              <p className="text-[#999999] text-[15px] leading-relaxed">
+                Geo-fenced check-ins confirm every Saathi arrival and departure. Full visit history visible on Family Connect.
+              </p>
             </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">State *</label>
-                <input required type="text" name="state" value={formData.state} onChange={handleChange} className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#FE6700]/50 focus:border-[#FE6700]" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">City *</label>
-                <input required type="text" name="city" value={formData.city} onChange={handleChange} className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#FE6700]/50 focus:border-[#FE6700]" />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Tell us about yourself (Why do you want to be a Saathi?)</label>
-              <textarea name="whyJoin" rows="4" value={formData.whyJoin} onChange={handleChange} className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#FE6700]/50 focus:border-[#FE6700]"></textarea>
-            </div>
-
-            <button disabled={isSubmitting} type="submit" className="w-full py-4 bg-[#FE6700] text-white rounded-lg font-bold text-lg hover:bg-[#E55A00] transition-colors disabled:opacity-70">
-              {isSubmitting ? 'Submitting...' : 'Submit Application'}
-            </button>
-          </form>
+          </div>
         </div>
       </section>
     </div>
