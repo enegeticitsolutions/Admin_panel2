@@ -4,6 +4,7 @@ import { DataCard } from '../components/common/DataCard';
 import { StatusChip } from '../components/common/StatusChip';
 import { volunteerApi, beneficiaryApi, regionApi, zoneApi, configApi } from '../../services/api';
 import type { Volunteer } from '../../types';
+import { useSystemConfig } from '../context/SystemConfigContext';
 import {
   Heart,
   Clock,
@@ -118,11 +119,13 @@ function MultiSelectDropdown({
 }
 
 export default function VolunteersPage() {
+  const { config } = useSystemConfig();
+  const maxBeneficiariesPerVolunteer = config.maxBeneficiariesPerVolunteer;
+  const maxVolunteersPerBeneficiary = config.maxVolunteersPerBeneficiary;
   const [volunteers, setVolunteers] = useState<Volunteer[]>([]);
   const [beneficiaries, setBeneficiaries] = useState<any[]>([]);
   const [regions, setRegions] = useState<any[]>([]);
   const [zones, setZones] = useState<any[]>([]);
-  const [maxBeneficiariesPerVolunteer, setMaxBeneficiariesPerVolunteer] = useState<number>(3);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -162,16 +165,6 @@ export default function VolunteersPage() {
       setRegions(regs);
       const zns = await zoneApi.getAll().catch(() => []);
       setZones(zns);
-
-      // Fetch dynamic system config setting for max_beneficiaries_per_volunteer
-      const configs = await configApi.getAll().catch(() => []);
-      const maxCapConfig = configs.find((c: any) => c.key === 'max_beneficiaries_per_volunteer');
-      if (maxCapConfig && maxCapConfig.value) {
-        const val = Number(maxCapConfig.value);
-        if (!isNaN(val) && val > 0) {
-          setMaxBeneficiariesPerVolunteer(val);
-        }
-      }
     } catch (err: any) {
       setError(err.message || 'Failed to load volunteers data.');
     } finally {
@@ -822,7 +815,7 @@ export default function VolunteersPage() {
                           {/* Allocated Volunteers Count Badge */}
                           <span className="text-[10px] font-bold px-2 py-0.5 bg-purple-50 text-purple-800 border border-purple-200 rounded-full flex items-center gap-1" title="Volunteers currently assigned to this senior">
                             <Users className="w-3 h-3 text-purple-600" />
-                            {allocatedVolunteersCount}/2 Volunteers
+                            {allocatedVolunteersCount}/{maxVolunteersPerBeneficiary} Volunteers
                           </span>
 
                           <span

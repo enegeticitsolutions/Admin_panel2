@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Settings, Save, Loader2, ShieldAlert, Sliders, CheckCircle } from 'lucide-react';
 import { configApi } from '../../services/api';
+import { useSystemConfig } from '../context/SystemConfigContext';
 
 interface ConfigItem {
   id: string;
@@ -13,6 +14,7 @@ interface ConfigItem {
 }
 
 const ConfigurationPage = () => {
+  const { refreshConfig } = useSystemConfig();
   const [configs, setConfigs] = useState<ConfigItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -84,7 +86,8 @@ const ConfigurationPage = () => {
         setSuccessKey(null);
       }, 3000);
       
-      // Refresh configs
+      // Refresh global system config context & local configs
+      await refreshConfig();
       const res = await configApi.getAll();
       setConfigs(res);
     } catch (err: any) {
