@@ -11,7 +11,8 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
-import { enrollmentApi, packageApi, staffOnboardingApi, vitalApi, hobbyApi } from '../../services/api';
+import { enrollmentApi, packageApi, staffOnboardingApi, vitalApi, hobbyApi, paymentApi } from '../../services/api';
+import { PaymentMethodSelector } from '../components/payment/PaymentMethodSelector';
 import { toast } from 'sonner';
 import {
   UserPlus, ArrowLeft, ArrowRight, Check, Phone, User, Package,
@@ -149,6 +150,10 @@ export default function EnrollmentWizardPage() {
   const [amountPaid, setAmountPaid] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('Cash');
   const [paymentNote, setPaymentNote] = useState('');
+  const [transactionId, setTransactionId] = useState('');
+  const [paymentMode, setPaymentMode] = useState<'offline' | 'online_link'>('offline');
+  const [paymentLinkDetails, setPaymentLinkDetails] = useState<any>(null);
+  const [generatingLink, setGeneratingLink] = useState(false);
 
   // ── Add Medicine Dialog State
   const [isMedDialogOpen, setIsMedDialogOpen] = useState(false);
@@ -1635,11 +1640,11 @@ export default function EnrollmentWizardPage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2"><CreditCard className="w-5 h-5 text-primary" /> Payment Details</CardTitle>
-              <CardDescription>Record the offline payment for this enrollment</CardDescription>
+              <CardDescription>Collect offline payment or generate an online Razorpay payment link for the customer</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {selectedPackage && (
-                <div className="bg-secondary/60 rounded-xl p-4 flex justify-between items-center">
+                <div className="bg-secondary/60 rounded-xl p-4 flex justify-between items-center mb-2">
                   <div>
                     <p className="font-semibold">{selectedPackage.name}</p>
                     <p className="text-xs text-muted-foreground capitalize">{duration.replace('_', ' ')} plan · starts {startDate}</p>
@@ -1651,42 +1656,51 @@ export default function EnrollmentWizardPage() {
                 </div>
               )}
 
-              <div className="space-y-1">
-                <Label htmlFor="amount">Amount Collected (₹) *</Label>
-                <Input
-                  id="amount"
-                  type="number"
-                  value={amountPaid}
-                  onChange={e => setAmountPaid(e.target.value)}
-                  placeholder="e.g. 4999"
-                  className="text-lg font-bold"
-                />
-                {selectedPackage && parseFloat(amountPaid) < selectedPackage.basePrice && amountPaid !== '' && (
-                  <p className="text-xs text-amber-600 flex items-center gap-1">
-                    <AlertCircle className="w-3 h-3" /> Amount is less than the package price — a discount of ₹{(selectedPackage.basePrice - parseFloat(amountPaid)).toFixed(0)} will be recorded.
-                  </p>
-                )}
-              </div>
-
-              <div className="space-y-1">
-                <Label>Payment Method</Label>
-                <div className="flex flex-wrap gap-2">
-                  {PAYMENT_METHODS.map(m => (
-                    <button
-                      key={m}
-                      onClick={() => setPaymentMethod(m)}
-                      className={`px-3 py-1.5 rounded-lg text-sm font-medium border-2 transition-all ${paymentMethod === m ? 'border-primary bg-primary text-white' : 'border-border hover:border-primary/40'}`}
-                    >
-                      {m}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <Label htmlFor="pay-note">Transaction Reference / Notes (optional)</Label>
-                <Input id="pay-note" value={paymentNote} onChange={e => setPaymentNote(e.target.value)} placeholder="e.g. UPI ref: 1234567890 or Cash handed to coordinator" />
-              </div>
+              <PaymentMethodSelector
+                amount={selectedPackage?.basePrice || 4999}
+                subscriberName={subscriberName || 'Subscriber'}
+                subscriberPhone={subscriberPhone || ''}
+                subscriberEmail={subscriberEmail || ''}
+                packageName={selectedPackage?.name || 'Care Package'}
+                paymentMode={paymentMode}
+                onPaymentModeChange={setPaymentMode}
+                offlineMethod={paymentMethod}
+                onOfflineMethodChange={setPaymentMethod}
+                amountPaid={amountPaid}
+                onAmountPaidChange={setAmountPaid}
+                transactionId={transactionId}
+                onTransactionIdChange={setTransactionId}
+                paymentNote={paymentNote}
+                onPaymentNoteChange={setPaymentNote}
+                paymentLinkDetails={paymentLinkDetails}
+                generatingLink={generatingLink}
+                onGenerateLink={async () => {
+                  setGeneratingLink(true);
+                  try {
+                    const res = await paymentApi.generateLink({
+                      subscriberId: existingSubscriberId || '',
+                      beneficiaryId: '',
+                      subscriptionId: '',
+                      packageType: selectedPackage?.type || 'silver',
+                      packageName: selectedPackage?.name || 'Care Package',
+                      amount: parseFloat(amountPaid) || selectedPackage?.basePrice || 4999,
+                      subscriberPhone,
+                      subscriberEmail,
+                      subscriberName,
+                      duration,
+                    });
+                    const data = res?.data || res;
+                    if (data && (data.shortUrl || data.orderId)) {
+                      setPaymentLinkDetails(data);
+                      toast.success('Payment link generated successfully!');
+                    }
+                  } catch (err: any) {
+                    toast.error(err.message || 'Failed to generate link');
+                  } finally {
+                    setGeneratingLink(false);
+                  }
+                }}
+              />
             </CardContent>
           </Card>
         )}

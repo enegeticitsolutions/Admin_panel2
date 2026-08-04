@@ -49,11 +49,16 @@ import RenewalWizardPage from './pages/RenewalWizardPage';
 import GuideManagementPage from './pages/GuideManagementPage';
 import EmergencyRadarPage from './pages/EmergencyRadarPage';
 import RequestedVisitsPage from './pages/RequestedVisitsPage';
+import CheckoutPage from './pages/CheckoutPage';
 
 export const router = createBrowserRouter([
   {
     path: '/',
     Component: LoginPage,
+  },
+  {
+    path: '/pay/:orderId',
+    Component: CheckoutPage,
   },
   {
     path: '/',

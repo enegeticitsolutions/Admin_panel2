@@ -1477,6 +1477,45 @@ export const configApi = {
 };
 
 // ============================================================================
+// PAYMENT API
+// ============================================================================
+
+export const paymentApi = {
+  async generateLink(data: {
+    subscriberId: string;
+    beneficiaryId?: string;
+    subscriptionId?: string;
+    packageType?: string;
+    packageName?: string;
+    amount: number;
+    subscriberPhone?: string;
+    subscriberEmail?: string;
+    subscriberName?: string;
+    duration?: string;
+  }): Promise<any> {
+    return apiJson<any>('/payments/generate-link', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+  async getStatus(orderId: string): Promise<any> {
+    return apiJson<any>(`/payments/status/${orderId}`);
+  },
+  async markOffline(id: string, data: { method?: string; note?: string }): Promise<any> {
+    return apiJson<any>(`/payments/${id}/mark-offline`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+  async simulatePay(orderId: string, data?: { paymentMethod?: string; paymentId?: string }): Promise<any> {
+    return apiJson<any>(`/payments/simulate-pay/${orderId}`, {
+      method: 'POST',
+      body: JSON.stringify(data || {}),
+    });
+  },
+};
+
+// ============================================================================
 // SAATHI GUIDE API
 // ============================================================================
 
@@ -1611,8 +1650,4 @@ export const visitRequestApi = {
     return apiJson(`/beneficiaries/service-requests/${requestId}/read`, { method: 'POST' });
   }
 };
-
-
-
-
 
