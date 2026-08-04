@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   useWindowDimensions,
   Alert,
+  Modal,
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter, useFocusEffect } from 'expo-router';
@@ -34,6 +35,12 @@ export default function SathiHours() {
   const [checkoutNotes, setCheckoutNotes] = useState('');
   const [visitHistory, setVisitHistory] = useState<any[]>([]);
   const [creditsLedger, setCreditsLedger] = useState<any[]>([]);
+  const [upcomingVisits, setUpcomingVisits] = useState<any[]>([]);
+
+  // OTP Modal State
+  const [showOtpModal, setShowOtpModal] = useState(false);
+  const [otpCode, setOtpCode] = useState('');
+  const [targetVisit, setTargetVisit] = useState<any>(null);
 
   // Timer state for active visit
   const [elapsedTime, setElapsedTime] = useState('00:00:00');
@@ -50,6 +57,7 @@ export default function SathiHours() {
       const dash = await dashRes.json();
       const dashData = dash.data || dash;
       setActiveSession(dashData.activeVisit || null);
+      setUpcomingVisits(dashData.upcomingVisits || []);
 
       // 2. Fetch Assignments matches list
       const matchesRes = await fetch(`${API_URL}/sathi/matches`, {
@@ -137,8 +145,12 @@ export default function SathiHours() {
   }, [activeSession]);
 
   const handleCheckin = async () => {
-    if (!selectedMatch) {
-      Alert.alert('Selection Required', 'Please assign a beneficiary to check-in.');
+    if (!targetVisit) {
+      Alert.alert('Selection Required', 'No valid visit request selected.');
+      return;
+    }
+    if (!otpCode || otpCode.length !== 4) {
+      Alert.alert('Invalid OTP', 'Please enter the 4-digit PIN provided by the beneficiary.');
       return;
     }
 
@@ -152,12 +164,16 @@ export default function SathiHours() {
         },
         body: JSON.stringify({
           beneficiaryId: selectedMatch.beneficiary.id,
-          assignmentId: selectedMatch.assignmentId
+          assignmentId: selectedMatch.assignmentId,
+          visitRequestId: targetVisit.id,
+          otpCode
         })
       });
 
       const data = await response.json();
       if (response.ok || data.success) {
+        setShowOtpModal(false);
+        setOtpCode('');
         Alert.alert('Checked In', 'Visit session started successfully!');
         loadHoursData();
       } else {
@@ -166,6 +182,39 @@ export default function SathiHours() {
     } catch (err) {
       Alert.alert('Error', 'Connection to backend API failed.');
     }
+  };
+
+  const getClosestVisit = (beneficiaryId: string) => {
+    const visits = upcomingVisits.filter(
+      (v) => v.beneficiaryId === beneficiaryId && v.status === 'ACCEPTED'
+    );
+    if (visits.length === 0) return null;
+    
+    // Sort by dateTime ascending
+    visits.sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime());
+    return visits[0];
+  };
+
+  const openCheckinPrompt = () => {
+    if (!selectedMatch) return;
+    const closest = getClosestVisit(selectedMatch.beneficiary.id);
+    if (!closest) {
+      Alert.alert('No Visit', 'There are no upcoming scheduled visits for this beneficiary.');
+      return;
+    }
+
+    const visitTime = new Date(closest.dateTime).getTime();
+    const now = new Date().getTime();
+    // Allow check-in 30 mins before
+    if (visitTime - now > 30 * 60 * 1000) {
+      const timeStr = new Date(closest.dateTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      Alert.alert('Too Early', `The next visit is scheduled for ${timeStr}. You can check-in up to 30 minutes before.`);
+      return;
+    }
+
+    setTargetVisit(closest);
+    setOtpCode('');
+    setShowOtpModal(true);
   };
 
   // Checkout is now handled by the beneficiary from their app.
@@ -219,30 +268,66 @@ export default function SathiHours() {
               <View style={styles.pickerContainer}>
                 <Text style={styles.pickerLabel}>Matched Seniors</Text>
                 <View style={styles.matchesRow}>
-                  {assignedMatches.map((m) => (
-                    <TouchableOpacity
-                      key={m.assignmentId}
-                      style={[
-                        styles.matchSelector,
-                        selectedMatch?.assignmentId === m.assignmentId && styles.matchSelectorActive
-                      ]}
-                      onPress={() => setSelectedMatch(m)}
-                    >
-                      <Text
+                  {assignedMatches.map((m) => {
+                    const closest = getClosestVisit(m.beneficiary.id);
+                    let infoText = 'No upcoming visit';
+                    let canStart = false;
+                    
+                    if (closest) {
+                      const visitTime = new Date(closest.dateTime).getTime();
+                      const now = new Date().getTime();
+                      const timeStr = new Date(closest.dateTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                      
+                      if (visitTime - now <= 30 * 60 * 1000) {
+                        infoText = `Starts at ${timeStr} (Ready)`;
+                        canStart = true;
+                      } else {
+                        infoText = `Starts at ${timeStr}`;
+                      }
+                    }
+
+                    return (
+                      <TouchableOpacity
+                        key={m.assignmentId}
                         style={[
-                          styles.matchSelectorText,
-                          selectedMatch?.assignmentId === m.assignmentId && styles.matchSelectorTextActive
+                          styles.matchSelector,
+                          selectedMatch?.assignmentId === m.assignmentId && styles.matchSelectorActive
                         ]}
+                        onPress={() => setSelectedMatch(m)}
                       >
-                        {m.beneficiary.name}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
+                        <Text
+                          style={[
+                            styles.matchSelectorText,
+                            selectedMatch?.assignmentId === m.assignmentId && styles.matchSelectorTextActive
+                          ]}
+                        >
+                          {m.beneficiary.name}
+                        </Text>
+                        <Text style={[
+                          { fontSize: 10, marginTop: 4 },
+                          selectedMatch?.assignmentId === m.assignmentId ? { color: '#FFE0B2' } : { color: '#9CA3AF' }
+                        ]}>
+                          {infoText}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
                 </View>
 
-                <TouchableOpacity style={styles.checkinBtn} onPress={handleCheckin}>
-                  <Text style={styles.checkinBtnText}>Check-In Now</Text>
-                </TouchableOpacity>
+                {(() => {
+                  const closest = selectedMatch ? getClosestVisit(selectedMatch.beneficiary.id) : null;
+                  const canStart = closest && (new Date(closest.dateTime).getTime() - new Date().getTime() <= 30 * 60 * 1000);
+                  
+                  return (
+                    <TouchableOpacity 
+                      style={[styles.checkinBtn, !canStart && { backgroundColor: '#D1D5DB' }]} 
+                      onPress={openCheckinPrompt}
+                      disabled={!canStart}
+                    >
+                      <Text style={styles.checkinBtnText}>Check-In Now</Text>
+                    </TouchableOpacity>
+                  );
+                })()}
               </View>
             ) : (
               <Text style={styles.emptyPrompt}>
@@ -251,6 +336,41 @@ export default function SathiHours() {
             )}
           </View>
         )}
+
+        {/* OTP Modal */}
+        <Modal visible={showOtpModal} transparent animationType="fade">
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Enter PIN</Text>
+              <Text style={styles.modalDesc}>
+                Ask {selectedMatch?.beneficiary.name} for the 4-digit PIN displayed on their app to start the visit.
+              </Text>
+
+              <TextInput
+                style={styles.otpInput}
+                value={otpCode}
+                onChangeText={setOtpCode}
+                keyboardType="numeric"
+                maxLength={4}
+                placeholder="0000"
+                placeholderTextColor="#9CA3AF"
+              />
+
+              <View style={styles.modalBtns}>
+                <TouchableOpacity style={styles.modalCancelBtn} onPress={() => setShowOtpModal(false)}>
+                  <Text style={styles.modalCancelText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[styles.modalSubmitBtn, otpCode.length !== 4 && { opacity: 0.6 }]} 
+                  onPress={handleCheckin}
+                  disabled={otpCode.length !== 4}
+                >
+                  <Text style={styles.modalSubmitText}>Verify & Start</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
 
         {/* Visit Logs History */}
         <Text style={styles.sectionTitle}>Completed Visits History</Text>
@@ -573,5 +693,76 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     textAlign: 'center',
     marginVertical: 12,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 24,
+    width: '100%',
+    maxWidth: 400,
+    alignItems: 'center',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#111827',
+    marginBottom: 8,
+  },
+  modalDesc: {
+    fontSize: 14,
+    color: '#4B5563',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  otpInput: {
+    backgroundColor: '#F3F4F6',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    fontSize: 32,
+    letterSpacing: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    color: '#111827',
+    textAlign: 'center',
+    fontWeight: 'bold',
+    marginBottom: 24,
+    width: '100%',
+  },
+  modalBtns: {
+    flexDirection: 'row',
+    gap: 12,
+    width: '100%',
+  },
+  modalCancelBtn: {
+    flex: 1,
+    paddingVertical: 14,
+    backgroundColor: '#F3F4F6',
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  modalCancelText: {
+    color: '#4B5563',
+    fontWeight: '600',
+    fontSize: 15,
+  },
+  modalSubmitBtn: {
+    flex: 1,
+    paddingVertical: 14,
+    backgroundColor: '#FF6F00',
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  modalSubmitText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+    fontSize: 15,
   },
 });
