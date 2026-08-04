@@ -221,3 +221,14 @@
   - [x] Implemented fully functional `Accept` and `Reschedule` buttons on visit requests mapped to the `/respond` backend route.
   - [x] Fixed backend `upcomingVisits` filter to ensure accepted visits appear immediately on the dashboard regardless of precise scheduled timestamps.
   - [x] Improved mobile app UI by adding the correct `RegisterPageImage.png` and properly styling its shadow card container on the welcome screen.
+
+- [x] Website Modular Architecture & Dynamic Feature Comparison Table (2026-08-04)
+  - [x] Detailed Architecture & Data Flow Guide documented in [.claude/ARCHITECTURE_AND_DATA_FLOW.md](file:///c:/Users/91930/OneDrive/Desktop/Mai-Hoonaa/.claude/ARCHITECTURE_AND_DATA_FLOW.md).
+  - [x] Extracted `PlansPage.jsx` into standalone component (`apps/website/src/pages/PlansPage.jsx`).
+  - [x] Extracted `PackageCard.jsx` into standalone reusable component (`apps/website/src/components/PackageCard.jsx`).
+  - [x] Implemented card-wise carousel slider with 2.5s right-to-left auto-play, pause on hover, navigation controls (`‹` / `›`), and pagination dots.
+  - [x] Made Feature Comparison Table 100% dynamic, powered by the DB Benefits Library and packages selected by Admin.
+  - [x] Added `isCompared` boolean field to Prisma `SubscriptionPackage` model and pushed column to PostgreSQL database.
+  - [x] Added "Include in Comparison Table" toggle to Step 4 of Product Factory Wizard in Admin panel (`SubscriptionsPage.tsx`).
+  - [x] Removed all hardcoded static fallback pricing/comparison data so website pricing and comparison are live-driven.
+  - [x] Fixed coupon validation payload in `CheckoutPage.jsx` to pass `{ code, packageId, amount }`.

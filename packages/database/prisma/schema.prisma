@@ -709,6 +709,7 @@ model SubscriptionPackage {
   highlightFeatures  String[]          @default([])
   color              String?
   isPopular          Boolean           @default(false)
+  isCompared         Boolean           @default(false)
   isGlobal           Boolean           @default(true)
   isActive           Boolean           @default(true)
   sortOrder          Int               @default(0)

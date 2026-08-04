@@ -127,6 +127,7 @@ router.post('/', async (req, res) => {
     discounts = [],
     isGlobal,
     isPopular,
+    isCompared,
     regionIds = [],
   } = req.body;
 
@@ -183,6 +184,7 @@ router.post('/', async (req, res) => {
           sortOrder: displayOrder ?? 0,
           isGlobal: isGlobal ?? true,
           isPopular: isPopular ?? false,
+          isCompared: isCompared ?? false,
         },
       });
 
@@ -291,6 +293,7 @@ router.patch('/:id', async (req, res) => {
     isActive,
     isGlobal,
     isPopular,
+    isCompared,
   } = req.body;
   try {
     const updated = await prisma.$transaction(async (tx) => {
@@ -316,6 +319,7 @@ router.patch('/:id', async (req, res) => {
           isActive,
           isGlobal,
           isPopular,
+          isCompared,
         },
       });
 
@@ -361,6 +365,7 @@ router.put('/:id', async (req, res) => {
     discounts = [],
     isGlobal,
     isPopular,
+    isCompared,
     totalHours,
     regionIds = [],
   } = req.body;
@@ -410,6 +415,7 @@ router.put('/:id', async (req, res) => {
           sortOrder: displayOrder ?? 0,
           isGlobal: isGlobal ?? true,
           isPopular: isPopular ?? false,
+          isCompared: isCompared ?? false,
           totalHours: totalHours ? parseFloat(totalHours) : undefined,
         },
       });
