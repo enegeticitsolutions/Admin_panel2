@@ -1190,34 +1190,9 @@ const App = () => {
             <div className="pricing-toolbar">
               <strong>All prices on enquiry - GST applicable</strong>
               <div className="billing-toggle" aria-label="Billing options">
-                <button
-                  type="button"
-                  className={selectedCycle === "1" ? "active" : ""}
-                  onClick={() => setSelectedCycle("1")}
-                >
-                  Monthly
-                </button>
-                <button
-                  type="button"
-                  className={selectedCycle === "3" ? "active" : ""}
-                  onClick={() => setSelectedCycle("3")}
-                >
-                  3 Months <span>Save 5%</span>
-                </button>
-                <button
-                  type="button"
-                  className={selectedCycle === "6" ? "active" : ""}
-                  onClick={() => setSelectedCycle("6")}
-                >
-                  6 Months <span>Save 10%</span>
-                </button>
-                <button
-                  type="button"
-                  className={selectedCycle === "12" ? "active" : ""}
-                  onClick={() => setSelectedCycle("12")}
-                >
-                  Annual <span>Save 20%</span>
-                </button>
+                <button className="active">Monthly</button>
+                <button>Quarterly <span>Save 10%</span></button>
+                <button>Annual <span>Save 20%</span></button>
               </div>
             </div>
 
@@ -1227,28 +1202,6 @@ const App = () => {
                 const planDesc = plan.description || "Care Mitra visits & family connectivity";
                 const basePrice = plan.basePrice || 4999;
                 const isFeatured = plan.isPopular || plan.tone === "featured";
-
-                // Calculate price based on selectedCycle duration
-                const durNum = parseInt(selectedCycle, 10);
-                let displayPrice = basePrice;
-                let priceLabel = `₹${basePrice.toLocaleString("en-IN")} / month`;
-
-                if (durNum === 3) {
-                  const disc = plan.discountThreeMonths ?? 5;
-                  displayPrice = plan.priceThreeMonths ? plan.priceThreeMonths : Math.round(basePrice * 3 * (1 - disc / 100));
-                  const monthlyEff = Math.round(displayPrice / 3);
-                  priceLabel = `₹${monthlyEff.toLocaleString("en-IN")} / mo (billed ₹${displayPrice.toLocaleString("en-IN")})`;
-                } else if (durNum === 6) {
-                  const disc = plan.discountSixMonths ?? 10;
-                  displayPrice = plan.priceSixMonths ? plan.priceSixMonths : Math.round(basePrice * 6 * (1 - disc / 100));
-                  const monthlyEff = Math.round(displayPrice / 6);
-                  priceLabel = `₹${monthlyEff.toLocaleString("en-IN")} / mo (billed ₹${displayPrice.toLocaleString("en-IN")})`;
-                } else if (durNum === 12) {
-                  const disc = plan.discountAnnual ?? 20;
-                  displayPrice = plan.priceTwelveMonths ? plan.priceTwelveMonths : Math.round(basePrice * 12 * (1 - disc / 100));
-                  const monthlyEff = Math.round(displayPrice / 12);
-                  priceLabel = `₹${monthlyEff.toLocaleString("en-IN")} / mo (billed ₹${displayPrice.toLocaleString("en-IN")})`;
-                }
 
                 // Highlight top units (hours or visits)
                 let topHighlightNum = plan.hoursPerMonth || plan.totalHours || plan.hours;
@@ -1287,11 +1240,11 @@ const App = () => {
                         </>
                       ) : (
                         <>
-                          <strong style={{ fontSize: "2rem" }}>₹{displayPrice.toLocaleString("en-IN")}</strong>
-                          <span>{durNum === 1 ? "/ mo" : `total (${durNum}M)`}</span>
+                          <strong style={{ fontSize: "2rem" }}>₹{basePrice.toLocaleString("en-IN")}</strong>
+                          <span>/ mo</span>
                         </>
                       )}
-                      <small>{priceLabel}</small>
+                      <small>₹{basePrice.toLocaleString("en-IN")} / month</small>
                     </div>
 
                     {/* Render Real Package Benefits from API or Features array */}
