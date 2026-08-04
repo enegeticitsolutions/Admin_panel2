@@ -4,8 +4,10 @@ import { teamApi } from '../../services/api';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router';
 import { EntityAvatar } from '../components/common/EntityAvatar';
+import { useSystemConfig } from '../context/SystemConfigContext';
 
 const TeamsPage = () => {
+  const { config } = useSystemConfig();
   const [teams, setTeams] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
@@ -70,16 +72,34 @@ const TeamsPage = () => {
 
       {!loading && teams.length > 0 && (
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-          {teams.map((team) => (
-            <div key={team.id} className="bg-white rounded-[24px] overflow-hidden shadow-sm border border-[#E7DED6]">
-              {/* Team Header */}
-              <div className="bg-slate-50 border-b border-[#E7DED6] p-6 flex justify-between items-center">
-                <div>
-                  <h3 className="text-lg font-bold text-gray-800">{team.name}</h3>
-                  <div className="flex items-center gap-2 mt-2 text-sm text-gray-500">
-                    <MapPin size={14} className="text-[#FF7A00]" /> {team.zone}
+          {teams.map((team) => {
+            const ccCount = team.careCompanions?.length || 0;
+            const benCount = team._count?.beneficiaries || 0;
+            const isCcFull = ccCount >= config.maxCcPerTeam;
+            const isBenFull = benCount >= config.maxBeneficiaryPerTeam;
+
+            return (
+              <div key={team.id} className="bg-white rounded-[24px] overflow-hidden shadow-sm border border-[#E7DED6]">
+                {/* Team Header */}
+                <div className="bg-slate-50 border-b border-[#E7DED6] p-6 flex justify-between items-center">
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-800">{team.name}</h3>
+                    <div className="flex items-center gap-2 mt-2 text-sm text-gray-500">
+                      <MapPin size={14} className="text-[#FF7A00]" /> {team.zone}
+                    </div>
+                    <div className="flex items-center gap-2 mt-2">
+                      <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border ${
+                        isCcFull ? 'bg-red-50 text-red-700 border-red-200' : 'bg-orange-50 text-orange-700 border-orange-200'
+                      }`}>
+                        CCs: {ccCount}/{config.maxCcPerTeam}
+                      </span>
+                      <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border ${
+                        isBenFull ? 'bg-red-50 text-red-700 border-red-200' : 'bg-blue-50 text-blue-700 border-blue-200'
+                      }`}>
+                        Seniors: {benCount}/{config.maxBeneficiaryPerTeam}
+                      </span>
+                    </div>
                   </div>
-                </div>
                 <div className="flex -space-x-3">
                   <EntityAvatar 
                     name={team.fieldManager?.name} 
@@ -150,7 +170,8 @@ const TeamsPage = () => {
                 </div>
               </div>
             </div>
-          ))}
+          );
+        })}
         </div>
       )}
     </div>
