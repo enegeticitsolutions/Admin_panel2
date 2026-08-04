@@ -371,24 +371,32 @@ export default function SubscriberDashboardScreen() {
                 ) : (
                     beneficiaries.map((b: any, i: number) => {
                         const isSelected = b.id === selectedBeneficiaryId;
+                        const isExpired = b.packageStatus === 'expired' || b.isExpired;
+                        const isPending = b.verificationStatus === 'pending';
+
                         return (
                             <TouchableOpacity
                                 key={b.id || i}
-                                style={[styles.benCard, isSelected && b.verificationStatus !== 'pending' && styles.benCardActive]}
+                                style={[
+                                    styles.benCard, 
+                                    isSelected && !isPending && !isExpired && styles.benCardActive,
+                                    isExpired && styles.benCardExpired
+                                ]}
                                 onPress={() => {
-                                    if (b.verificationStatus === 'pending') {
+                                    if (isPending) {
                                         router.push({
                                             pathname: '/(setup)/beneficiary-info',
                                             params: { isVerificationFlow: 'true', beneficiaryId: b.id }
                                         });
+                                    } else if (isExpired) {
+                                        router.push('/(setup)/subscription-packages');
                                     } else if (isSelected) {
-                                        // Second tap on already-selected card → open profile
+                                        // Second tap on already-selected active card → open profile
                                         router.push(`/(subscriber)/beneficiary-profile?id=${b.id}`);
                                     } else {
                                         // First tap → select and refetch data for this beneficiary
                                         setSelectedBeneficiaryId(b.id);
                                         AsyncStorage.setItem('selectedBeneficiaryId', b.id);
-                                        // refetch will be triggered automatically by the queryKey change
                                     }
                                 }}
                             >
@@ -401,16 +409,24 @@ export default function SubscriberDashboardScreen() {
                                     <Text style={styles.benName}>{b.name}</Text>
                                     <Text style={styles.benMeta}>{getDisplayAge(b)}{b.relationship ? ` • ${b.relationship}` : ''}</Text>
                                 </View>
-                                {b.verificationStatus === 'pending' ? (
+                                {isPending ? (
                                     <View style={{ backgroundColor: '#E5E7EB', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4, marginRight: 8 }}>
                                         <Text style={{ color: '#6B7280', fontSize: 10, fontWeight: '700' }}>Inactive - Verification Required</Text>
                                     </View>
+                                ) : isExpired ? (
+                                    <TouchableOpacity 
+                                        onPress={() => router.push('/(setup)/subscription-packages')}
+                                        style={{ backgroundColor: '#FEE2E2', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4, marginRight: 8, flexDirection: 'row', alignItems: 'center' }}
+                                    >
+                                        <Ionicons name="alert-circle" size={12} color="#991B1B" style={{ marginRight: 3 }} />
+                                        <Text style={{ color: '#991B1B', fontSize: 10, fontWeight: '700' }}>Expired - Renew</Text>
+                                    </TouchableOpacity>
                                 ) : (
                                     <View style={{ backgroundColor: '#D1FAE5', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4, marginRight: 8 }}>
                                         <Text style={{ color: '#065F46', fontSize: 10, fontWeight: '700' }}>Active</Text>
                                     </View>
                                 )}
-                                <Ionicons name="chevron-forward" size={20} color="#FE6700" />
+                                <Ionicons name="chevron-forward" size={20} color={isExpired ? "#DC2626" : "#FE6700"} />
                             </TouchableOpacity>
                         );
                     })
@@ -646,6 +662,11 @@ const styles = StyleSheet.create({
     benCardActive: {
         backgroundColor: '#FFF5ED',
         borderColor: '#FE6700',
+        borderWidth: 1,
+    },
+    benCardExpired: {
+        backgroundColor: '#FEF2F2',
+        borderColor: '#FCA5A5',
         borderWidth: 1,
     },
     benPhoto: { width: scale(52), height: scale(52), borderRadius: scale(26), marginRight: scale(14), backgroundColor: '#E5E7EB' },

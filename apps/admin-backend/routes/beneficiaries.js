@@ -11,7 +11,7 @@ const { calculateAge } = require('../utils/age');
 // ── GET /api/beneficiaries ───────────────────────────────────────────────────
 router.get('/', async (req, res) => {
   try {
-    const { search, searchBy, page, limit, sortBy, sortOrder = 'desc', filterBy = 'all', teamId } = req.query;
+    const { search, searchBy, page, limit, sortBy, sortOrder = 'desc', filterBy = 'all', statusFilter = 'active', teamId } = req.query;
     const filterParams = {};
 
     if (teamId) {
@@ -83,34 +83,37 @@ router.get('/', async (req, res) => {
       },
     };
 
-    // If sorting by distance, we'll need to fetch all (or more) and sort in-memory
     const isDistanceSort = sortBy === 'distance';
-    
-    if (page && limit && !isDistanceSort) {
-      const pageNum = Number(page);
-      const limitNum = Number(limit);
-      if (pageNum > 0 && limitNum > 0) {
-        listQuery.skip = (pageNum - 1) * limitNum;
-        listQuery.take = limitNum;
-      }
-    }
 
-    const beneficiaries = await prisma.beneficiary.findMany(listQuery);
-    const total = await prisma.beneficiary.count({ where: filterParams });
+    const allBeneficiaries = await prisma.beneficiary.findMany(listQuery);
 
-    const beneficiaryIds = beneficiaries.map((b) => b.id);
+    // Fetch subscriptions to calculate dynamic package status
+    const beneficiaryIds = allBeneficiaries.map((b) => b.id);
     const subscriptions = await prisma.subscription.findMany({
-      where: { beneficiaryId: { in: beneficiaryIds }, isActive: true },
+      where: { beneficiaryId: { in: beneficiaryIds } },
+      orderBy: { createdAt: 'desc' },
       include: { package: { select: { name: true } } },
     });
+
+    const now = new Date();
     const subMap = {};
     subscriptions.forEach((s) => {
-      if (!subMap[s.beneficiaryId]) subMap[s.beneficiaryId] = s;
+      if (!subMap[s.beneficiaryId]) subMap[s.beneficiaryId] = [];
+      subMap[s.beneficiaryId].push(s);
     });
 
-    let mapped = beneficiaries.map((b) => {
-      const activeSub = subMap[b.id];
-      
+    let mapped = allBeneficiaries.map((b) => {
+      const benSubs = subMap[b.id] || [];
+      const activeSub = benSubs.find((s) => s.isActive && new Date(s.endDate) > now);
+      const expiredSub = benSubs.find((s) => new Date(s.endDate) <= now || !s.isActive);
+
+      let packageStatus = 'none'; // 'active' | 'expired' | 'none'
+      if (activeSub) {
+        packageStatus = 'active';
+      } else if (expiredSub || benSubs.length > 0) {
+        packageStatus = 'expired';
+      }
+
       // Calculate distance to nearest managed zone
       let minDistance = null;
       let nearestZoneName = null;
@@ -157,12 +160,22 @@ router.get('/', async (req, res) => {
         secondaryCareCompanion: b.secondaryCC?.name || null,
         teamName: b.team?.name || null,
         activePackage: activeSub?.package?.name || null,
+        packageStatus,
+        isPackageExpired: packageStatus === 'expired',
+        subscriptionEndDate: activeSub?.endDate || expiredSub?.endDate || null,
         isActive: b.isActive,
         createdAt: b.createdAt,
         distance: minDistance ? parseFloat(minDistance.toFixed(2)) : null,
         nearestZone: nearestZoneName
       };
     });
+
+    // ── Apply Status Filter ('active' by default | 'expired' | 'all') ─────────
+    if (statusFilter === 'active') {
+      mapped = mapped.filter((b) => b.packageStatus === 'active');
+    } else if (statusFilter === 'expired') {
+      mapped = mapped.filter((b) => b.packageStatus === 'expired');
+    }
 
     // Handle distance sorting
     if (isDistanceSort) {
@@ -171,27 +184,24 @@ router.get('/', async (req, res) => {
         const distB = b.distance === null ? Infinity : b.distance;
         return sortOrder === 'asc' ? distA - distB : distB - distA;
       });
+    }
 
-      // Apply pagination after sorting
-      if (page && limit) {
-        const start = (Number(page) - 1) * Number(limit);
-        mapped = mapped.slice(start, start + Number(limit));
+    const totalCount = mapped.length;
+    const pageNum = Number(page) || 1;
+    const limitNum = Number(limit) || 10;
+    const paginatedData = mapped.slice((pageNum - 1) * limitNum, pageNum * limitNum);
+    const totalPages = Math.ceil(totalCount / limitNum) || 1;
+
+    res.json({
+      success: true,
+      data: {
+        data: paginatedData,
+        total: totalCount,
+        page: pageNum,
+        limit: limitNum,
+        totalPages,
       }
-    }
-
-    if (page && limit) {
-      res.json({
-        success: true,
-        data: {
-          data: mapped,
-          total,
-          page: Number(page),
-          totalPages: Math.ceil(total / Number(limit)),
-        },
-      });
-    } else {
-      res.json({ success: true, data: mapped });
-    }
+    });
   } catch (err) {
     console.error('GET /beneficiaries error:', err);
     res
