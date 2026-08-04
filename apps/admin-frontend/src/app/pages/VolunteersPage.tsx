@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { PageHeader } from '../components/common/PageHeader';
 import { DataCard } from '../components/common/DataCard';
 import { StatusChip } from '../components/common/StatusChip';
-import { volunteerApi, beneficiaryApi, regionApi, zoneApi } from '../../services/api';
+import { volunteerApi, beneficiaryApi, regionApi, zoneApi, configApi } from '../../services/api';
 import type { Volunteer } from '../../types';
 import {
   Heart,
@@ -122,6 +122,7 @@ export default function VolunteersPage() {
   const [beneficiaries, setBeneficiaries] = useState<any[]>([]);
   const [regions, setRegions] = useState<any[]>([]);
   const [zones, setZones] = useState<any[]>([]);
+  const [maxBeneficiariesPerVolunteer, setMaxBeneficiariesPerVolunteer] = useState<number>(3);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -161,6 +162,16 @@ export default function VolunteersPage() {
       setRegions(regs);
       const zns = await zoneApi.getAll().catch(() => []);
       setZones(zns);
+
+      // Fetch dynamic system config setting for max_beneficiaries_per_volunteer
+      const configs = await configApi.getAll().catch(() => []);
+      const maxCapConfig = configs.find((c: any) => c.key === 'max_beneficiaries_per_volunteer');
+      if (maxCapConfig && maxCapConfig.value) {
+        const val = Number(maxCapConfig.value);
+        if (!isNaN(val) && val > 0) {
+          setMaxBeneficiariesPerVolunteer(val);
+        }
+      }
     } catch (err: any) {
       setError(err.message || 'Failed to load volunteers data.');
     } finally {
@@ -288,7 +299,7 @@ export default function VolunteersPage() {
     }
 
     const activeAssignments = vol.assignments?.length || 0;
-    const maxPerVol = 3;
+    const maxPerVol = maxBeneficiariesPerVolunteer;
     const capacityScore = Math.round((Math.max(0, maxPerVol - activeAssignments) / maxPerVol) * 15);
 
     const total = genderScore + hobbyScore + locationScore + capacityScore;
@@ -592,7 +603,7 @@ export default function VolunteersPage() {
           {filteredVolunteers.length > 0 ? (
             filteredVolunteers.map((v) => {
             const activeCount = v.assignments?.length || 0;
-            const maxVolLimit = 3;
+            const maxVolLimit = maxBeneficiariesPerVolunteer;
             const isFull = activeCount >= maxVolLimit;
 
             return (
@@ -603,11 +614,11 @@ export default function VolunteersPage() {
                     <div className="flex items-center gap-2">
                       {isFull ? (
                         <span className="text-[10px] font-bold px-2 py-0.5 bg-red-100 text-red-700 rounded-full">
-                          Full (3/3)
+                          Full ({activeCount}/{maxVolLimit})
                         </span>
                       ) : (
                         <span className="text-[10px] font-bold px-2 py-0.5 bg-green-100 text-green-700 rounded-full">
-                          {activeCount}/3 Assigned
+                          {activeCount}/{maxVolLimit} Assigned
                         </span>
                       )}
                       <StatusChip status="Verified" />
@@ -627,7 +638,7 @@ export default function VolunteersPage() {
 
                   <div>
                     <p className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1">
-                      <Users className="w-3.5 h-3.5" /> Assigned Beneficiaries ({activeCount}/3)
+                      <Users className="w-3.5 h-3.5" /> Assigned Beneficiaries ({activeCount}/{maxVolLimit})
                     </p>
                     <div className="space-y-1 max-h-24 overflow-y-auto pr-1">
                       {v.assignments && v.assignments.length > 0 ? (
@@ -680,7 +691,7 @@ export default function VolunteersPage() {
                           : 'bg-primary text-primary-foreground hover:bg-primary/95'
                       }`}
                     >
-                      <Plus className="w-3.5 h-3.5" /> {isFull ? 'At Limit (3/3)' : 'Assign Senior'}
+                      <Plus className="w-3.5 h-3.5" /> {isFull ? `At Limit (${activeCount}/${maxVolLimit})` : 'Assign Senior'}
                     </button>
                   </div>
                 </div>
