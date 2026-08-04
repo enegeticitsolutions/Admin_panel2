@@ -1,4 +1,12 @@
 # Execution Plan
+- [x] Razorpay Payment Link API & Dual Payment Method Architecture (2026-08-04)
+  - [x] Official Razorpay SDK Integration: Backend `POST /api/payments/generate-link` uses `razorpay.paymentLink.create()` returning real `https://rzp.io/rzp/XXXXX` hosted short links
+  - [x] Reusable UI Component (`PaymentMethodSelector.tsx`): Supports Offline Payment (Cash, UPI, Cheque, Bank Transfer) & Online Payment Link generation across Enrollment and Renewal wizards
+  - [x] Multi-Channel Sharing: Generated payment link card with Copy Link, Open Link, and prefilled WhatsApp Web message
+  - [x] Webhook Signature Verification (`POST /api/payments/webhook`): HMAC SHA-256 validation via `req.rawBody` for automatic payment status update and subscription activation
+  - [x] Customer Checkout Page (`CheckoutPage.tsx` at `/pay/:orderId`): Public portal with order details and test payment completion
+  - [x] Package Status Filtering: Filter tabs (Active, Expired, All) on Beneficiaries page with color-coded badges
+  - [x] Security Hardening: Removed hardcoded credential fallback strings from source code; credentials bound strictly to environment variables (`.env`)
 - [x] Requested Visits Operations Control Hub & Historical Date Range Filter (2026-07-24 / 2026-07-25)
   - [x] Operations Control Hub: Dedicated `/requested-visits` page with multi-select filters (Beneficiaries, Care Companions, Teams, Statuses)
   - [x] Quick Visit Schedule Modal: 1-tap visit scheduling with Care Companion assignment and Benefit Ledger unit reservation hold

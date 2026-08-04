@@ -1,3 +1,23 @@
+## Session: Official Razorpay Payment Link API, Webhook Verification & Dual Payment Architecture (2026-08-04)
+
+### Razorpay Payment Links API Integration & Backend Architecture
+- **Official Razorpay Node SDK**: Integrated `razorpay` package in `apps/admin-backend`. `POST /api/payments/generate-link` calls `razorpayInstance.paymentLink.create()` returning official hosted short links (`https://rzp.io/rzp/XXXXX` / `https://rzp.io/i/XXXXX`).
+- **Fault-Tolerant Subscriber Resolution**: Improved subscriber lookup logic in `routes/payments.js`. Auto-establishes pending subscriber profiles and wraps database insertions safely so transient pooler resets never fail link generation.
+- **Unique Transaction IDs**: Generates unique transaction IDs (`plink_...` / `txn_...`) to satisfy `@unique` Prisma schema constraints.
+- **HMAC SHA-256 Webhook Verification**: `POST /api/payments/webhook` verifies Razorpay signatures using `req.rawBody` and `RAZORPAY_WEBHOOK_SECRET`, automatically setting `paymentStatus = success` and `subscription.isActive = true`.
+
+### Reusable Frontend Payment Component & Multi-Channel Sharing
+- **`PaymentMethodSelector.tsx`**: Created a shared component supporting `○ Collect Offline Payment` (Cash, UPI, Cheque, Bank Transfer, NEFT/RTGS) and `○ Generate Online Payment Link`.
+- **Wizards Upgrade**: Upgraded both `EnrollmentWizardPage.tsx` (`/enroll`) and `RenewalWizardPage.tsx` (`/renew/:id`) to use `PaymentMethodSelector`.
+- **Link Display Box & WhatsApp Web Integration**: Displays an interactive card upon link generation featuring order ID, short URL, **Copy Link**, **Open Link**, and prefilled **Send via WhatsApp Web** message.
+- **Customer Checkout Portal**: Created public `CheckoutPage.tsx` at `/pay/:orderId` for testing and custom order confirmation.
+
+### Package Status Filtering & Security Hardening
+- **Beneficiaries Page Filtering**: Added interactive filter tabs on `/beneficiaries` page: **Active Beneficiaries** (default), **Package Expired**, and **All Beneficiaries** with color-coded status badges.
+- **Security Hardening**: Removed all hardcoded fallback credential strings from source code. `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, and `RAZORPAY_WEBHOOK_SECRET` are bound strictly to `.env`.
+
+---
+
 ## Session: Minimalist Website Redesign, Razorpay Payment & Unlinked Subscription Sync (2026-08-03)
 
 ### Full-Page Minimalist Website UI & Role Security
