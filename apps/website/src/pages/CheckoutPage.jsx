@@ -43,7 +43,7 @@ export default function CheckoutPage({ selectedPackage, token, user, onSuccess, 
   const { loaded: razorpayLoaded, error: razorpayError } = useRazorpayScript();
   const pkg = selectedPackage || fallbackPackage;
 
-  const [duration, setDuration] = useState("1");
+  const [duration, setDuration] = useState(String(selectedPackage?.selectedCycle || "1"));
   const [couponCode, setCouponCode] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState(null);
   const [couponError, setCouponError] = useState("");
@@ -77,13 +77,11 @@ export default function CheckoutPage({ selectedPackage, token, user, onSuccess, 
 
   const pricing = calcDurationPricing();
 
+  // Coupon: backend returns { discountApplied, finalAmount, couponId }
+  // finalAmount is the already-discounted total — use it directly
   let finalTotal = pricing.total;
-  if (appliedCoupon) {
-    if (appliedCoupon.discountType === "percentage") {
-      finalTotal = Math.max(0, Math.round(pricing.total * (1 - (appliedCoupon.discountValue || 0) / 100)));
-    } else if (appliedCoupon.discountType === "fixed") {
-      finalTotal = Math.max(0, pricing.total - (appliedCoupon.discountValue || 0));
-    }
+  if (appliedCoupon && appliedCoupon.finalAmount !== undefined) {
+    finalTotal = appliedCoupon.finalAmount;
   }
 
   const handleApplyCoupon = async (e) => {
@@ -92,8 +90,8 @@ export default function CheckoutPage({ selectedPackage, token, user, onSuccess, 
     if (!couponCode.trim()) return;
     setCouponLoading(true);
     try {
-      const result = await validateCouponCode(token, couponCode.trim(), pkg.id || pkg.type);
-      setAppliedCoupon(result);
+      const result = await validateCouponCode(token, couponCode.trim(), pkg.id || pkg.type, pricing.total);
+      setAppliedCoupon(result); // { couponId, discountApplied, finalAmount }
     } catch (err) {
       setCouponError(err.message || "Invalid coupon code.");
       setAppliedCoupon(null);
@@ -329,7 +327,7 @@ export default function CheckoutPage({ selectedPackage, token, user, onSuccess, 
                 </form>
                 {appliedCoupon && (
                   <div style={{ fontSize: "0.82rem", color: "#16a34a", fontWeight: "700", marginBottom: "12px" }}>
-                    ✓ Coupon "{appliedCoupon.code}" applied!
+                    ✓ Coupon applied! You save ₹{(pricing.total - finalTotal).toLocaleString("en-IN")}
                   </div>
                 )}
                 {couponError && <div style={{ fontSize: "0.82rem", color: "#dc2626", marginBottom: "12px" }}>{couponError}</div>}

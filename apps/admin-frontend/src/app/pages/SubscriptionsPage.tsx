@@ -75,6 +75,7 @@ export default function SubscriptionsPage() {
   const [editingPackageId, setEditingPackageId] = useState<string | null>(null);
   const [isGlobal, setIsGlobal] = useState(true);
   const [isPopular, setIsPopular] = useState(false);
+  const [isCompared, setIsCompared] = useState(false);
 
   // Region targeting states
   const [selectedRegionIds, setSelectedRegionIds] = useState<string[]>([]);
@@ -201,6 +202,7 @@ export default function SubscriptionsPage() {
       createdBy: 'U001',
       isGlobal,
       isPopular,
+      isCompared,
       regionIds: isGlobal ? [] : selectedRegionIds,
     };
 
@@ -249,6 +251,7 @@ export default function SubscriptionsPage() {
     setActiveTo(pkg.activeTo ? pkg.activeTo.split('T')[0] : '');
     setIsGlobal(pkg.isGlobal ?? true);
     setIsPopular(pkg.isPopular ?? false);
+    setIsCompared(pkg.isCompared ?? false);
     setSelectedRegionIds(pkg.regionIds || []);
     
     const selected = new Set<string>();
@@ -312,6 +315,7 @@ export default function SubscriptionsPage() {
     setEditingPackageId(null);
     setIsGlobal(true);
     setIsPopular(false);
+    setIsCompared(false);
     setSelectedRegionIds([]);
     setRegionSearch('');
   };
@@ -664,6 +668,20 @@ export default function SubscriptionsPage() {
                         <Label htmlFor="isPopular" className="font-semibold text-orange-900 cursor-pointer text-base">Mark as "Most Popular"</Label>
                         <p className="text-sm text-orange-700">
                           When checked, this package will be highlighted with a badge in the mobile app.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center space-x-3 p-4 bg-orange-50 border border-orange-200 rounded-lg">
+                      <Checkbox
+                        id="isCompared"
+                        checked={isCompared}
+                        onCheckedChange={(val) => setIsCompared(!!val)}
+                      />
+                      <div className="space-y-1 leading-none">
+                        <Label htmlFor="isCompared" className="font-semibold text-orange-900 cursor-pointer text-base">Include in Comparison Table</Label>
+                        <p className="text-sm text-orange-700">
+                          When checked, this package will be featured side-by-side in the Comparison Table on the website.
                         </p>
                       </div>
                     </div>

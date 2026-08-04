@@ -142,20 +142,20 @@ export const fetchSubscriptionPackages = async () => {
  * 6. Validate coupon code
  * Endpoint: POST /api/subscriber/coupons/validate
  */
-export const validateCouponCode = async (token, couponCode, packageId) => {
+export const validateCouponCode = async (token, couponCode, packageId, amount) => {
   const response = await fetch(`${API_BASE}/subscriber/coupons/validate`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify({ couponCode, packageId }),
+    body: JSON.stringify({ code: couponCode, packageId, amount }),
   });
   const data = await response.json();
   if (!response.ok || !data.success) {
     throw new Error(data.message || 'Invalid coupon code.');
   }
-  return data.data;
+  return data.coupon; // { couponId, discountApplied, finalAmount }
 };
 
 /**

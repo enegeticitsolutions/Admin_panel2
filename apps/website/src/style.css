@@ -121,6 +121,15 @@ a {
   font-size: 13px;
   font-weight: 900;
   white-space: nowrap;
+  transition: all 180ms ease;
+  cursor: pointer;
+}
+
+.view-plan-button.active {
+  background: var(--orange, #fe6700);
+  color: #ffffff;
+  border-color: var(--orange, #fe6700);
+  box-shadow: 0 8px 20px rgba(254, 103, 0, 0.25);
 }
 
 .pill-button {
@@ -1963,6 +1972,109 @@ a {
   grid-template-columns: repeat(3, 1fr);
   gap: 22px;
   align-items: start;
+}
+
+/* ── Plan Slider Carousel ── */
+.plan-slider-wrapper {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  padding: 24px 4px;
+}
+
+.plan-slider-track {
+  display: flex;
+  gap: 22px;
+  transition: transform 0.5s cubic-bezier(0.25, 1, 0.5, 1);
+  will-change: transform;
+}
+
+.plan-slider-item {
+  flex-shrink: 0;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
+.plan-slider-item .plan-card {
+  height: 100%;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Nav arrows */
+.plan-slider-arrow {
+  position: absolute;
+  top: 45%;
+  transform: translateY(-50%);
+  z-index: 10;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  color: #0f172a;
+  font-size: 24px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.14);
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.plan-slider-arrow:hover {
+  background: var(--orange, #fe6700);
+  color: #ffffff;
+  border-color: var(--orange, #fe6700);
+  transform: translateY(-50%) scale(1.1);
+  box-shadow: 0 12px 32px rgba(254, 103, 0, 0.35);
+}
+
+.plan-slider-arrow:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  transform: translateY(-50%) scale(1);
+  box-shadow: none;
+}
+
+.plan-slider-arrow--prev {
+  left: 6px;
+}
+
+.plan-slider-arrow--next {
+  right: 6px;
+}
+
+/* Pagination Dots */
+.plan-slider-dots {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  margin-top: 28px;
+}
+
+.plan-slider-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: #cbd5e1;
+  border: none;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  padding: 0;
+}
+
+.plan-slider-dot:hover {
+  background: #94a3b8;
+}
+
+.plan-slider-dot.active {
+  width: 32px;
+  background: var(--orange, #fe6700);
 }
 
 .plan-card {

@@ -15,6 +15,7 @@ import SaathiPage from "./pages/SaathiPage";
 import AuthPage from "./pages/AuthPage";
 import AccountPage from "./pages/AccountPage";
 import CheckoutPage from "./pages/CheckoutPage";
+import PlansPage from "./pages/PlansPage";
 import { fetchSubscriptionPackages } from "./services/api";
 import "./style.css";
 
@@ -165,70 +166,7 @@ const faqs = [
   "Can I change or cancel my plan?",
 ];
 
-const pricingPlans = [
-  {
-    name: "Saathi Starter",
-    description: "For families who want a regular check-in and peace of mind.",
-    hours: "10",
-    tone: "light",
-    features: [
-      "Monthly Care Mitra hours",
-      "Vitals monitoring (BP, O2, weight)",
-      "Medication reminders",
-      "Emergency support button",
-      "Visit history in Family Connect",
-      "WhatsApp alerts to family",
-    ],
-    muted: ["Mood tracking & Happiness Score", "Saathi Network access"],
-  },
-  {
-    name: "Saathi Plus",
-    description: "For loved ones who need more frequent, family-first support.",
-    hours: "25",
-    tone: "featured",
-    badge: "Most Popular",
-    features: [
-      "Monthly Care Mitra hours",
-      "Vitals monitoring (BP, O2, weight)",
-      "Medication reminders",
-      "Emergency support button",
-      "Visit history in Family Connect",
-      "WhatsApp alerts to family",
-      "Mood tracking & Happiness Score",
-    ],
-    muted: ["Dedicated Field Manager", "Hospital & lab coordination"],
-  },
-  {
-    name: "Saathi Premium",
-    description: "For higher-acuity care needs, wanting maximum coverage.",
-    hours: "50",
-    tone: "light",
-    features: [
-      "Monthly Care Mitra hours",
-      "Vitals monitoring (BP, O2, weight)",
-      "Medication reminders",
-      "Emergency support button",
-      "Visit history in Family Connect",
-      "WhatsApp alerts to family",
-      "Mood tracking & Happiness Score",
-    ],
-  },
-];
 
-const comparisonRows = [
-  ["Monthly Care Mitra hours", true, true, true],
-  ["Vitals monitoring (BP, O2, weight)", true, true, true],
-  ["Medication reminders", true, true, true],
-  ["Emergency support button", true, true, true],
-  ["Visit history in Family Connect", true, true, true],
-  ["WhatsApp alerts to family", true, true, true],
-  ["Mood tracking & Happiness Score", false, true, true],
-  ["Saathi Network access", false, true, true],
-  ["Priority rescheduling", false, true, true],
-  ["Clinic visit accompaniment", false, true, true],
-  ["Dedicated Field Manager", false, false, true],
-  ["Hospital & lab coordination", false, false, true],
-];
 
 const App = () => {
   const [activePage, setActivePage] = useState("home");
@@ -263,6 +201,9 @@ const App = () => {
 
   // Live Subscription Packages from API
   const [livePackages, setLivePackages] = useState([]);
+
+  // Billing cycle toggle: '1' | '3' | '6' | '12'
+  const [selectedCycle, setSelectedCycle] = useState('1');
 
   useEffect(() => {
     fetchSubscriptionPackages()
@@ -409,7 +350,7 @@ const App = () => {
           <button className={activePage === "saathi" ? "active" : ""} onClick={() => setActivePage("saathi")}>Saathi Network</button>
         </nav>
         <div className="topbar__actions" style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-          <button className="view-plan-button" onClick={() => setActivePage("plans")}>View Plans</button>
+          <button className={`view-plan-button ${activePage === "plans" ? "active" : ""}`} onClick={() => setActivePage("plans")}>View Plans</button>
           
           {user ? (
             <button
@@ -1143,254 +1084,16 @@ const App = () => {
       ) : activePage === "saathi" ? (
         <SaathiPage />
       ) : (
-        <main className="plans-page">
-          <section className="plans-hero">
-            <div className="plans-hero__inner">
-              <div className="plans-hero__copy">
-                <span>Plans</span>
-                <h1>
-                  Built around hours,
-                  <em>not fine print.</em>
-                </h1>
-                <p>
-                  Prepaid hours of in-home care. You always know exactly what you've used and what's left - no surprises, no caps.
-                </p>
-                <div className="plans-hero__badges">
-                  <span>No hidden fees</span>
-                  <span>Hours roll over 30 days</span>
-                  <span>Cancel anytime</span>
-                </div>
-              </div>
-
-              <div className="hours-card" aria-label="Your hours always visible">
-                <h2>Your hours - always visible</h2>
-                {[
-                  ["Saathi Starter", "7", "10", "3", "#10b981"],
-                  ["Saathi Plus", "18", "25", "7", "#fe6700"],
-                  ["Saathi Premium", "31", "50", "19", "#8b45ff"],
-                ].map(([name, used, total, remaining, color]) => (
-                  <div className="hours-row" key={name}>
-                    <div>
-                      <strong>{name}</strong>
-                      <span>{used} hrs used</span>
-                    </div>
-                    <small>{used} / {total} hrs used</small>
-                    <div className="hours-bar">
-                      <span style={{ width: `${(Number(used) / Number(total)) * 100}%`, background: color }} />
-                    </div>
-                    <em style={{ color }}>{remaining} hrs remaining</em>
-                  </div>
-                ))}
-                <div className="rollover-note">Unused hours roll over for 30 days automatically</div>
-              </div>
-            </div>
-          </section>
-
-          <section className="pricing-section" id="plans">
-            <div className="pricing-toolbar">
-              <strong>All prices on enquiry - GST applicable</strong>
-              <div className="billing-toggle" aria-label="Billing options">
-                <button className="active">Monthly</button>
-                <button>Quarterly <span>Save 10%</span></button>
-                <button>Annual <span>Save 20%</span></button>
-              </div>
-            </div>
-
-            <div className="plan-grid">
-              {(livePackages.length > 0 ? livePackages : pricingPlans).map((plan) => {
-                const planName = plan.name;
-                const planDesc = plan.description || "Care Mitra visits & family connectivity";
-                const basePrice = plan.basePrice || 4999;
-                const isFeatured = plan.isPopular || plan.tone === "featured";
-
-                // Highlight top units (hours or visits)
-                let topHighlightNum = plan.hoursPerMonth || plan.totalHours || plan.hours;
-                let topHighlightUnit = "hrs";
-
-                if (!topHighlightNum && plan.visitsPerWeek) {
-                  topHighlightNum = plan.visitsPerWeek;
-                  topHighlightUnit = "visits/wk";
-                }
-
-                if (!topHighlightNum && Array.isArray(plan.packageBenefits)) {
-                  const hourBenefit = plan.packageBenefits.find((pb) => pb.benefit?.name?.toLowerCase().includes("hour"));
-                  if (hourBenefit) {
-                    topHighlightNum = hourBenefit.unitsIncluded;
-                    topHighlightUnit = "hrs";
-                  } else {
-                    const visitBenefit = plan.packageBenefits.find((pb) => pb.benefit?.name?.toLowerCase().includes("visit"));
-                    if (visitBenefit) {
-                      topHighlightNum = visitBenefit.unitsIncluded;
-                      topHighlightUnit = "visits";
-                    }
-                  }
-                }
-
-                return (
-                  <article className={`plan-card ${isFeatured ? "plan-card--featured" : "plan-card--light"}`} key={plan.id || planName}>
-                    {(plan.isPopular || plan.badge) && <div className="plan-badge">{plan.badge || "Most Popular"}</div>}
-                    <h2>{planName}</h2>
-                    <p>{planDesc}</p>
-                    
-                    <div className="plan-hours">
-                      {topHighlightNum ? (
-                        <>
-                          <strong>{topHighlightNum}</strong>
-                          <span>{topHighlightUnit}</span>
-                        </>
-                      ) : (
-                        <>
-                          <strong style={{ fontSize: "2rem" }}>₹{basePrice.toLocaleString("en-IN")}</strong>
-                          <span>/ mo</span>
-                        </>
-                      )}
-                      <small>₹{basePrice.toLocaleString("en-IN")} / month</small>
-                    </div>
-
-                    {/* Render Real Package Benefits from API or Features array */}
-                    {Array.isArray(plan.packageBenefits) && plan.packageBenefits.length > 0 ? (
-                      <ul>
-                        {plan.packageBenefits.map((pb, idx) => {
-                          const benefitName = pb.benefit?.name || "Included Benefit";
-                          const rawLabel = (pb.benefit?.unitLabel || "").replace(/^per\s+/i, "").trim();
-                          const unitText = pb.unitsIncluded ? ` (${pb.unitsIncluded}${rawLabel ? " " + rawLabel : ""})` : "";
-                          return <li key={pb.id || idx}>✓ {benefitName}{unitText}</li>;
-                        })}
-                      </ul>
-                    ) : Array.isArray(plan.features) && plan.features.length > 0 ? (
-                      <ul>
-                        {plan.features.map((feature, idx) => (
-                          <li key={idx}>✓ {feature}</li>
-                        ))}
-                        {plan.muted?.map((feature, idx) => (
-                          <li className="muted" key={`muted-${idx}`}>{feature}</li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <ul>
-                        <li>✓ Care Mitra Home Visits</li>
-                        <li>✓ Vitals Monitoring (BP, SpO2, Weight)</li>
-                        <li>✓ Medication Reminders & Schedule</li>
-                        <li>✓ 24/7 Emergency Support Line</li>
-                        <li>✓ Family Connect Mobile App Access</li>
-                      </ul>
-                    )}
-
-                    <button
-                      onClick={() => handleSelectPackageForBuy(plan)}
-                      style={{
-                        width: "100%",
-                        padding: "12px",
-                        borderRadius: "10px",
-                        background: "var(--orange, #fe6700)",
-                        color: "#fff",
-                        fontWeight: "700",
-                        border: "none",
-                        marginTop: "auto",
-                        cursor: "pointer",
-                      }}
-                    >
-                      Buy Subscription <span>→</span>
-                    </button>
-                  </article>
-                );
-              })}
-            </div>
-
-            <p className="pricing-note">
-              No hidden caps - No surprise renewals - Plans available monthly, quarterly, and annually - Pricing on enquiry
-            </p>
-
-            <div className="comparison">
-              <div className="comparison__heading">
-                <h2>Full feature comparison</h2>
-                <p>Everything side by side, so you can choose with clarity.</p>
-              </div>
-              <div className="comparison-table" role="table" aria-label="Full feature comparison">
-                <div className="comparison-row comparison-row--head" role="row">
-                  <span>Feature</span>
-                  <strong>Saathi Starter</strong>
-                  <strong>Saathi Plus</strong>
-                  <strong>Saathi Premium</strong>
-                </div>
-                {comparisonRows.map(([feature, starter, plus, premium]) => (
-                  <div className="comparison-row" role="row" key={feature}>
-                    <span>{feature}</span>
-                    {[starter, plus, premium].map((included, index) => (
-                      <strong className={included ? "included" : "not-included"} key={`${feature}-${index}`}>
-                        {included ? "✓" : "-"}
-                      </strong>
-                    ))}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="bespoke-banner">
-              <div>
-                <span>Bespoke Plans</span>
-                <h2>Bespoke Palliative Plans</h2>
-                <p>
-                  For families navigating advanced illness. Custom-built hours, specialist Care Mitra matching, and coordinated multi-disciplinary support - designed together with your family.
-                </p>
-                <ul>
-                  <li>Custom hours & schedule</li>
-                  <li>Specialist Mitra matching</li>
-                  <li>Palliative care coordination</li>
-                  <li>Family counselling support</li>
-                </ul>
-              </div>
-              <button onClick={openForm}>Contact Us</button>
-            </div>
-          </section>
-
-          <section className="quote-section">
-            <form className="quote-card" onSubmit={handleSubmit}>
-              <h2>Get a personalised quote</h2>
-              <p>Tell us which plan interests you and we'll call back within 2 hours with pricing and availability for your area.</p>
-              <div className="quote-grid">
-                <label>
-                  Your name
-                  <input name="name" placeholder="Rahul Gupta" value={formData.name} onChange={handleInputChange} />
-                </label>
-                <label>
-                  Phone
-                  <input name="phone" placeholder="+91 98765 43210" value={formData.phone} onChange={handleInputChange} />
-                </label>
-              </div>
-              <div className="plan-pills" aria-label="Interested plan">
-                <button type="button">Saathi Starter</button>
-                <button type="button">Saathi Plus</button>
-                <button type="button">Saathi Premium</button>
-                <button type="button">Bespoke</button>
-              </div>
-              <label>
-                Your area
-                <input name="pinCode" placeholder="e.g. Gurugram Sector 55" value={formData.pinCode} onChange={handleInputChange} />
-              </label>
-              <button type="submit" disabled={isSubmitting || showSuccess}>
-                {isSubmitting ? "Requesting..." : "Request a Callback"}
-              </button>
-            </form>
-          </section>
-
-          <section className="faq plans-faq">
-            <div className="section-heading">
-              <span>FAQ</span>
-              <h2>Questions we hear often</h2>
-              <p>Can't find what you're looking for? Write to us at <a href="mailto:hello@maihoonna.in">hello@maihoonna.in</a></p>
-            </div>
-
-            <div className="faq-list">
-              {faqs.map((question) => (
-                <details key={question}>
-                  <summary>{question}</summary>
-                  <p>Our team will help you understand the right care flow, plan, and support model for your family.</p>
-                </details>
-              ))}
-            </div>
-          </section>
-        </main>
+        <PlansPage
+          livePackages={livePackages}
+          onSelectPackage={handleSelectPackageForBuy}
+          openForm={openForm}
+          formData={formData}
+          handleInputChange={handleInputChange}
+          handleSubmit={handleSubmit}
+          isSubmitting={isSubmitting}
+          showSuccess={showSuccess}
+        />
       )}
 
       <footer className="site-footer" role="contentinfo">
