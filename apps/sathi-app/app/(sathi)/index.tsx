@@ -64,6 +64,7 @@ export default function SathiDashboard() {
   // Modal states
   const [showRescheduleModal, setShowRescheduleModal] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [showAllUpcomingVisits, setShowAllUpcomingVisits] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<any | null>(null);
   const [successMessage, setSuccessMessage] = useState<{title: string, message: string} | null>(null);
 
@@ -869,14 +870,28 @@ export default function SathiDashboard() {
             <Ionicons name="calendar-outline" size={scale(20)} color="#FF6F00" style={{ marginRight: scale(8) }} />
             <Text style={styles.sectionTitle}>Upcoming Visits</Text>
           </View>
+          {dashboard?.upcomingVisits?.length > 1 && (
+            <TouchableOpacity 
+              style={{ paddingHorizontal: scale(12), paddingVertical: scale(4), borderRadius: scale(20), borderWidth: 1, borderColor: '#FF6F00' }}
+              onPress={() => setShowAllUpcomingVisits(!showAllUpcomingVisits)}
+            >
+              <Text style={{ color: '#FF6F00', fontSize: scale(12), fontFamily: 'Poppins-SemiBold' }}>
+                {showAllUpcomingVisits ? 'View Less' : 'View All'}
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {dashboard?.upcomingVisits && dashboard.upcomingVisits.length > 0 ? (
-          dashboard.upcomingVisits.map((item: any) => {
+          [...dashboard.upcomingVisits].sort((a: any, b: any) => {
+            const timeA = a.dateTime ? new Date(a.dateTime).getTime() : 0;
+            const timeB = b.dateTime ? new Date(b.dateTime).getTime() : 0;
+            return Math.abs(timeA - currentTime.getTime()) - Math.abs(timeB - currentTime.getTime());
+          }).slice(0, showAllUpcomingVisits ? dashboard.upcomingVisits.length : 1).map((item: any) => {
             let formattedDate = '';
             let formattedTime = '';
             let countdownText = '';
-            let isWithinOneHour = true;
+            let isWithin30Mins = true;
 
             if (item.dateTime) {
               const d = new Date(item.dateTime);
@@ -884,10 +899,10 @@ export default function SathiDashboard() {
               formattedTime = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 
               const timeDiff = d.getTime() - currentTime.getTime();
-              const oneHour = 60 * 60 * 1000;
-              isWithinOneHour = timeDiff <= oneHour;
+              const thirtyMins = 30 * 60 * 1000;
+              isWithin30Mins = timeDiff <= thirtyMins;
               
-              if (!isWithinOneHour && timeDiff > 0) {
+              if (!isWithin30Mins && timeDiff > 0) {
                 const days = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
                 const hours = Math.floor((timeDiff / (1000 * 60 * 60)) % 24);
                 const mins = Math.floor((timeDiff / 1000 / 60) % 60);
@@ -940,7 +955,7 @@ export default function SathiDashboard() {
                       </Text>
                     </TouchableOpacity>
                   </View>
-                ) : !isWithinOneHour && countdownText ? (
+                ) : !isWithin30Mins && countdownText ? (
                   <View style={{ marginTop: scale(20), backgroundColor: '#F3F4F6', paddingVertical: scale(12), borderRadius: scale(20), flexDirection: 'row', justifyContent: 'center', alignItems: 'center' }}>
                     <Ionicons name="time-outline" size={18} color="#9CA3AF" style={{ marginRight: 6 }} />
                     <Text style={{ color: '#6B7280', fontFamily: 'Poppins-SemiBold', fontSize: scale(14) }}>{countdownText}</Text>

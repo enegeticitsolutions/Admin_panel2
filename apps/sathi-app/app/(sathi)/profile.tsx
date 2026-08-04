@@ -10,6 +10,7 @@ import {
   Image,
   Alert,
   Dimensions,
+  Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -32,6 +33,7 @@ export default function SathiProfile() {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [profile, setProfile] = useState<any>(null);
+  const [logoutModalVisible, setLogoutModalVisible] = useState(false);
 
   useEffect(() => {
     fetchProfile();
@@ -117,18 +119,14 @@ export default function SathiProfile() {
     }
   };
 
-  const handleLogout = async () => {
-    Alert.alert('Log out', 'Are you sure you want to log out?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Log out',
-        style: 'destructive',
-        onPress: async () => {
-          await logout();
-          router.replace('/(auth)');
-        },
-      },
-    ]);
+  const handleLogout = () => {
+    setLogoutModalVisible(true);
+  };
+
+  const confirmLogout = async () => {
+    setLogoutModalVisible(false);
+    await logout();
+    router.replace('/(auth)');
   };
 
   if (loading && !profile) {
@@ -265,6 +263,39 @@ export default function SathiProfile() {
           <Text style={styles.logoutText}>Log Out</Text>
         </TouchableOpacity>
       </ScrollView>
+
+      {/* Custom Logout Modal */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={logoutModalVisible}
+        onRequestClose={() => setLogoutModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Ionicons name="log-out-outline" size={28} color={DEEP_ORANGE} />
+              <Text style={styles.modalTitle}>Log out</Text>
+            </View>
+            <Text style={styles.modalMessage}>Are you sure you want to log out of your account?</Text>
+            
+            <View style={styles.modalActions}>
+              <TouchableOpacity 
+                style={styles.modalCancelBtn} 
+                onPress={() => setLogoutModalVisible(false)}
+              >
+                <Text style={styles.modalCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.modalLogoutBtn} 
+                onPress={confirmLogout}
+              >
+                <Text style={styles.modalLogoutBtnText}>Log out</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       <SathiBottomNav />
     </SafeAreaView>
@@ -483,6 +514,67 @@ const styles = StyleSheet.create({
     gap: scale(8),
   },
   logoutText: {
+    fontSize: scale(15),
+    fontWeight: '700',
+    color: '#EF4444',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    width: SCREEN_WIDTH * 0.85,
+    backgroundColor: '#FFFFFF',
+    borderRadius: scale(20),
+    padding: scale(24),
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: scale(12),
+    gap: scale(10),
+  },
+  modalTitle: {
+    fontSize: scale(20),
+    fontWeight: '700',
+    color: '#111827',
+  },
+  modalMessage: {
+    fontSize: scale(15),
+    color: '#4B5563',
+    lineHeight: scale(22),
+    marginBottom: scale(24),
+  },
+  modalActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: scale(12),
+  },
+  modalCancelBtn: {
+    paddingVertical: scale(10),
+    paddingHorizontal: scale(16),
+    borderRadius: scale(10),
+    backgroundColor: '#F3F4F6',
+  },
+  modalCancelText: {
+    fontSize: scale(15),
+    fontWeight: '600',
+    color: '#4B5563',
+  },
+  modalLogoutBtn: {
+    paddingVertical: scale(10),
+    paddingHorizontal: scale(20),
+    borderRadius: scale(10),
+    backgroundColor: '#FEF2F2',
+  },
+  modalLogoutBtnText: {
     fontSize: scale(15),
     fontWeight: '700',
     color: '#EF4444',
