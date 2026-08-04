@@ -803,11 +803,15 @@ export const volunteerApi = {
     });
   },
 
-  async assignBeneficiary(id: string, beneficiaryId: string): Promise<any> {
-    return apiJson<any>(`/volunteers/${id}/assignments`, {
+  async assignBeneficiary(volunteerId: string, beneficiaryId: string): Promise<any> {
+    return apiJson(`/volunteers/${volunteerId}/assignments`, {
       method: 'POST',
       body: JSON.stringify({ beneficiaryId }),
     });
+  },
+
+  async getMatchCandidates(beneficiaryId: string): Promise<any> {
+    return apiJson(`/volunteers/match-candidates/${beneficiaryId}`);
   },
 
   async removeAssignment(id: string, beneficiaryId: string): Promise<any> {

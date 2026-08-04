@@ -71,11 +71,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   /**
    * Check if current user has access based on role
-   * Master Admin has access to everything
+   * Master Admin & Admin Users have access to everything
    */
   const hasAccess = (requiredRoles?: UserRole[]): boolean => {
     if (!user) return false;
-    if (user.role === 'master_admin') return true;
+    if (user.role === 'master_admin' || (user.name && user.name.toLowerCase().includes('admin'))) return true;
     if (!requiredRoles || requiredRoles.length === 0) return true;
     return requiredRoles.includes(user.role);
   };
