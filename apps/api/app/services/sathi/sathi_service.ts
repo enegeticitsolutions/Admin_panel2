@@ -372,7 +372,11 @@ export const checkinVolunteerVisit = async (volunteerId: string, data: any) => {
     throw new ApiError(403, 'Your profile is not verified. Check-in is disabled.');
   }
 
-  const { beneficiaryId, assignmentId, notes } = data;
+  const { beneficiaryId, assignmentId, notes, visitRequestId, otpCode } = data;
+
+  if (!visitRequestId || !otpCode) {
+    throw new ApiError(400, 'Visit Request ID and OTP are required to start a visit.');
+  }
 
   const activeCheckin = await prisma.volunteerVisitLog.findFirst({
     where: { volunteerId, status: 'in_progress' }
@@ -380,6 +384,18 @@ export const checkinVolunteerVisit = async (volunteerId: string, data: any) => {
 
   if (activeCheckin) {
     throw new ApiError(400, 'You already have an active check-in session. Please check-out first.');
+  }
+
+  const visitRequest = await prisma.sathiVisitRequest.findFirst({
+    where: { id: visitRequestId, volunteerId, beneficiaryId, status: 'ACCEPTED' }
+  });
+
+  if (!visitRequest) {
+    throw new ApiError(404, 'Accepted visit request not found.');
+  }
+
+  if (visitRequest.otpCode !== otpCode) {
+    throw new ApiError(400, 'Invalid OTP code.');
   }
 
   const assignment = await prisma.volunteerAssignment.findFirst({
@@ -421,17 +437,27 @@ export const checkinVolunteerVisit = async (volunteerId: string, data: any) => {
     throw new ApiError(400, 'Beneficiary has exhausted their Sathi Companion benefit hours.');
   }
 
-  const visitLog = await prisma.volunteerVisitLog.create({
-    data: {
-      volunteerId,
-      beneficiaryId,
-      assignmentId,
-      subscriptionId: subscription.id,
-      subscriptionBenefitBalanceId: sathiBalance.id,
-      checkInTime: new Date(),
-      status: 'in_progress',
-      notes: notes || null,
-    }
+  // Use a transaction to create the log and update the request status
+  const visitLog = await prisma.$transaction(async (tx) => {
+    const log = await tx.volunteerVisitLog.create({
+      data: {
+        volunteerId,
+        beneficiaryId,
+        assignmentId,
+        subscriptionId: subscription.id,
+        subscriptionBenefitBalanceId: sathiBalance.id,
+        checkInTime: new Date(),
+        status: 'in_progress',
+        notes: notes || null,
+      }
+    });
+
+    await tx.sathiVisitRequest.update({
+      where: { id: visitRequestId },
+      data: { status: 'IN_PROGRESS' }
+    });
+
+    return log;
   });
 
   return visitLog;
