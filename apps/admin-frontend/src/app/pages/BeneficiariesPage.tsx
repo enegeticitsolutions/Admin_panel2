@@ -24,10 +24,9 @@ export default function BeneficiariesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Removed: staffPool, loadingStaff, assigning, pendingPrimary, pendingSecondary states
-
   const [search, setSearch] = useState('');
   const [searchBy, setSearchBy] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'active' | 'expired' | 'all'>('active');
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
@@ -36,7 +35,7 @@ export default function BeneficiariesPage() {
   const loadData = React.useCallback(async () => {
     setLoading(true); setError(null);
     try {
-      const resp = await beneficiaryApi.getAllPaginated({ search, searchBy, page, limit });
+      const resp = await beneficiaryApi.getAllPaginated({ search, searchBy, page, limit, statusFilter });
       setBeneficiaries(resp.data || []);
       setTotal(resp.total || 0);
       setTotalPages(resp.totalPages || 1);
@@ -45,20 +44,13 @@ export default function BeneficiariesPage() {
     } finally {
       setLoading(false);
     }
-  }, [search, searchBy, page]);
+  }, [search, searchBy, page, statusFilter]);
 
   useEffect(() => { loadData(); }, [loadData]);
 
   const openBeneficiary = (ben: any) => {
     navigate(`/beneficiaries/${ben.id}`);
   };
-
-  // Removed: handleVitalToggle, handleAssignStaff functions
-
-
-
-  // We no longer return early on loading to prevent unmounting the filter bar
-  // if (loading) { ... }
 
   if (error) {
     return (
@@ -72,14 +64,47 @@ export default function BeneficiariesPage() {
     );
   }
 
-  // Removed: effectivePrimary, effectiveSecondary, hasChanges variables
-
   return (
     <div>
       <PageHeader
         title="Beneficiaries"
         description="Manage beneficiary care profiles and clinical configurations"
       />
+
+      {/* Package Status Filter Bar */}
+      <div className="flex flex-wrap items-center gap-2 mb-4 bg-white p-2.5 rounded-2xl border border-[#E7DED6] shadow-xs">
+        <span className="text-xs font-black uppercase text-gray-400 px-3">Filter Package Status:</span>
+        <button
+          onClick={() => { setStatusFilter('active'); setPage(1); }}
+          className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${
+            statusFilter === 'active'
+              ? 'bg-green-600 text-white shadow-md ring-2 ring-green-400/20'
+              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+          }`}
+        >
+          Active Beneficiaries
+        </button>
+        <button
+          onClick={() => { setStatusFilter('expired'); setPage(1); }}
+          className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${
+            statusFilter === 'expired'
+              ? 'bg-red-600 text-white shadow-md ring-2 ring-red-400/20'
+              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+          }`}
+        >
+          Package Expired
+        </button>
+        <button
+          onClick={() => { setStatusFilter('all'); setPage(1); }}
+          className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${
+            statusFilter === 'all'
+              ? 'bg-gray-800 text-white shadow-md ring-2 ring-gray-400/20'
+              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+          }`}
+        >
+          All Beneficiaries
+        </button>
+      </div>
 
       <div className="mb-6">
         <DataFilter 
@@ -117,6 +142,21 @@ export default function BeneficiariesPage() {
                   avatar={<EntityAvatar name={ben.name} photoUrl={ben.photo} type="beneficiary" className="w-12 h-12" />}
                 >
                   <div className="space-y-3">
+                    <div className="flex items-center justify-between gap-2">
+                      {ben.packageStatus === 'active' ? (
+                        <span className="text-[10px] font-extrabold px-2.5 py-0.5 bg-green-100 text-green-800 border border-green-300 rounded-full">
+                          Active: {ben.activePackage || 'Package'}
+                        </span>
+                      ) : ben.packageStatus === 'expired' || ben.isPackageExpired ? (
+                        <span className="text-[10px] font-extrabold px-2.5 py-0.5 bg-red-100 text-red-800 border border-red-300 rounded-full">
+                          Package Expired
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-extrabold px-2.5 py-0.5 bg-gray-100 text-gray-600 border border-gray-200 rounded-full">
+                          No Active Package
+                        </span>
+                      )}
+                    </div>
                     <div className="flex flex-wrap gap-1">
                       {(ben.medicalHistory || []).slice(0, 3).map((condition: string) => (
                         <span key={condition} className="text-xs px-2 py-1 bg-[#FFF5EE] text-[#FF7A00] rounded-full">

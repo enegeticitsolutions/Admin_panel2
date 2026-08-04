@@ -103,6 +103,20 @@ async function handleUserDashboard(req: AuthRequest, res: Response) {
 
     const targetBeneficiaryId = req.query.beneficiaryId as string | undefined;
 
+    const now = new Date();
+
+    // ── Auto-deactivate subscriptions past their endDate ───────────────────────
+    await prisma.subscription.updateMany({
+      where: {
+        subscriberId: userId,
+        isActive: true,
+        endDate: { lte: now }
+      },
+      data: {
+        isActive: false
+      }
+    }).catch((e: any) => console.warn('[Dashboard] Auto-deactivate sub error:', e.message));
+
     // Core data
     const allActiveSubscriptions = await prisma.subscription.findMany({
       where: { subscriberId: userId, isActive: true },
@@ -114,6 +128,13 @@ async function handleUserDashboard(req: AuthRequest, res: Response) {
           }
         }
       }
+    });
+
+    // All subscriptions (including expired) to calculate beneficiary package health status
+    const allUserSubscriptions = await prisma.subscription.findMany({
+      where: { subscriberId: userId },
+      orderBy: { createdAt: 'desc' },
+      include: { package: true }
     });
 
     const beneficiaries = await prisma.beneficiary.findMany({
@@ -158,12 +179,30 @@ async function handleUserDashboard(req: AuthRequest, res: Response) {
       });
     }
 
-    // Map beneficiaries to normalize the default 8.0 score
-    const mappedBeneficiaries = beneficiaries.map((b: any) => ({
-      ...b,
-      // Only map default Prisma seed score (8.0) → null; real scores pass through as-is
-      emotionalScore: b.emotionalScore === 8.0 ? null : (b.emotionalScore ?? null)
-    }));
+    // Map beneficiaries with dynamic subscription health & expiration status
+    const mappedBeneficiaries = beneficiaries.map((b: any) => {
+      const benSubs = allUserSubscriptions.filter((s: any) => s.beneficiaryId === b.id);
+      const activeSub = benSubs.find((s: any) => s.isActive && new Date(s.endDate) > now);
+      const expiredSub = benSubs.find((s: any) => new Date(s.endDate) <= now || !s.isActive);
+
+      let packageStatus: 'active' | 'expired' | 'pending' | 'none' = 'none';
+      if (b.verificationStatus === 'pending') {
+        packageStatus = 'pending';
+      } else if (activeSub) {
+        packageStatus = 'active';
+      } else if (expiredSub || benSubs.length > 0) {
+        packageStatus = 'expired';
+      }
+
+      return {
+        ...b,
+        packageStatus,
+        isExpired: packageStatus === 'expired',
+        subscriptionEndDate: activeSub?.endDate || expiredSub?.endDate || null,
+        // Only map default Prisma seed score (8.0) → null; real scores pass through as-is
+        emotionalScore: b.emotionalScore === 8.0 ? null : (b.emotionalScore ?? null)
+      };
+    });
 
     // Average Happiness (Scoped)
     const scopedBeneficiaries = mappedBeneficiaries.filter((b: any) => benIds.includes(b.id));

@@ -515,7 +515,7 @@ export const beneficiaryApi = {
       return [...mockBeneficiaries];
     }
   },
-  async getAllPaginated(params: { search: string; searchBy?: string; page: number; limit: number; sortBy?: string; filterBy?: string }): Promise<any> {
+  async getAllPaginated(params: { search: string; searchBy?: string; page: number; limit: number; sortBy?: string; filterBy?: string; statusFilter?: string }): Promise<any> {
     const queryParams: any = {
       search: params.search,
       searchBy: params.searchBy || '',
@@ -524,6 +524,7 @@ export const beneficiaryApi = {
     };
     if (params.sortBy) queryParams.sortBy = params.sortBy;
     if (params.filterBy) queryParams.filterBy = params.filterBy;
+    if (params.statusFilter) queryParams.statusFilter = params.statusFilter;
     
     const query = new URLSearchParams(queryParams).toString();
     const res = await apiJson<any>(`/beneficiaries?${query}`);
