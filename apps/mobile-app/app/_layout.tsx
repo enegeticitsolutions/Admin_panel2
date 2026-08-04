@@ -145,6 +145,7 @@ function RootNavigator() {
     };
   }, [isLoggedIn, role]);
 
+  console.log('RootNavigator Render:', { isLoading, isLoggedIn, role });
   // While we're checking AsyncStorage, show a native splash-compatible loader
   if (isLoading) {
     return (
@@ -200,11 +201,13 @@ export default function RootLayout() {
 
   // Hide splash screen once fonts have loaded
   useEffect(() => {
+    console.log('Fonts status:', { fontsLoaded, error });
     if (fontsLoaded || error) {
       SplashScreen.hideAsync();
     }
   }, [fontsLoaded, error]);
 
+  console.log('RootLayout Render:', { fontsLoaded, error });
   if (!fontsLoaded && !error) return null;
 
   return (
