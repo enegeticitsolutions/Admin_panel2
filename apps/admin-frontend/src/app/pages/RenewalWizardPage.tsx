@@ -12,7 +12,8 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
-import { subscriptionApi, packageApi, staffOnboardingApi, vitalApi, hobbyApi } from '../../services/api';
+import { subscriptionApi, packageApi, staffOnboardingApi, vitalApi, hobbyApi, paymentApi } from '../../services/api';
+import { PaymentMethodSelector } from '../components/payment/PaymentMethodSelector';
 import { toast } from 'sonner';
 import {
   RefreshCw, ArrowLeft, ArrowRight, Check, Phone, User, Package,
@@ -147,6 +148,9 @@ export default function RenewalWizardPage() {
   const [paymentMethod, setPaymentMethod] = useState('Cash');
   const [transactionId, setTransactionId] = useState('');
   const [paymentNote, setPaymentNote] = useState('');
+  const [paymentMode, setPaymentMode] = useState<'offline' | 'online_link'>('offline');
+  const [paymentLinkDetails, setPaymentLinkDetails] = useState<any>(null);
+  const [generatingLink, setGeneratingLink] = useState(false);
 
   // ── Add Medicine Dialog State
   const [isMedDialogOpen, setIsMedDialogOpen] = useState(false);
@@ -240,6 +244,7 @@ export default function RenewalWizardPage() {
 
         // Subscriber
         const sub = rd.subscriber || {};
+        snap.subscriberId = sub.id || rd.subscription?.subscriberId || '';
         snap.subscriberPhone = sub.phone || '';
         snap.subscriberName = sub.name || '';
         snap.subscriberEmail = sub.email || '';
@@ -258,6 +263,7 @@ export default function RenewalWizardPage() {
 
         // Beneficiary
         const ben = rd.beneficiary || {};
+        snap.beneficiaryId = ben.id || rd.subscription?.beneficiaryId || '';
         snap.beneficiaryName = ben.name || '';
         snap.beneficiaryPhone = ben.phone || '';
         snap.beneficiaryDob = ben.dateOfBirth ? ben.dateOfBirth.split('T')[0] : '';
@@ -289,7 +295,9 @@ export default function RenewalWizardPage() {
         setPrimaryPhysicianPhone(snap.primaryPhysicianPhone);
 
         // Medical
-        const existingMedConds = rd.medicalConditions?.map((m: any) => m.condition || m) || [];
+        const existingMedConds = rd.medicalConditions?.map((m: any) => 
+          typeof m === 'string' ? m : (m.name || m.condition?.name || (typeof m.condition === 'string' ? m.condition : ''))
+        ).filter(Boolean) || [];
         snap.medicalConditions = JSON.stringify(existingMedConds);
         setMedicalConditions(existingMedConds);
 
@@ -368,7 +376,12 @@ export default function RenewalWizardPage() {
             if (data.beneficiaryCity !== undefined) setBeneficiaryCity(data.beneficiaryCity);
             if (data.beneficiaryState !== undefined) setBeneficiaryState(data.beneficiaryState);
             if (data.relationship !== undefined) setRelationship(data.relationship);
-            if (data.medicalConditions !== undefined) setMedicalConditions(data.medicalConditions);
+            if (data.medicalConditions !== undefined) {
+              const sanitized = Array.isArray(data.medicalConditions)
+                ? data.medicalConditions.map((c: any) => typeof c === 'string' ? c : (c?.name || c?.condition?.name || '')).filter(Boolean)
+                : [];
+              setMedicalConditions(sanitized);
+            }
             if (data.medications !== undefined) setMedications(data.medications);
             if (data.vitalsToTrack !== undefined) setVitalsToTrack(data.vitalsToTrack);
             if (data.primaryPhysicianName !== undefined) setPrimaryPhysicianName(data.primaryPhysicianName);
@@ -983,26 +996,31 @@ export default function RenewalWizardPage() {
                   {medicalConditions.length === 0 && (
                     <p className="text-xs text-muted-foreground italic">No conditions added</p>
                   )}
-                  {medicalConditions.map((condition) => (
-                    <Badge
-                      key={condition}
-                      variant="secondary"
-                      className="bg-orange-50 text-orange-700 hover:bg-orange-100 border-none py-1.5 px-3 flex items-center gap-2 rounded-lg"
-                    >
-                      {condition}
-                      <span
-                        role="button"
-                        tabIndex={0}
-                        className="cursor-pointer hover:text-orange-900 p-0.5 inline-flex items-center justify-center rounded-full hover:bg-orange-200/50"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setMedicalConditions(medicalConditions.filter(c => c !== condition));
-                        }}
+                  {medicalConditions.map((conditionItem: any, idx: number) => {
+                    const condText = typeof conditionItem === 'string'
+                      ? conditionItem
+                      : (conditionItem?.name || conditionItem?.condition?.name || 'Condition');
+                    return (
+                      <Badge
+                        key={`${condText}-${idx}`}
+                        variant="secondary"
+                        className="bg-orange-50 text-orange-700 hover:bg-orange-100 border-none py-1.5 px-3 flex items-center gap-2 rounded-lg"
                       >
-                        <X className="w-3 h-3" />
-                      </span>
-                    </Badge>
-                  ))}
+                        {condText}
+                        <span
+                          role="button"
+                          tabIndex={0}
+                          className="cursor-pointer hover:text-orange-900 p-0.5 inline-flex items-center justify-center rounded-full hover:bg-orange-200/50"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setMedicalConditions(medicalConditions.filter(c => c !== conditionItem));
+                          }}
+                        >
+                          <X className="w-3 h-3" />
+                        </span>
+                      </Badge>
+                    );
+                  })}
                 </div>
 
                 <div className="space-y-4">
@@ -1496,11 +1514,11 @@ export default function RenewalWizardPage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2"><CreditCard className="w-5 h-5 text-primary" /> Payment Details</CardTitle>
-              <CardDescription>Record the offline payment for this renewal</CardDescription>
+              <CardDescription>Collect offline payment or generate an online Razorpay payment link for customer</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {selectedPackage && (
-                <div className="bg-secondary/60 rounded-xl p-4 flex justify-between items-center">
+                <div className="bg-secondary/60 rounded-xl p-4 flex justify-between items-center mb-2">
                   <div>
                     <p className="font-semibold">{selectedPackage.name}</p>
                     <p className="text-xs text-muted-foreground capitalize">{duration.replace('_', ' ')} plan · starts {computeStartDate()}</p>
@@ -1512,47 +1530,51 @@ export default function RenewalWizardPage() {
                 </div>
               )}
 
-              <div className="space-y-1">
-                <Label htmlFor="amount">Amount Collected (₹) *</Label>
-                <Input
-                  id="amount"
-                  type="number"
-                  value={amountPaid}
-                  onChange={e => setAmountPaid(e.target.value)}
-                  placeholder="e.g. 4999"
-                  className="text-lg font-bold"
-                />
-                {selectedPackage && parseFloat(amountPaid) < selectedPackage.basePrice && amountPaid !== '' && (
-                  <p className="text-xs text-amber-600 flex items-center gap-1">
-                    <AlertCircle className="w-3 h-3" /> Amount is less than the package price — a discount of ₹{(selectedPackage.basePrice - parseFloat(amountPaid)).toFixed(0)} will be recorded.
-                  </p>
-                )}
-              </div>
-
-              <div className="space-y-1">
-                <Label>Payment Method</Label>
-                <div className="flex flex-wrap gap-2">
-                  {PAYMENT_METHODS.map(m => (
-                    <button
-                      key={m}
-                      onClick={() => setPaymentMethod(m)}
-                      className={`px-3 py-1.5 rounded-lg text-sm font-medium border-2 transition-all ${paymentMethod === m ? 'border-primary bg-primary text-white' : 'border-border hover:border-primary/40'}`}
-                    >
-                      {m}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <Label htmlFor="txn">Transaction ID (optional)</Label>
-                <Input id="txn" value={transactionId} onChange={e => setTransactionId(e.target.value)} placeholder="e.g. UPI ref: 1234567890" />
-              </div>
-
-              <div className="space-y-1">
-                <Label htmlFor="pay-note">Notes (optional)</Label>
-                <Input id="pay-note" value={paymentNote} onChange={e => setPaymentNote(e.target.value)} placeholder="e.g. Cash handed to coordinator" />
-              </div>
+              <PaymentMethodSelector
+                amount={selectedPackage?.basePrice || 4999}
+                subscriberName={subscriberName || 'Subscriber'}
+                subscriberPhone={subscriberPhone || ''}
+                subscriberEmail={subscriberEmail || ''}
+                packageName={selectedPackage?.name || 'Care Package'}
+                paymentMode={paymentMode}
+                onPaymentModeChange={setPaymentMode}
+                offlineMethod={paymentMethod}
+                onOfflineMethodChange={setPaymentMethod}
+                amountPaid={amountPaid}
+                onAmountPaidChange={setAmountPaid}
+                transactionId={transactionId}
+                onTransactionIdChange={setTransactionId}
+                paymentNote={paymentNote}
+                onPaymentNoteChange={setPaymentNote}
+                paymentLinkDetails={paymentLinkDetails}
+                generatingLink={generatingLink}
+                onGenerateLink={async () => {
+                  setGeneratingLink(true);
+                  try {
+                    const res = await paymentApi.generateLink({
+                      subscriberId: original.subscriberId || '',
+                      beneficiaryId: original.beneficiaryId || '',
+                      subscriptionId: original.subscriptionId || subscriptionId || '',
+                      packageType: selectedPackage?.type || 'silver',
+                      packageName: selectedPackage?.name || 'Care Package',
+                      amount: parseFloat(amountPaid) || selectedPackage?.basePrice || 4999,
+                      subscriberPhone,
+                      subscriberEmail,
+                      subscriberName,
+                      duration,
+                    });
+                    const data = res?.data || res;
+                    if (data && (data.shortUrl || data.orderId)) {
+                      setPaymentLinkDetails(data);
+                      toast.success('Payment Link generated successfully!');
+                    }
+                  } catch (err: any) {
+                    toast.error(err.message || 'Failed to generate link');
+                  } finally {
+                    setGeneratingLink(false);
+                  }
+                }}
+              />
             </CardContent>
           </Card>
         )}

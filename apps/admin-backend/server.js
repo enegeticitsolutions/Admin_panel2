@@ -62,7 +62,12 @@ app.use(
 );
 
 const payloadLimit = process.env.JSON_PAYLOAD_LIMIT || '2mb';
-app.use(express.json({ limit: payloadLimit }));
+app.use(express.json({
+  limit: payloadLimit,
+  verify: (req, res, buf) => {
+    req.rawBody = buf;
+  },
+}));
 app.use(express.urlencoded({ extended: true, limit: payloadLimit }));
 
 // ─── Routes ───────────────────────────────────────────────────────────────────
@@ -102,6 +107,7 @@ app.use('/api/location', staffOnly, require('./routes/location'));
 app.use('/api/regions', adminsOnly, require('./routes/regions'));
 app.use('/api/config', mastersOnly, require('./routes/config'));
 app.use('/api/saathi-guide', adminsOnly, require('./routes/saathi-guide'));
+app.use('/api/payments', require('./routes/payments'));
 
 // ─── Health Check ─────────────────────────────────────────────────────────────
 app.get('/api/ping', (req, res) => res.json({ message: 'pong' }));
