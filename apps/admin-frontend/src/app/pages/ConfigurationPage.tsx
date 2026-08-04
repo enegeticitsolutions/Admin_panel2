@@ -60,13 +60,13 @@ const ConfigurationPage = () => {
     }
 
     // Basic numerical validation depending on keys
-    if (['max_cc_per_team', 'max_beneficiary_per_team', 'max_primary_cc', 'max_secondary_cc', 'max_teams_per_zone', 'sathi_reapply_cooldown_days'].includes(key)) {
+    if (['max_cc_per_team', 'max_beneficiary_per_team', 'max_primary_cc', 'max_secondary_cc', 'max_teams_per_zone', 'sathi_reapply_cooldown_days', 'max_beneficiaries_per_volunteer', 'max_volunteers_per_beneficiary'].includes(key)) {
       const num = parseInt(value, 10);
       if (isNaN(num) || num <= 0) {
         alert('Please enter a valid positive integer');
         return;
       }
-    } else if (['zone_radius_km', 'region_radius_km'].includes(key)) {
+    } else if (['zone_radius_km', 'region_radius_km', 'max_volunteer_search_radius_km'].includes(key)) {
       const num = parseFloat(value);
       if (isNaN(num) || num <= 0) {
         alert('Please enter a valid positive decimal number');

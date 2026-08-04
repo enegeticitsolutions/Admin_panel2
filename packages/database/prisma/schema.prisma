@@ -296,6 +296,7 @@ model Beneficiary {
   @@index([teamId])
   @@index([primaryCcId])
   @@index([secondaryCcId])
+  @@index([latitude, longitude])
   @@map("beneficiaries")
 }
 
@@ -1844,7 +1845,10 @@ model Volunteer {
   landmark           String?
   city               String?
   state              String?
+  country            String?             @default("India")
   pincode            String?
+  zoneId             String?
+  regionId           String?
   latitude           Float?
   longitude          Float?
   interests          String[]            @default([])
@@ -1864,6 +1868,7 @@ model Volunteer {
   sathiVisitRequests SathiVisitRequest[]
   rewardCoupons      VolunteerRewardCoupon[]
 
+  @@index([latitude, longitude])
   @@map("volunteers")
 }
 

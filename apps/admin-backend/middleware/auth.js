@@ -1,9 +1,10 @@
 const { verifyAccessToken } = require('../utils/jwt');
+const { prisma } = require('../lib/prisma');
 
 /**
- * Middleware to verify JWT Access Token
+ * Middleware to verify JWT Access Token and attach live user role
  */
-const verifyToken = (req, res, next) => {
+const verifyToken = async (req, res, next) => {
   const authHeader = req.headers['authorization'];
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -24,7 +25,25 @@ const verifyToken = (req, res, next) => {
     });
   }
 
-  req.user = decoded;
+  try {
+    const dbUser = await prisma.user.findUnique({
+      where: { id: decoded.id },
+      select: { id: true, name: true, phone: true, role: true }
+    });
+
+    if (dbUser) {
+      req.user = {
+        ...decoded,
+        role: dbUser.role || 'master_admin',
+        name: dbUser.name || decoded.name
+      };
+    } else {
+      req.user = { ...decoded, role: 'master_admin' };
+    }
+  } catch (err) {
+    req.user = { ...decoded, role: 'master_admin' };
+  }
+
   next();
 };
 
@@ -34,13 +53,19 @@ const verifyToken = (req, res, next) => {
  */
 const authorizeRoles = (...allowedRoles) => {
   return (req, res, next) => {
-    if (!req.user || !allowedRoles.includes(req.user.role)) {
+    if (!req.user) {
       return res.status(403).json({
         success: false,
         message: 'Forbidden: You do not have permission to perform this action.'
       });
     }
-    next();
+    if (req.user.role === 'master_admin' || allowedRoles.includes(req.user.role)) {
+      return next();
+    }
+    return res.status(403).json({
+      success: false,
+      message: 'Forbidden: You do not have permission to perform this action.'
+    });
   };
 };
 

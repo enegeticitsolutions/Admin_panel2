@@ -232,3 +232,23 @@
   - [x] Added "Include in Comparison Table" toggle to Step 4 of Product Factory Wizard in Admin panel (`SubscriptionsPage.tsx`).
   - [x] Removed all hardcoded static fallback pricing/comparison data so website pricing and comparison are live-driven.
   - [x] Fixed coupon validation payload in `CheckoutPage.jsx` to pass `{ code, packageId, amount }`.
+
+- [x] Smart Volunteer–Beneficiary Matching Engine & Dynamic Dual Capacity Caps (2026-08-04)
+  - [x] Seeded `max_beneficiaries_per_volunteer` (default 3) and `max_volunteers_per_beneficiary` (default 2) in `system_configs` DB table.
+  - [x] Created `GET /api/volunteers/match-candidates/:beneficiaryId` endpoint in `admin-backend/routes/volunteers.js` with weighted scoring (Gender 30, Hobbies 30, Proximity/Location 25, Capacity Load 15 = 100 max).
+  - [x] Enforced backend dual capacity limits in `POST /api/volunteers/:id/assignments` — returns HTTP 400 if volunteer or beneficiary capacity is reached.
+  - [x] Updated Admin Frontend `VolunteersPage.tsx` with live capacity badges (`X/3 Assigned`, `Full (3/3)`), disabling action button when at capacity.
+  - [x] Revamped "Assign Senior" Modal with ranked Smart Match Compatibility scores (🟢 80%+, 🟡 50-79%, 🟠 <50%) and shared hobbies breakdown badges.
+  - [x] Integrated `max_beneficiaries_per_volunteer` and `max_volunteers_per_beneficiary` integer validation into `ConfigurationPage.tsx` System Settings page.
+
+- [x] Rapido-Style Spatial Geo-Bounding Box DB Indexing (2026-08-04)
+  - [x] Added `@@index([latitude, longitude])` to `Volunteer` and `Beneficiary` models in Prisma schema & executed PostgreSQL index migration.
+  - [x] Seeded `max_volunteer_search_radius_km` (default 15 km) into `system_configs` DB table.
+  - [x] Implemented spatial bounding box query ($\Delta\text{lat} = R / 111.0, \Delta\text{lng} = R / (111.0 \times \cos(\text{lat})) $) in `GET /api/volunteers/match-candidates/:beneficiaryId`.
+  - [x] Zero pincode string matching dependency: PostgreSQL uses $O(\log N)$ spatial indexes to filter nearby volunteers across Pan-India without pulling all rows.
+  - [x] Integrated dynamic `max_volunteer_search_radius_km` decimal validation in `ConfigurationPage.tsx` System Settings.
+
+- [x] Multi-Select Location Filter Bar (Country, State, City, Region, Zone) (2026-08-04)
+  - [x] Added `country`, `zoneId`, `regionId` to Prisma `Volunteer` schema and synced PostgreSQL tables.
+  - [x] Converted Location Filter Bar into a **Compact 1-Line MultiSelectDropdown Toolbar** (`MultiSelectDropdown` popover component with search/checkboxes), reducing vertical space on `VolunteersPage.tsx`.
+  - [x] Implemented **Spatial Point-in-Radius Zone & Region Matching**: When an admin selects a Zone or Region, volunteers are matched using Haversine distance from their GPS coordinates (`latitude`, `longitude`) to the Zone/Region center point within `radiusKm` (with city/pincode fallback). No manual `zoneId` or `regionId` entry required during mobile Sathi registration!

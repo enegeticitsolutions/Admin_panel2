@@ -37,4 +37,35 @@ router.put('/:key', async (req, res) => {
   }
 });
 
+// ── POST /api/config ─────────────────────────────────────────────────────────
+// Upsert: creates if not exists, updates if it does
+router.post('/', async (req, res) => {
+  try {
+    const { key, value, description, group } = req.body;
+    if (!key || value === undefined) {
+      return res.status(400).json({ success: false, message: 'key and value are required' });
+    }
+
+    const upserted = await prisma.systemConfig.upsert({
+      where: { key },
+      update: {
+        value: String(value),
+        ...(description !== undefined ? { description } : {}),
+        ...(group !== undefined ? { group } : {}),
+      },
+      create: {
+        key,
+        value: String(value),
+        description: description || null,
+        group: group || null,
+      },
+    });
+
+    res.status(201).json({ success: true, data: upserted });
+  } catch (err) {
+    console.error('POST /api/config error:', err);
+    res.status(500).json({ success: false, message: 'Failed to upsert configuration' });
+  }
+});
+
 module.exports = router;
