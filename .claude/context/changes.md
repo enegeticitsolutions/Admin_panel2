@@ -1,3 +1,16 @@
+## Session: Merged Sathi Reviews Optimization & iOS Build Configurations (2026-08-05)
+
+### Merged Branch 1: `feature/sathi-reviews-and-optimizations` (`5374ff1`)
+- **Sathi Volunteer Reviews System**: Comprehensive Sathi volunteer rating, review, and feedback system.
+- **API Polling & Performance**: Resolved API polling limits across `apps/api` (`config.ts`, `sathi.ts`) and Sathi app dashboard (`apps/sathi-app/app/(sathi)/index.tsx`).
+- **Emergency Radar UI**: Resolved UI layout and map modal rendering on `EmergencyRadarPage.tsx`.
+
+### Merged Branch 2: `fix-ios-build` (`01bdc5c`)
+- **iOS Simulator Build Fix**: Configured Xcode project settings (`project.pbxproj`) and CocoaPods dependencies lockfile (`Podfile.lock`) in `apps/sathi-app/ios/`.
+- **EAS Profile Configuration**: Configured `eas.json` in `apps/sathi-app/eas.json` for Expo Application Services (EAS) iOS builds.
+
+---
+
 ## Session: Enterprise Modular Payment Engine, Idempotent Webhooks & Atomic Transactions (2026-08-05)
 
 ### Modular Backend Payment Architecture (`apps/admin-backend/modules/payments/`)
