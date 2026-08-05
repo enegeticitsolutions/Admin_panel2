@@ -11,6 +11,7 @@ import googlePlayImg from "./assets/googleplay.png";
 import appStoreImg from "./assets/appstore.png";
 import logo from "./assets/logo.svg";
 import healthcareIcon from "./assets/healthcare1.png";
+import piccImg from "./assets/picc.png";
 import SaathiPage from "./pages/SaathiPage";
 import AuthPage from "./pages/AuthPage";
 import AccountPage from "./pages/AccountPage";
@@ -104,55 +105,55 @@ const impactStats = [
 const processSteps = [
   {
     title: "Tell us about your family",
-    text: "Share your loved one's routine, health conditions, and the kind of support they need.",
+    text: "Share your loved one's routine, health conditions, and the kind of support they need. Takes less than 5 minutes.",
   },
   {
     title: "Choose a plan",
-    text: "Pick Senior, Pro, or Premium. Adjust any time as your needs evolve.",
+    text: "Pick Starter, Plus, or Premium. Adjust any time as your needs evolve.",
   },
   {
     title: "Meet your Care Mitra",
-    text: "We match a trained Care Mitra by location, language, gender preference, and specific needs.",
+    text: "We match a BGV-verified Care Mitra by location, language, gender preference, and specific needs.",
   },
   {
     title: "Visits begin on schedule",
-    text: "Care happens at home with vitals, mood, and medication adherence logged each visit.",
+    text: "Geo-fenced check-ins confirm every visit. Vitals, mood, and medication adherence logged each time.",
   },
   {
     title: "Stay connected from anywhere",
-    text: "Family CareOS shares visit history, alerts, trends, and a live Happiness Score.",
+    text: "Family Connect shows visit history, vitals trends, and a live Happiness Score – from any time zone.",
   },
 ];
 
 const services = [
   {
-    icon: missionIcon,
+    emoji: "🤝",
     title: "Care Mitra Visits",
-    text: "Trained, verified companions who visit on schedule and help with daily wellbeing.",
+    text: "Trained, verified companions who visit on schedule and log everything in real time – vitals, mood, medication, and daily tasks.",
   },
   {
-    icon: empathyIcon,
-    title: "Health Network",
-    text: "Community volunteers for companionship between Care Mitra visits.",
+    emoji: "🌸",
+    title: "Saathi Network",
+    text: "Community volunteers for companionship between Care Mitra visits. No senior should feel alone between scheduled visits.",
   },
   {
-    icon: visionIcon,
+    emoji: "🏆",
     title: "Legacy Circles",
-    text: "A platform for seniors to share decades of expertise and rediscover purpose.",
+    text: "A platform for seniors to share decades of expertise and rediscover purpose. Their wisdom deserves an audience.",
   },
   {
-    icon: connectionIcon,
+    emoji: "🎨",
     title: "Hobby Circles",
-    text: "Peer connections built around shared interests like chess, gardening, music, cooking, or fitness.",
+    text: "Peer connections built around shared interests – chess, gardening, music, cooking. Joy comes from belonging.",
   },
 ];
 
 const visitFeatures = [
-  "Real-time family visibility",
-  "Multilingual alerts",
+  "Real-time visit logs",
+  "WhatsApp alerts",
   "Vitals trends dashboard",
-  "Care happiness score",
-  "App and email access",
+  "Live Happiness Score",
+  "Any time zone access",
 ];
 
 const faqs = [
@@ -166,10 +167,36 @@ const faqs = [
   "Can I change or cancel my plan?",
 ];
 
-
+const testimonials = [
+  {
+    name: "Anita Kapoor",
+    role: "Daughter · caring for her 82-year-old mother",
+    location: "New Delhi",
+    tag: "Found a Care Mitra in 2 days",
+    quote: "MaiHoonNa found us a wonderful Care Mitra in just 2 days. She is now like family to my mother. What gave us the most peace of mind was the 24/7 support line — knowing someone is always there, even at 2 AM.",
+    image: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=600&h=600",
+  },
+  {
+    name: "Rajesh Menon",
+    role: "Son · caring for his 78-year-old father",
+    location: "Bengaluru",
+    tag: "Matched with Hindi & Malayalam speaker",
+    quote: "Finding a Care Mitra who could speak both Hindi and Malayalam was a blessing. The weekly vitals reports give me real peace of mind since I reside in Chicago. The live Happiness Score is genuine transparency.",
+    image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=600&h=600",
+  },
+  {
+    name: "Sunita Sharma",
+    role: "Daughter · caring for her 85-year-old father",
+    location: "Mumbai",
+    tag: "Daily walks & medicine tracking",
+    quote: "My father looks forward to his Saathi visits every Tuesday and Friday. From medicine tracking to daily walks, the Care Mitra manages everything professionally. It feels like having a second family member in India.",
+    image: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=600&h=600",
+  }
+];
 
 const App = () => {
   const [activePage, setActivePage] = useState("home");
+  const [activeTestimonial, setActiveTestimonial] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -202,6 +229,10 @@ const App = () => {
   // Live Subscription Packages from API
   const [livePackages, setLivePackages] = useState([]);
 
+  // Services page active tabs
+  const [activeServiceTab, setActiveServiceTab] = useState(0);
+  const [activeTierTab, setActiveTierTab] = useState(0);
+
   // Billing cycle toggle: '1' | '3' | '6' | '12'
   const [selectedCycle, setSelectedCycle] = useState('1');
 
@@ -221,7 +252,7 @@ const App = () => {
     try {
       localStorage.setItem("mhn_user", JSON.stringify(userData));
       localStorage.setItem("mhn_token", tokenData);
-    } catch (e) {}
+    } catch (e) { }
 
     // If user attempted to buy a package before logging in, proceed to full-page checkout
     if (pendingPackageForCheckout) {
@@ -239,7 +270,7 @@ const App = () => {
     try {
       localStorage.removeItem("mhn_user");
       localStorage.removeItem("mhn_token");
-    } catch (e) {}
+    } catch (e) { }
     setActivePage("home");
   };
 
@@ -351,7 +382,7 @@ const App = () => {
         </nav>
         <div className="topbar__actions" style={{ display: "flex", gap: "10px", alignItems: "center" }}>
           <button className={`view-plan-button ${activePage === "plans" ? "active" : ""}`} onClick={() => setActivePage("plans")}>View Plans</button>
-          
+
           {user ? (
             <button
               onClick={() => setActivePage("account")}
@@ -398,7 +429,7 @@ const App = () => {
 
       {activePage === "home" ? (
         <main>
-          <section className="hero" id="home" style={{ backgroundImage: `url(${heroBg})` }}>
+          <section className="hero" id="home" style={{ "--hero-bg": `url(${heroBg})` }}>
             <div className="hero__inner">
               <div className="hero__copy">
                 <div className="eyebrow">
@@ -427,9 +458,27 @@ const App = () => {
                 <p className="hero-location">Launching in Gurugram Sectors 54-57 - Limited early access</p>
 
                 <div className="hero-stats" aria-label="MaiHoonNa benefits">
-                  <span><strong>100%</strong> BGV-Verified Mitras</span>
-                  <span><strong>24/7</strong> Emergency Support</span>
-                  <span><strong>NCR</strong> Pilot Underway</span>
+                  <span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FE6700" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                      <circle cx="12" cy="12" r="10" />
+                      <polyline points="9 11 12 14 17 9" />
+                    </svg>
+                    <strong>100%</strong> BGV-Verified Mitras
+                  </span>
+                  <span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FE6700" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                      <circle cx="12" cy="12" r="10" />
+                      <polyline points="12 6 12 12 16 14" />
+                    </svg>
+                    <strong>24/7</strong> Emergency Support
+                  </span>
+                  <span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FE6700" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                      <circle cx="12" cy="10" r="3" />
+                    </svg>
+                    <strong>NCR</strong> Pilot Underway
+                  </span>
                 </div>
               </div>
 
@@ -462,10 +511,34 @@ const App = () => {
                 </div>
 
                 <ul className="mini-list">
-                  <li>Background-verified Care Mitras</li>
-                  <li>Geo-fenced visit tracking</li>
-                  <li>Real-time Family Connect app</li>
-                  <li>Registered company, Gurugram</li>
+                  <li>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#FE6700" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                      <circle cx="12" cy="12" r="10" />
+                      <polyline points="9 11 12 14 17 9" />
+                    </svg>
+                    Background-verified Care Mitras
+                  </li>
+                  <li>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#FE6700" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                      <circle cx="12" cy="12" r="10" />
+                      <polyline points="9 11 12 14 17 9" />
+                    </svg>
+                    Geo-fenced visit tracking
+                  </li>
+                  <li>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#FE6700" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                      <circle cx="12" cy="12" r="10" />
+                      <polyline points="9 11 12 14 17 9" />
+                    </svg>
+                    Real-time Family Connect app
+                  </li>
+                  <li>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#FE6700" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                      <circle cx="12" cy="12" r="10" />
+                      <polyline points="9 11 12 14 17 9" />
+                    </svg>
+                    Registered company, Gurugram
+                  </li>
                 </ul>
               </div>
             </div>
@@ -473,9 +546,9 @@ const App = () => {
 
           <section className="video-section">
             <div className="section-heading">
-              <span>Our Story</span>
+              <span>OUR STORY</span>
               <h2>
-                See Why Families Trust <em>MaiHoonNa</em>
+                See Why Families Trust <span style={{ display: "block", color: "var(--orange)" }}>MaiHoonNa</span>
               </h2>
               <p>A 2-minute story about what it means to care — and why we built an entire ecosystem around it.</p>
             </div>
@@ -501,7 +574,7 @@ const App = () => {
 
           <section className="challenge">
             <div className="section-heading">
-              <span>The Challenge</span>
+              <span>THE CHALLENGE</span>
               <h2>Growing old shouldn't mean growing lonely</h2>
               <p>
                 Millions of seniors in India live alone while their adult children live far away. MaiHoonNa brings human companionship, connected health monitoring, and family transparency into one trusted subscription.
@@ -521,7 +594,7 @@ const App = () => {
 
           <section className="process">
             <div className="section-heading">
-              <span>How It Works</span>
+              <span>HOW IT WORKS</span>
               <h2>From the first call to the first visit</h2>
               <p>Simple, transparent, and human - every step of the way.</p>
             </div>
@@ -530,7 +603,7 @@ const App = () => {
               {processSteps.map((step, index) => (
                 <div className="timeline__item" key={step.title}>
                   <div className="timeline__number">{index + 1}</div>
-                  <div>
+                  <div className="timeline__content">
                     <h3>{step.title}</h3>
                     <p>{step.text}</p>
                   </div>
@@ -541,7 +614,7 @@ const App = () => {
 
           <section className="visits" id="services">
             <div className="section-heading">
-              <span>Our Ecosystem</span>
+              <span>OUR ECOSYSTEM</span>
               <h2>More than visits</h2>
               <p>A full ecosystem designed to help seniors live with dignity, connection, and joy - not just receive care.</p>
             </div>
@@ -549,279 +622,478 @@ const App = () => {
             <div className="service-grid">
               {services.map((service) => (
                 <article className="service-card" key={service.title}>
-                  <img src={service.icon} alt="" />
+                  <span className="service-card__emoji">{service.emoji}</span>
                   <h3>{service.title}</h3>
                   <p>{service.text}</p>
-                  <button onClick={openForm}>Learn more</button>
+                  <button onClick={openForm}>Learn more →</button>
                 </article>
               ))}
             </div>
 
             <div className="nri-banner">
               <div>
-                <span>Built for NRI families</span>
+                <div className="nri-eyebrow">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FE6700" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="2" y1="12" x2="22" y2="12" />
+                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                  </svg>
+                  Managing care from abroad?
+                </div>
                 <h2>
                   Built for NRI Families Who Want to Stay <em>Genuinely Involved</em>
                 </h2>
                 <p>
-                  Real-time visit logs, WhatsApp alerts, vitals trends, and a Happiness Score that tells you how your parent is actually feeling today.
+                  Real-time visit logs, WhatsApp alerts, vitals trends, and a Happiness Score that tells you how your parent is actually feeling today — not just informed after something goes wrong.
                 </p>
-                <button onClick={openForm}>Join an NRI family</button>
+                <button onClick={openForm}>Join as NRI Family &rarr;</button>
               </div>
-              <ul>
+              <ul className="nri-list" style={{ listStyle: "none", padding: 0 }}>
                 {visitFeatures.map((feature) => (
-                  <li key={feature}>{feature}</li>
+                  <li key={feature}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FE6700" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                      <circle cx="12" cy="12" r="10" />
+                      <polyline points="9 11 12 14 17 9" />
+                    </svg>
+                    {feature}
+                  </li>
                 ))}
               </ul>
             </div>
           </section>
 
           {/* ── Care Mitra Home Visits ── */}
-          {/* ── Care Mitra Home Visits ── */}
-          <section className="svc-visits">
-            <div className="svc-visits__header">
-              <div className="svc-visits__heading">
-                <span className="svc-visits__eyebrow">Services</span>
-                <h2>Care Mitra<br /><em>Home Visits</em></h2>
-              </div>
-              <p className="svc-visits__desc">
-                Your parent's Care Mitra visits on a schedule you set. Every visit is geo-fenced, encounter-tracked, and logged — so you always know what happened, not just that someone showed up.
-              </p>
-            </div>
+          {(() => {
+            const serviceTabs = [
+              {
+                title: "Vitals Monitoring",
+                summary: "BP, O2, temperature, weight — logged with date, time, and location after every visit.",
+                detail: "All vitals are stored in your Family Connect app with trend graphs. Sudden deviations trigger an immediate alert to the family.",
+                icon: (
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+                )
+              },
+              {
+                title: "Medication Adherence",
+                summary: "Reminders set per schedule, adherence tracked and reported automatically.",
+                detail: "Your Care Mitra follows a prescription-linked schedule, ensuring your parent takes the right doses on time, logging any anomalies immediately.",
+                icon: (
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                )
+              },
+              {
+                title: "Mood & Happiness Logging",
+                summary: "If something seems off, your Family Connect app alerts you immediately.",
+                detail: "Mitras perform interactive mood assessments and logging. Positive indicators help gauge long-term mental well-being.",
+                icon: (
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                )
+              },
+              {
+                title: "Clinic Accompaniment",
+                summary: "Care Mitra accompanies your parent to appointments and shares a structured summary.",
+                detail: "Includes transport booking assistance, waiting queue support, doctor instruction recording, and updating files post-consultation.",
+                icon: (
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
+                )
+              }
+            ];
 
-            <div className="svc-visits__grid">
-              {/* Left: Feature List */}
-              <div className="svc-visits__features">
+            const tiersData = [
+              {
+                tierCode: "TIER 01",
+                title: "Saathi Volunteer",
+                subtitle: "Community Companion",
+                desc: "Warm, background-verified community volunteers who provide companionship, conversation, and accompany seniors on walks or errands. No medical duties.",
+                tags: ["Companionship", "Conversation", "Walks & Errands"],
+                suitability: "Suitable for: Socially isolated seniors, mild loneliness, post-retirement adjustment",
+                icon: "🤝",
+                complexity: 1
+              },
+              {
+                tierCode: "TIER 02",
+                title: "MAA",
+                subtitle: "Basic Care Associate",
+                desc: "Trained associates assisting with daily living activities, nutrition tracking, light mobility support, and basic health parameter check-ins.",
+                tags: ["Daily Assist", "Nutrition Help", "Basic Param Check"],
+                suitability: "Suitable for: Seniors needing light assistance with routine tasks, meal monitoring",
+                icon: "👵",
+                complexity: 2
+              },
+              {
+                tierCode: "TIER 03",
+                title: "GHM",
+                subtitle: "General Health Mitra",
+                desc: "Experienced health caretakers trained in standard parameter checks, vitals logging, medication reminders, and general care plan coordination.",
+                tags: ["Vitals Checks", "Meds Logging", "Health Reports"],
+                suitability: "Suitable for: Seniors with managed chronic conditions requiring regular check-ups",
+                icon: "🩺",
+                complexity: 3
+              },
+              {
+                tierCode: "TIER 04",
+                title: "B To Nurse",
+                subtitle: "Advanced Care Associate",
+                desc: "Highly trained clinical care associates capable of managing complex parameter tracking, recovery schedules, and basic nursing supports under supervision.",
+                tags: ["Complex Track", "Recovery Assist", "Supervised Nursing"],
+                suitability: "Suitable for: Post-operative recovery support, moderate physical dependencies",
+                icon: "🩹",
+                complexity: 4
+              },
+              {
+                tierCode: "TIER 05",
+                title: "Specialist Mitra",
+                subtitle: "Specialized Clinical Mitra",
+                desc: "Certified clinical specialists, nurses, or therapists managing intensive recovery protocols, therapy exercises, and specialized elder care plans.",
+                tags: ["Intensive Care", "Therapy Assist", "Clinical Plans"],
+                suitability: "Suitable for: Seniors requiring specialized rehabilitation, advanced chronic care, or therapy routines",
+                icon: "🏥",
+                complexity: 5
+              }
+            ];
 
-                {/* Active card — Vitals Monitoring */}
-                <div className="svc-fcard svc-fcard--active">
-                  <div className="svc-fcard__top">
-                    <div className="svc-fcard__icon-wrap">
-                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#FE6700" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>
-                    </div>
-                    <div className="svc-fcard__info">
-                      <div className="svc-fcard__title-row">
-                        <strong>Vitals Monitoring</strong>
-                        <span className="svc-fcard__badge">Every visit</span>
-                      </div>
-                      <p className="svc-fcard__sub">Medical-grade logging</p>
-                    </div>
-                    <span className="svc-fcard__dot svc-fcard__dot--active" />
-                  </div>
-                  <p className="svc-fcard__detail">
-                    BP, O2, temperature, weight — logged with date, time, and location after every single visit. Trends visible on your Family Connect dashboard.
+            return (
+              <section className="svc-visits">
+                <div className="svc-visits__header-main">
+                  <span className="svc-visits__eyebrow-top">CORE SERVICE</span>
+                  <h2>Care Mitra Home Visits</h2>
+                  <p>
+                    Your parent's Care Mitra visits on a schedule you set. Every visit is
+                    geo-fenced, encounter-tracked, and logged — so you always know what happened.
                   </p>
                 </div>
 
-                {/* Collapsed cards */}
-                {[
-                  { icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#999999" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>, title: "Medication Adherence", badge: "Automated", sub: "Zero missed doses" },
-                  { icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#999999" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>, title: "Mood & Happiness Logging", badge: "Real-time alerts", sub: "Feel the difference" },
-                  { icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#999999" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 1 0 7.75" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>, title: "Clinic Accompaniment", badge: "On request", sub: "Never go alone" },
-                ].map((item) => (
-                  <div className="svc-fcard" key={item.title}>
-                    <div className="svc-fcard__top">
-                      <div className="svc-fcard__icon-wrap svc-fcard__icon-wrap--muted">
-                        {item.icon}
-                      </div>
-                      <div className="svc-fcard__info">
-                        <div className="svc-fcard__title-row">
-                          <strong>{item.title}</strong>
-                          <span className="svc-fcard__badge svc-fcard__badge--muted">{item.badge}</span>
-                        </div>
-                        <p className="svc-fcard__sub">{item.sub}</p>
-                      </div>
-                      <span className="svc-fcard__dot" />
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Right: Dashboard mock */}
-              <div className="svc-visits__mock">
-                <div className="svc-dash">
-                  {/* Orange vitals header */}
-                  <div className="svc-dash__header">
-                    <div className="svc-dash__header-top">
-                      <div className="svc-dash__header-icon">
-                        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>
-                      </div>
-                      <div>
-                        <strong>Vitals Monitoring</strong>
-                        <span>Medical-grade logging</span>
-                      </div>
+                <div className="svc-visits__container-grid">
+                  {/* Left Column */}
+                  <div className="svc-visits__left-col">
+                    <div className="svc-visits__alert-banner">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FE6700" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>
+                      <span>Every visit is <strong>geo-fenced</strong> and confirmed within 50m of home address</span>
                     </div>
 
-                    {/* Metrics row */}
-                    <div className="svc-dash__metrics">
-                      <div className="svc-dash__metric">
-                        <small>BP</small>
-                        <strong>120/80</strong>
-                        <span>Normal</span>
-                      </div>
-                      <div className="svc-dash__metric">
-                        <small>SPO2</small>
-                        <strong>98%</strong>
-                        <span>Excellent</span>
-                      </div>
-                      <div className="svc-dash__metric">
-                        <small>TEMP</small>
-                        <strong>98.4°F</strong>
-                        <span>Normal</span>
-                      </div>
+                    <div className="svc-visits__tabs-list">
+                      {serviceTabs.map((tab, index) => {
+                        const isActive = activeServiceTab === index;
+                        return (
+                          <div
+                            key={index}
+                            className={`svc-visits__tab-card ${isActive ? "svc-visits__tab-card--active" : ""}`}
+                            onClick={() => setActiveServiceTab(index)}
+                          >
+                            <div className="tab-card__header">
+                              <div className="tab-card__icon-wrap">
+                                {tab.icon}
+                              </div>
+                              <div className="tab-card__title-area">
+                                <strong>{tab.title}</strong>
+                                <p>{tab.summary}</p>
+                              </div>
+                              <div className="tab-card__status-check">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={isActive ? "#FE6700" : "#E5E5E5"} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                              </div>
+                            </div>
+                            {isActive && (
+                              <div className="tab-card__expanded">
+                                <p>💡 {tab.detail}</p>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
 
-                  {/* Recent Visit Log */}
-                  <div className="svc-dash__log">
-                    <div className="svc-dash__log-header">
-                      <span>RECENT VISIT LOG</span>
-                      <span className="svc-dash__auto-sync">
-                        <span className="svc-dash__sync-dot" />
-                        Auto-synced
-                      </span>
+                  {/* Right Column */}
+                  <div className="svc-visits__right-col">
+                    {/* Grading Ladder Card */}
+                    <div className="svc-grading-card">
+                      <div className="svc-grading-card__header">
+                        <div className="svc-grading-card__icon-box">
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FE6700" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                        </div>
+                        <div className="svc-grading-card__title">
+                          <h3>Care Mitra Grading Ladder</h3>
+                          <span>5 tiers · matched to your care needs</span>
+                        </div>
+                      </div>
+
+                      <div className="svc-grading-card__pills">
+                        {tiersData.map((tier, index) => {
+                          const isActive = activeTierTab === index;
+                          return (
+                            <button
+                              key={index}
+                              className={`svc-tier-pill ${isActive ? "svc-tier-pill--active" : ""}`}
+                              onClick={() => setActiveTierTab(index)}
+                            >
+                              {tier.title}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {(() => {
+                        const activeTier = tiersData[activeTierTab];
+                        return (
+                          <>
+                            <div className="svc-tier-detail-box">
+                              <div className="svc-tier-detail-header">
+                                <div className="svc-tier-emoji-box">{activeTier.icon}</div>
+                                <div className="svc-tier-header-info">
+                                  <span className="svc-tier-badge">{activeTier.tierCode}</span>
+                                  <h4>{activeTier.title}</h4>
+                                  <p className="svc-tier-subtitle">{activeTier.subtitle}</p>
+                                </div>
+                              </div>
+                              <p className="svc-tier-description">{activeTier.desc}</p>
+                              <div className="svc-tier-tags">
+                                {activeTier.tags.map((tag, idx) => (
+                                  <span key={idx} className="svc-tier-tag-pill">{tag}</span>
+                                ))}
+                              </div>
+                              <div className="svc-tier-suitability">🎯 {activeTier.suitability}</div>
+                            </div>
+                            <div className="svc-complexity-section">
+                              <div className="svc-complexity-header"><span>CARE COMPLEXITY</span></div>
+                              <div className="svc-complexity-bar">
+                                {[1, 2, 3, 4, 5].map((step) => (
+                                  <div key={step} className={`svc-complexity-dot-bar ${step <= activeTier.complexity ? "svc-complexity-dot-bar--filled" : ""}`} />
+                                ))}
+                              </div>
+                              <div className="svc-complexity-labels">
+                                <span>Companion</span>
+                                <span>Specialist</span>
+                              </div>
+                            </div>
+                          </>
+                        );
+                      })()}
                     </div>
 
-                    {[
-                      { date: "Today, 10:30 AM", name: "Meena S. · 52 min" },
-                      { date: "Yesterday, 9:45 AM", name: "Meena S. · 48 min" },
-                      { date: "Mon, 10:10 AM", name: "Meena S. · 55 min" },
-                    ].map((visit) => (
-                      <div className="svc-dash__visit" key={visit.date}>
-                        <div className="svc-dash__avatar">M</div>
-                        <div className="svc-dash__visit-info">
-                          <strong>{visit.date}</strong>
-                          <span>{visit.name}</span>
+                    {/* Geo-fenced live visit image card */}
+                    <div className="svc-visit-live-card">
+                      <img src={piccImg} alt="Care Mitra visiting parent" />
+                      <div className="svc-visit-live-card__overlay">
+                        <div className="svc-live-pulsing-badge">
+                          <span className="pulsing-circle" />
+                          <strong>Geo-fenced visit in progress</strong>
                         </div>
-                        <span className="svc-dash__completed">Completed</span>
-                      </div>
-                    ))}
-
-                    {/* Geo-fenced note */}
-                    <div className="svc-dash__geo">
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FE6700" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>
-                      <div>
-                        <strong>Geo-fenced &amp; verified</strong>
-                        <span>Every visit confirmed within 50m of home address</span>
+                        <p>Vitals logged · Happiness Score updated</p>
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            </div>
-          </section>
+              </section>
+            );
+          })()}
+
 
           <section className="testimonial">
             <div className="section-heading section-heading--dark">
-              <span>Testimonials</span>
+              <span>TESTIMONIALS</span>
               <h2>Families Who Trust Us</h2>
             </div>
-            <div className="testimonial-card">
-              <div className="portrait" />
-              <div className="quote">
-                <div className="stars" aria-label="5 star rating">+ + + + +</div>
-                <blockquote>
-                  MaiHoonNa found us a wonderful Care Mitra in just 2 days. She is now like family to my mother. What gave us the most peace of mind was the 24/7 support line - knowing someone is always there, even at 2 AM.
-                </blockquote>
-                <strong>Ankit Kapoor</strong>
-                <small>Family subscriber</small>
+
+            <div className="testimonial-card-container">
+              <div className="testimonial-card">
+                {/* Left Side: Portrait */}
+                <div
+                  className="testimonial-portrait"
+                  style={{ backgroundImage: `url(${testimonials[activeTestimonial].image})` }}
+                >
+                  <div className="testimonial-tag">
+                    <span className="status-dot"></span>
+                    <span>{testimonials[activeTestimonial].tag}</span>
+                  </div>
+                </div>
+
+                {/* Right Side: Quote Details */}
+                <div className="testimonial-content">
+                  {/* Large Quote Icon background decoration */}
+                  <div className="quote-mark">&ldquo;</div>
+
+                  {/* 5 star rating */}
+                  <div className="stars">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <svg key={i} width="18" height="18" viewBox="0 0 24 24" fill="#FE6700" stroke="#FE6700" strokeWidth="1.5">
+                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                      </svg>
+                    ))}
+                  </div>
+
+                  <blockquote className="quote-body">
+                    &ldquo;{testimonials[activeTestimonial].quote}&rdquo;
+                  </blockquote>
+
+                  {/* Author Information */}
+                  <div className="testimonial-author">
+                    <div
+                      className="author-avatar"
+                      style={{ backgroundImage: `url(${testimonials[activeTestimonial].image})` }}
+                    />
+                    <div className="author-info">
+                      <h3>{testimonials[activeTestimonial].name}</h3>
+                      <p>{testimonials[activeTestimonial].role}</p>
+                      <span className="location">
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#999999" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                          <circle cx="12" cy="10" r="3" />
+                        </svg>
+                        {testimonials[activeTestimonial].location}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Controls (Arrows and dots) */}
+                  <div className="testimonial-controls">
+                    <div className="dots-container">
+                      {testimonials.map((_, idx) => (
+                        <button
+                          key={idx}
+                          className={`dot ${idx === activeTestimonial ? 'active' : ''}`}
+                          onClick={() => setActiveTestimonial(idx)}
+                          aria-label={`Go to testimonial ${idx + 1}`}
+                        />
+                      ))}
+                    </div>
+                    <div className="arrows-container">
+                      <button
+                        className="arrow-btn"
+                        onClick={() => setActiveTestimonial((prev) => (prev === 0 ? testimonials.length - 1 : prev - 1))}
+                        aria-label="Previous testimonial"
+                      >
+                        &larr;
+                      </button>
+                      <button
+                        className="arrow-btn"
+                        onClick={() => setActiveTestimonial((prev) => (prev === testimonials.length - 1 ? 0 : prev + 1))}
+                        aria-label="Next testimonial"
+                      >
+                        &rarr;
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Progress Bar Indicator below card */}
+              <div className="progress-bar-container">
+                <div
+                  className="progress-bar-fill"
+                  style={{ width: `${((activeTestimonial + 1) / testimonials.length) * 100}%` }}
+                />
+              </div>
+
+              {/* Avatar Selector Switcher below line */}
+              <div className="avatar-switcher">
+                {testimonials.map((t, idx) => (
+                  <button
+                    key={idx}
+                    className={`switcher-btn ${idx === activeTestimonial ? 'active' : ''}`}
+                    onClick={() => setActiveTestimonial(idx)}
+                    style={{ backgroundImage: `url(${t.image})` }}
+                    aria-label={`Switch to ${t.name}`}
+                  />
+                ))}
               </div>
             </div>
           </section>
 
           <section className="app-cta">
-            <div className="app-cta__content">
-              <div className="app-cta__eyebrow">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FE6700" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2" /><line x1="12" y1="18" x2="12.01" y2="18" /></svg>
-                <span>Family Connect App</span>
-              </div>
-              <h2 className="app-cta__title">
-                Stay Connected to Your Parent's World —
-                <em>From Anywhere</em>
-              </h2>
-              <p className="app-cta__desc">
-                Real-time visit logs, vitals trends, and a Happiness Score that tells you how your parent is actually feeling today — not just informed after something goes wrong.
-              </p>
-
-              <ul className="app-cta__list">
-                <li>
-                  <div className="app-cta__icon">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FE6700" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" /></svg>
-                  </div>
-                  <span>Instant WhatsApp alerts on every visit</span>
-                </li>
-                <li>
-                  <div className="app-cta__icon">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FE6700" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>
-                  </div>
-                  <span>Live Happiness Score updated after each visit</span>
-                </li>
-                <li>
-                  <div className="app-cta__icon">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FE6700" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" /><circle cx="12" cy="10" r="3" /></svg>
-                  </div>
-                  <span>Geo-fenced check-ins — know Mitra arrived</span>
-                </li>
-                <li>
-                  <div className="app-cta__icon">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FE6700" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" /></svg>
-                  </div>
-                  <span>Access from any time zone, anywhere in the world</span>
-                </li>
-                <li>
-                  <div className="app-cta__icon">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FE6700" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
-                  </div>
-                  <span>Download care reports as PDFs for doctors</span>
-                </li>
-              </ul>
-
-              <div className="store-row">
-                <a href="#" className="store-badge-card">
-                  <img src={googlePlayImg} alt="Get it on Google Play" />
-                </a>
-                <a href="#" className="store-badge-card">
-                  <img src={appStoreImg} alt="Download on the App Store" />
-                </a>
-              </div>
-            </div>
-
-            <div className="phone-mock">
-              {/* Card 1: Dark Phone Mockup */}
-              <div className="phone-mock__dark">
-                <div className="phone-mock__score-card">
-                  <small>Happiness Score</small>
-                  <strong>82</strong>
-                  <span>Feeling great today ✨</span>
+            <div className="app-cta__container">
+              <div className="app-cta__content">
+                <div className="app-cta__eyebrow">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FE6700" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2" /><line x1="12" y1="18" x2="12.01" y2="18" /></svg>
+                  <span>Family Connect App</span>
                 </div>
-                <div className="phone-mock__info-list">
-                  <div className="phone-mock__info-row">
-                    <small>Last visit</small>
-                    <strong>Today 10:30 AM</strong>
-                  </div>
-                  <div className="phone-mock__info-row">
-                    <small>Mitra</small>
-                    <strong>Meena S.</strong>
-                  </div>
-                  <div className="phone-mock__info-row">
-                    <small>Duration</small>
-                    <strong>48 min</strong>
-                  </div>
+                <h2 className="app-cta__title">
+                  Stay Connected to Your Parent's World —
+                  <em>From Anywhere</em>
+                </h2>
+                <p className="app-cta__desc">
+                  Real-time visit logs, vitals trends, and a Happiness Score that tells you how your parent is actually feeling today — not just informed after something goes wrong.
+                </p>
+
+                <ul className="app-cta__list">
+                  <li>
+                    <div className="app-cta__icon">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FE6700" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" /></svg>
+                    </div>
+                    <span>Instant WhatsApp alerts on every visit</span>
+                  </li>
+                  <li>
+                    <div className="app-cta__icon">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FE6700" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>
+                    </div>
+                    <span>Live Happiness Score updated after each visit</span>
+                  </li>
+                  <li>
+                    <div className="app-cta__icon">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FE6700" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" /><circle cx="12" cy="10" r="3" /></svg>
+                    </div>
+                    <span>Geo-fenced check-ins — know Mitra arrived</span>
+                  </li>
+                  <li>
+                    <div className="app-cta__icon">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FE6700" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" /></svg>
+                    </div>
+                    <span>Access from any time zone, anywhere in the world</span>
+                  </li>
+                  <li>
+                    <div className="app-cta__icon">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FE6700" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
+                    </div>
+                    <span>Download care reports as PDFs for doctors</span>
+                  </li>
+                </ul>
+
+                <div className="store-row">
+                  <a href="#" className="store-badge-card">
+                    <img src={googlePlayImg} alt="Get it on Google Play" />
+                  </a>
+                  <a href="#" className="store-badge-card">
+                    <img src={appStoreImg} alt="Download on the App Store" />
+                  </a>
                 </div>
               </div>
 
-              {/* Card 2: Floating Bright Orange Alert Card */}
-              <div className="phone-mock__orange">
-                <div className="phone-mock__alert-header">
-                  <span>Live Visit Alert</span>
+              <div className="phone-mock">
+                {/* Card 1: Dark Phone Mockup */}
+                <div className="phone-mock__dark">
+                  <div className="phone-mock__score-card">
+                    <small>Happiness Score</small>
+                    <strong>82</strong>
+                    <span>Feeling great today ✨</span>
+                  </div>
+                  <div className="phone-mock__info-list">
+                    <div className="phone-mock__info-row">
+                      <small>Last visit</small>
+                      <strong>Today 10:30 AM</strong>
+                    </div>
+                    <div className="phone-mock__info-row">
+                      <small>Mitra</small>
+                      <strong>Meena S.</strong>
+                    </div>
+                    <div className="phone-mock__info-row">
+                      <small>Duration</small>
+                      <strong>48 min</strong>
+                    </div>
+                  </div>
                 </div>
-                <div className="phone-mock__bell-icon">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" /></svg>
-                </div>
-                <strong className="phone-mock__alert-title">Meena has arrived</strong>
-                <span className="phone-mock__alert-sub">Geo-verified · 10:31 AM</span>
-                <div className="phone-mock__vitals-pill">
-                  <span>BP: 120/80 · SpO2: 98% · Mood: Happy</span>
+
+                {/* Card 2: Floating Bright Orange Alert Card */}
+                <div className="phone-mock__orange">
+                  <div className="phone-mock__alert-header">
+                    <span>Live Visit Alert</span>
+                  </div>
+                  <div className="phone-mock__bell-icon">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" /></svg>
+                  </div>
+                  <strong className="phone-mock__alert-title">Meena has arrived</strong>
+                  <span className="phone-mock__alert-sub">Geo-verified · 10:31 AM</span>
+                  <div className="phone-mock__vitals-pill">
+                    <span>BP: 120/80 · SpO2: 98% · Mood: Happy</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -850,31 +1122,83 @@ const App = () => {
           <section className="services-hero">
             <div className="services-hero__inner">
               <div className="services-hero__copy">
-                <span>Our Services</span>
+                <div className="services-hero__eyebrow">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FE6700" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                  <span>Our Services</span>
+                </div>
                 <h1>
-                  Everything your loved one needs,
-                  <em> delivered at their door.</em>
+                  Everything your loved one needs, <br />
+                  <em>delivered at their door.</em>
                 </h1>
                 <p>
-                  Care Mitra home visits, health monitoring, emergency support, and a full family ecosystem — all under one trusted subscription.
+                  A full ecosystem of in-home care, health monitoring, community connection, and family transparency — all in one subscription.
                 </p>
                 <div className="services-hero__actions">
-                  <button className="pill-button pill-button--orange" onClick={openForm}>Get Started</button>
-                  <button className="pill-button pill-button--ghost" onClick={() => setActivePage("plans")}>View Plans</button>
+                  <button className="services-btn-explore" onClick={openForm}>
+                    Explore Services
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                  </button>
+                  <button className="services-btn-plans" onClick={() => setActivePage("plans")}>
+                    View Plans
+                  </button>
                 </div>
               </div>
               <div className="services-hero__features">
                 {[
-                  { icon: "🏠", label: "Care Mitra Home Visits" },
-                  { icon: "📊", label: "Vitals & Health Monitoring" },
-                  { icon: "🚨", label: "24/7 Emergency Support" },
-                  { icon: "📱", label: "Family Connect App" },
-                  { icon: "😊", label: "Happiness Score" },
-                  { icon: "🤝", label: "Saathi Network" },
-                ].map((item) => (
-                  <div className="services-hero__feature-item" key={item.label}>
-                    <span>{item.icon}</span>
-                    <strong>{item.label}</strong>
+                  {
+                    title: "Vitals Monitoring",
+                    desc: "Every visit · Date, time, location logged",
+                    color: "#10B981",
+                    bg: "rgba(16, 185, 129, 0.133)",
+                    icon: (
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+                    )
+                  },
+                  {
+                    title: "Medication Adherence",
+                    desc: "Zero missed doses · Auto-tracked",
+                    color: "#0EA5E9",
+                    bg: "rgba(14, 165, 233, 0.133)",
+                    icon: (
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0EA5E9" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    )
+                  },
+                  {
+                    title: "100% BGV Verified Mitras",
+                    desc: "Police + Aadhaar + reference verified",
+                    color: "#FE6700",
+                    bg: "rgba(254, 103, 0, 0.133)",
+                    icon: (
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FE6700" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                    )
+                  },
+                  {
+                    title: "Family Connect App",
+                    desc: "Real-time visibility from any time zone",
+                    color: "#7C3AED",
+                    bg: "rgba(124, 58, 237, 0.133)",
+                    icon: (
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+                    )
+                  },
+                  {
+                    title: "24/7 Emergency Response",
+                    desc: "One tap alerts entire care chain",
+                    color: "#EF4444",
+                    bg: "rgba(239, 68, 68, 0.133)",
+                    icon: (
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                    )
+                  }
+                ].map((item, idx) => (
+                  <div className="services-hero__feature-card" key={idx}>
+                    <div className="feature-card__icon-box" style={{ background: item.bg }}>
+                      {item.icon}
+                    </div>
+                    <div className="feature-card__text">
+                      <strong>{item.title}</strong>
+                      <span>{item.desc}</span>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -882,184 +1206,396 @@ const App = () => {
           </section>
 
           {/* ── Care Mitra Home Visits ── */}
-          <section className="svc-visits">
-            <div className="svc-visits__inner">
+          {(() => {
+            const serviceTabs = [
+              {
+                title: "Vitals Monitoring",
+                summary: "BP, O2, temperature, weight — logged with date, time, and location after every visit.",
+                detail: "All vitals are stored in your Family Connect app with trend graphs. Sudden deviations trigger an immediate alert to the family.",
+                icon: (
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+                )
+              },
+              {
+                title: "Medication Adherence",
+                summary: "Reminders set per schedule, adherence tracked and reported automatically.",
+                detail: "Your Care Mitra follows a prescription-linked schedule, ensuring your parent takes the right doses on time, logging any anomalies immediately.",
+                icon: (
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                )
+              },
+              {
+                title: "Mood & Happiness Logging",
+                summary: "If something seems off, your Family Connect app alerts you immediately.",
+                detail: "Mitras perform interactive mood assessments and logging. Positive indicators help gauge long-term mental well-being.",
+                icon: (
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                )
+              },
+              {
+                title: "Clinic Accompaniment",
+                summary: "Care Mitra accompanies your parent to appointments and shares a structured summary.",
+                detail: "Includes transport booking assistance, waiting queue support, doctor instruction recording, and updating files post-consultation.",
+                icon: (
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
+                )
+              }
+            ];
 
-              {/* Col 1: Copy */}
-              <div className="svc-visits__copy">
-                <span className="svc-visits__eyebrow">Services</span>
-                <h2>Care Mitra<br /><em>Home Visits</em></h2>
-                <p>Your parent's Care Mitra visits on a schedule you set. Every visit is geo-fenced, encounter-tracked, and logged — so you always know what happened, not just that someone showed up.</p>
-              </div>
+            const tiersData = [
+              {
+                tierCode: "TIER 01",
+                title: "Saathi Volunteer",
+                subtitle: "Community Companion",
+                desc: "Warm, background-verified community volunteers who provide companionship, conversation, and accompany seniors on walks or errands. No medical duties.",
+                tags: ["Companionship", "Conversation", "Walks & Errands"],
+                suitability: "Suitable for: Socially isolated seniors, mild loneliness, post-retirement adjustment",
+                icon: "🤝",
+                complexity: 1
+              },
+              {
+                tierCode: "TIER 02",
+                title: "MAA",
+                subtitle: "Basic Care Associate",
+                desc: "Trained associates assisting with daily living activities, nutrition tracking, light mobility support, and basic health parameter check-ins.",
+                tags: ["Daily Assist", "Nutrition Help", "Basic Param Check"],
+                suitability: "Suitable for: Seniors needing light assistance with routine tasks, meal monitoring",
+                icon: "👵",
+                complexity: 2
+              },
+              {
+                tierCode: "TIER 03",
+                title: "GHM",
+                subtitle: "General Health Mitra",
+                desc: "Experienced health caretakers trained in standard parameter checks, vitals logging, medication reminders, and general care plan coordination.",
+                tags: ["Vitals Checks", "Meds Logging", "Health Reports"],
+                suitability: "Suitable for: Seniors with managed chronic conditions requiring regular check-ups",
+                icon: "🩺",
+                complexity: 3
+              },
+              {
+                tierCode: "TIER 04",
+                title: "B To Nurse",
+                subtitle: "Advanced Care Associate",
+                desc: "Highly trained clinical care associates capable of managing complex parameter tracking, recovery schedules, and basic nursing supports under supervision.",
+                tags: ["Complex Track", "Recovery Assist", "Supervised Nursing"],
+                suitability: "Suitable for: Post-operative recovery support, moderate physical dependencies",
+                icon: "🩹",
+                complexity: 4
+              },
+              {
+                tierCode: "TIER 05",
+                title: "Specialist Mitra",
+                subtitle: "Specialized Clinical Mitra",
+                desc: "Certified clinical specialists, nurses, or therapists managing intensive recovery protocols, therapy exercises, and specialized elder care plans.",
+                tags: ["Intensive Care", "Therapy Assist", "Clinical Plans"],
+                suitability: "Suitable for: Seniors requiring specialized rehabilitation, advanced chronic care, or therapy routines",
+                icon: "🏥",
+                complexity: 5
+              }
+            ];
 
-              {/* Col 2: Tab list */}
-              <div className="svc-visits__tabs">
-                <div className="svc-tab svc-tab--active">
-                  <div className="svc-tab__icon">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FE6700" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>
-                  </div>
-                  <div className="svc-tab__body">
-                    <div className="svc-tab__title-row">
-                      <strong>Vitals Monitoring</strong>
-                      <span className="svc-tab__badge">Every visit</span>
-                    </div>
-                    <p className="svc-tab__sub">Medical-grade logging</p>
-                    <p className="svc-tab__detail">BP, O2, temperature, weight — logged with date, time, and location after every single visit. Trends visible on your Family Connect dashboard.</p>
-                  </div>
-                  <span className="svc-tab__dot svc-tab__dot--active" />
+            return (
+              <section className="svc-visits">
+                <div className="svc-visits__header-main">
+                  <span className="svc-visits__eyebrow-top">CORE SERVICE</span>
+                  <h2>Care Mitra Home Visits</h2>
+                  <p>
+                    Your parent's Care Mitra visits on a schedule you set. Every visit is
+                    geo-fenced, encounter-tracked, and logged — so you always know what happened.
+                  </p>
                 </div>
 
-                <div className="svc-tab">
-                  <div className="svc-tab__icon svc-tab__icon--muted">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#999" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
-                  </div>
-                  <div className="svc-tab__body">
-                    <div className="svc-tab__title-row">
-                      <strong>Medication Adherence</strong>
-                      <span className="svc-tab__badge svc-tab__badge--muted">Automated</span>
+                <div className="svc-visits__container-grid">
+                  {/* Left Column */}
+                  <div className="svc-visits__left-col">
+                    <div className="svc-visits__alert-banner">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FE6700" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>
+                      <span>Every visit is <strong>geo-fenced</strong> and confirmed within 50m of home address</span>
                     </div>
-                    <p className="svc-tab__sub">Zero missed doses</p>
-                  </div>
-                  <span className="svc-tab__dot" />
-                </div>
 
-                <div className="svc-tab">
-                  <div className="svc-tab__icon svc-tab__icon--muted">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#999" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
-                  </div>
-                  <div className="svc-tab__body">
-                    <div className="svc-tab__title-row">
-                      <strong>Mood &amp; Happiness Logging</strong>
-                      <span className="svc-tab__badge svc-tab__badge--muted">Real-time alerts</span>
-                    </div>
-                    <p className="svc-tab__sub">Feel the difference</p>
-                  </div>
-                  <span className="svc-tab__dot" />
-                </div>
-
-                <div className="svc-tab">
-                  <div className="svc-tab__icon svc-tab__icon--muted">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#999" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
-                  </div>
-                  <div className="svc-tab__body">
-                    <div className="svc-tab__title-row">
-                      <strong>Clinic Accompaniment</strong>
-                      <span className="svc-tab__badge svc-tab__badge--muted">On request</span>
-                    </div>
-                    <p className="svc-tab__sub">Never go alone</p>
-                  </div>
-                  <span className="svc-tab__dot" />
-                </div>
-              </div>
-
-              {/* Col 3: Dashboard card */}
-              <div className="svc-dash-wrap">
-                <div className="svc-dash">
-                  {/* Orange header */}
-                  <div className="svc-dash__header">
-                    <div className="svc-dash__header-top">
-                      <div className="svc-dash__header-icon">
-                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>
-                      </div>
-                      <div>
-                        <strong>Vitals Monitoring</strong>
-                        <span>Medical-grade logging</span>
-                      </div>
-                    </div>
-                    <div className="svc-dash__metrics">
-                      <div className="svc-dash__metric">
-                        <small>BP</small>
-                        <strong>120/80</strong>
-                        <span>Normal</span>
-                      </div>
-                      <div className="svc-dash__metric">
-                        <small>SpO2</small>
-                        <strong>98%</strong>
-                        <span>Excellent</span>
-                      </div>
-                      <div className="svc-dash__metric">
-                        <small>Temp</small>
-                        <strong>98.4°F</strong>
-                        <span>Normal</span>
-                      </div>
+                    <div className="svc-visits__tabs-list">
+                      {serviceTabs.map((tab, index) => {
+                        const isActive = activeServiceTab === index;
+                        return (
+                          <div
+                            key={index}
+                            className={`svc-visits__tab-card ${isActive ? "svc-visits__tab-card--active" : ""}`}
+                            onClick={() => setActiveServiceTab(index)}
+                          >
+                            <div className="tab-card__header">
+                              <div className="tab-card__icon-wrap">
+                                {tab.icon}
+                              </div>
+                              <div className="tab-card__title-area">
+                                <strong>{tab.title}</strong>
+                                <p>{tab.summary}</p>
+                              </div>
+                              <div className="tab-card__status-check">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={isActive ? "#FE6700" : "#E5E5E5"} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                              </div>
+                            </div>
+                            {isActive && (
+                              <div className="tab-card__expanded">
+                                <p>💡 {tab.detail}</p>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
 
-                  {/* Visit log */}
-                  <div className="svc-dash__log">
-                    <div className="svc-dash__log-header">
-                      <span>Recent Visit Log</span>
-                      <span className="svc-dash__auto-sync">
-                        <span className="svc-dash__sync-dot" />
-                        Auto-synced
-                      </span>
-                    </div>
-                    {[
-                      { date: "Today, 10:30 AM", name: "Meena S. · 52 min" },
-                      { date: "Yesterday, 9:45 AM", name: "Meena S. · 48 min" },
-                      { date: "Mon, 10:10 AM", name: "Meena S. · 55 min" },
-                    ].map((visit) => (
-                      <div className="svc-dash__visit" key={visit.date}>
-                        <div className="svc-dash__avatar">M</div>
-                        <div className="svc-dash__visit-info">
-                          <strong>{visit.date}</strong>
-                          <span>{visit.name}</span>
+                  {/* Right Column */}
+                  <div className="svc-visits__right-col">
+                    {/* Grading Ladder Card */}
+                    <div className="svc-grading-card">
+                      <div className="svc-grading-card__header">
+                        <div className="svc-grading-card__icon-box">
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FE6700" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
                         </div>
-                        <span className="svc-dash__completed">Completed</span>
+                        <div className="svc-grading-card__title">
+                          <h3>Care Mitra Grading Ladder</h3>
+                          <span>5 tiers · matched to your care needs</span>
+                        </div>
                       </div>
-                    ))}
-                    <div className="svc-dash__geo">
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FE6700" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>
-                      <div>
-                        <strong>Geo-fenced &amp; verified</strong>
-                        <span>Every visit confirmed within 50m of home address</span>
+
+                      {/* Horizontal pill selectors */}
+                      <div className="svc-grading-card__pills">
+                        {tiersData.map((tier, index) => {
+                          const isActive = activeTierTab === index;
+                          return (
+                            <button
+                              key={index}
+                              className={`svc-tier-pill ${isActive ? "svc-tier-pill--active" : ""}`}
+                              onClick={() => setActiveTierTab(index)}
+                            >
+                              {tier.title}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {/* Active Tier Details */}
+                      {(() => {
+                        const activeTier = tiersData[activeTierTab];
+                        return (
+                          <>
+                            <div className="svc-tier-detail-box">
+                              <div className="svc-tier-detail-header">
+                                <div className="svc-tier-emoji-box">
+                                  {activeTier.icon}
+                                </div>
+                                <div className="svc-tier-header-info">
+                                  <span className="svc-tier-badge">{activeTier.tierCode}</span>
+                                  <h4>{activeTier.title}</h4>
+                                  <p className="svc-tier-subtitle">{activeTier.subtitle}</p>
+                                </div>
+                              </div>
+
+                              <p className="svc-tier-description">{activeTier.desc}</p>
+
+                              <div className="svc-tier-tags">
+                                {activeTier.tags.map((tag, idx) => (
+                                  <span key={idx} className="svc-tier-tag-pill">{tag}</span>
+                                ))}
+                              </div>
+
+                              <div className="svc-tier-suitability">
+                                🎯 {activeTier.suitability}
+                              </div>
+                            </div>
+
+                            {/* Complexity Meter */}
+                            <div className="svc-complexity-section">
+                              <div className="svc-complexity-header">
+                                <span>CARE COMPLEXITY</span>
+                              </div>
+                              <div className="svc-complexity-bar">
+                                {[1, 2, 3, 4, 5].map((step) => {
+                                  const isFilled = step <= activeTier.complexity;
+                                  return (
+                                    <div
+                                      key={step}
+                                      className={`svc-complexity-dot-bar ${isFilled ? "svc-complexity-dot-bar--filled" : ""}`}
+                                    />
+                                  );
+                                })}
+                              </div>
+                              <div className="svc-complexity-labels">
+                                <span>Companion</span>
+                                <span>Specialist</span>
+                              </div>
+                            </div>
+                          </>
+                        );
+                      })()}
+                    </div>
+
+                    {/* Geo-fenced live visit image card */}
+                    <div className="svc-visit-live-card">
+                      <img src={piccImg} alt="Care Mitra visiting parent" />
+                      <div className="svc-visit-live-card__overlay">
+                        <div className="svc-live-pulsing-badge">
+                          <span className="pulsing-circle" />
+                          <strong>Geo-fenced visit in progress</strong>
+                        </div>
+                        <p>Vitals logged · Happiness Score updated</p>
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
-
-            </div>
-          </section>
+              </section>
+            );
+          })()}
 
 
           {/* ── Full Ecosystem ── */}
           <section className="svc-ecosystem">
-            <div className="section-heading">
-              <span>The Ecosystem</span>
+            <div className="svc-visits__header-main">
+              <span className="svc-visits__eyebrow-top">BEYOND VISITS</span>
               <h2>The full MaiHoonNa ecosystem</h2>
-              <p>Every service is connected through the Family Connect App and the Care OS — giving you complete visibility.</p>
+              <p>
+                Care visits are just the beginning. Every service below is
+                coordinated through your single Care Mitra relationship.
+              </p>
             </div>
 
-            <div className="svc-eco-grid">
-              {[
-                { icon: "📱", title: "Family Connect App", desc: "Real-time visit logs, Happiness Score, WhatsApp alerts, and one-tap support — all in one app.", badge: "Core Product", highlight: true },
-                { icon: "🚨", title: "Emergency Response", desc: "One-tap emergency button connects to our 24/7 support team within minutes.", badge: "24/7" },
-                { icon: "🩺", title: "Health Monitoring", desc: "Vitals, medication adherence, and mood tracked and shared with family in real time.", badge: null },
-                { icon: "👥", title: "Saathi Network", desc: "Trained community volunteers for companionship between Care Mitra visits.", badge: null },
-                { icon: "🎯", title: "Legacy Circles", desc: "A platform for seniors to share expertise, mentor others, and rediscover purpose.", badge: null },
-                { icon: "♟️", title: "Hobby Circles", desc: "Peer connections built around chess, gardening, music, cooking, or fitness.", badge: null },
-              ].map((item) => (
-                <article className={`svc-eco-card${item.highlight ? " svc-eco-card--highlight" : ""}`} key={item.title}>
-                  {item.badge && <div className="svc-eco-badge">{item.badge}</div>}
-                  <span className="svc-eco-icon">{item.icon}</span>
-                  <h3>{item.title}</h3>
-                  <p>{item.desc}</p>
-                  <button onClick={openForm}>Learn more →</button>
-                </article>
-              ))}
+            <div className="svc-eco-grid-container">
+              {/* Row 1: Flagship + Emergency */}
+              <div className="svc-eco-top-row">
+                {/* Family Connect Card */}
+                <div className="svc-eco-card-flagship">
+                  <div className="svc-eco-card-flagship__left">
+                    <span className="flagship-icon">📱</span>
+                    <span className="flagship-badge">FLAGSHIP FEATURE</span>
+                    <h3>Family Connect App</h3>
+                    <p>
+                      Real-time visit logs, vitals trends, medication adherence, and a
+                      Happiness Score — built for families managing care remotely from
+                      any time zone.
+                    </p>
+                    <div className="flagship-tags">
+                      <span>Real-time</span>
+                      <span>Vitals Trends</span>
+                      <span>Happiness Score</span>
+                      <span>NRI-ready</span>
+                    </div>
+                  </div>
+                  <div className="svc-eco-card-flagship__right">
+                    <div className="flagship-widget">
+                      <div className="widget-score-box">
+                        <span>Happiness Score</span>
+                        <strong>82</strong>
+                      </div>
+                      <div className="widget-row">
+                        <span>BP</span>
+                        <strong>120/80</strong>
+                      </div>
+                      <div className="widget-row">
+                        <span>SpO2</span>
+                        <strong>98%</strong>
+                      </div>
+                      <div className="widget-row">
+                        <span>Mood</span>
+                        <strong>😊 Happy</strong>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Emergency Card */}
+                <div className="svc-eco-card-emergency">
+                  <span className="emergency-icon">🚨</span>
+                  <h3>Emergency Response</h3>
+                  <p>
+                    A single emergency button triggers immediate alerts to your Care
+                    Mitra, Field Manager, Operations team, and family.
+                  </p>
+                  <div className="emergency-tags">
+                    <span>One tap</span>
+                    <span>24/7</span>
+                    <span>Full chain alert</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Row 2: Saathi + Hobby + Health + Celebrations */}
+              <div className="svc-eco-bottom-grid">
+                {/* Saathi Network */}
+                <div className="svc-eco-small-card">
+                  <span className="small-card-icon">🤝</span>
+                  <h3>Saathi Network</h3>
+                  <p>
+                    Community volunteers who visit between scheduled Care Mitra
+                    appointments. Every interaction is tracked.
+                  </p>
+                  <div className="small-card-tags small-card-tags--green">
+                    <span>Companionship</span>
+                    <span>Tracked</span>
+                    <span>Community</span>
+                  </div>
+                </div>
+
+                {/* Hobby Circles */}
+                <div className="svc-eco-small-card">
+                  <span className="small-card-icon">🎨</span>
+                  <h3>Hobby Circles</h3>
+                  <p>
+                    Peer connections built around shared interests with nearby neighbors.
+                    Privacy protected by design.
+                  </p>
+                  <div className="small-card-tags small-card-tags--purple">
+                    <span>Social</span>
+                    <span>Interests</span>
+                    <span>Privacy-first</span>
+                  </div>
+                </div>
+
+                {/* Healthcare Partner Network */}
+                <div className="svc-eco-small-card">
+                  <span className="small-card-icon">🏥</span>
+                  <h3>Healthcare Partner Network</h3>
+                  <p>
+                    Pharmacy orders, lab appointments, physio, tele-consultations, and
+                    ambulance — all coordinated through your Care Mitra.
+                  </p>
+                  <div className="small-card-tags small-card-tags--blue">
+                    <span>Pharmacy</span>
+                    <span>Labs</span>
+                    <span>Tele-consult</span>
+                  </div>
+                </div>
+
+                {/* Celebrations & Milestones */}
+                <div className="svc-eco-small-card">
+                  <span className="small-card-icon">🎂</span>
+                  <h3>Celebrations & Milestones</h3>
+                  <p>
+                    Birthdays and anniversaries flagged to your Care Mitra so the small
+                    moments that matter don't get missed.
+                  </p>
+                  <div className="small-card-tags small-card-tags--orange">
+                    <span>Birthdays</span>
+                    <span>Anniversaries</span>
+                    <span>Moments</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </section>
 
           {/* ── CTA Banner ── */}
           <section className="svc-cta">
             <div className="svc-cta__inner">
-              <span>Get Started Today</span>
+              <span className="svc-cta__eyebrow">GET STARTED</span>
               <h2>Ready to bring care home?</h2>
-              <p>Join families across Gurugram who trust MaiHoonNa with the people they love most.</p>
+              <p>
+                Join the waitlist for Gurugram Sectors 54–57. Limited early access. We'll match your first Care Mitra within 24 hours of onboarding.
+              </p>
               <div className="svc-cta__actions">
-                <button className="pill-button pill-button--orange" onClick={openForm}>Join Waitlist</button>
-                <button className="pill-button pill-button--ghost-light" onClick={() => setActivePage("plans")}>Register as Caregiver</button>
+                <button className="svc-cta-btn-plans" onClick={() => setActivePage("plans")}>View Plans</button>
+                <button className="svc-cta-btn-callback" onClick={openForm}>Request a Callback</button>
               </div>
             </div>
           </section>
@@ -1071,6 +1607,7 @@ const App = () => {
               <h2>Questions we hear often</h2>
               <p>Can't find what you're looking for? Write to us at <a href="mailto:hello@maihoonna.in">hello@maihoonna.in</a></p>
             </div>
+
             <div className="faq-list">
               {faqs.map((question) => (
                 <details key={question}>
@@ -1103,19 +1640,19 @@ const App = () => {
             <p>
               India's connected senior care ecosystem. Compassionate Care Mitras, Saathi Network, and real-time family visibility — all in one subscription.
             </p>
-            
+
             <div className="social-row">
               <a href="https://instagram.com" aria-label="Instagram" target="_blank" rel="noopener noreferrer">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5" /><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" /><line x1="17.5" y1="6.5" x2="17.51" y2="6.5" /></svg>
               </a>
               <a href="https://twitter.com" aria-label="Twitter" target="_blank" rel="noopener noreferrer">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z"/></svg>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z" /></svg>
               </a>
               <a href="https://facebook.com" aria-label="Facebook" target="_blank" rel="noopener noreferrer">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" /></svg>
               </a>
               <a href="https://youtube.com" aria-label="YouTube" target="_blank" rel="noopener noreferrer">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="5" ry="5"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="5" ry="5" /><polygon points="10 8 16 12 10 16 10 8" /></svg>
               </a>
             </div>
 
