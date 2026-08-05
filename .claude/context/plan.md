@@ -1,4 +1,11 @@
 # Execution Plan
+- [x] Enterprise Modular Payment Engine & State Machine Architecture (2026-08-05)
+  - [x] Modular Refactoring: Split monolith into `razorpay.service.js`, `webhook.service.js`, `payment.repository.js`, `subscription.service.js`, `payment.service.js`, `payment.controller.js`, `payment.routes.js` under `apps/admin-backend/modules/payments/`
+  - [x] Idempotency Engine: `markPaymentSuccessfulTransaction()` guards against duplicate webhook retries (`paymentStatus === 'success'`)
+  - [x] Atomic Database Transactions: Wrapped Payment update + Subscription activation + ActivityLog audit insert in `prisma.$transaction()`
+  - [x] Full JSONB Gateway Tracking: Saved full Razorpay JSON response in `gatewayResponse` (JSONB) for auditability
+  - [x] Live Polling & Direct API Check: 3-second live polling hook in `PaymentMethodSelector.tsx` queries live status straight from Razorpay API (`razorpayInstance.paymentLink.fetch()`) as local fallback
+  - [x] Dynamic UI State Machine: Rendered `🟡 PENDING PAYMENT`, `🟢 PAID & ACTIVATED`, `🔴 EXPIRED` badges with celebration banner and manual "Check Status Now 🔄" button
 - [x] Razorpay Payment Link API & Dual Payment Method Architecture (2026-08-04)
   - [x] Official Razorpay SDK Integration: Backend `POST /api/payments/generate-link` uses `razorpay.paymentLink.create()` returning real `https://rzp.io/rzp/XXXXX` hosted short links
   - [x] Reusable UI Component (`PaymentMethodSelector.tsx`): Supports Offline Payment (Cash, UPI, Cheque, Bank Transfer) & Online Payment Link generation across Enrollment and Renewal wizards

@@ -1,3 +1,27 @@
+## Session: Enterprise Modular Payment Engine, Idempotent Webhooks & Atomic Transactions (2026-08-05)
+
+### Modular Backend Payment Architecture (`apps/admin-backend/modules/payments/`)
+- **Layered Architecture**: Decoupled monolithic routes into clean, single-responsibility modules:
+  - [`razorpay.service.js`](file:///c:/Users/91930/OneDrive/Desktop/Mai-Hoonaa/apps/admin-backend/modules/payments/razorpay.service.js): Official Razorpay SDK wrapper (`createPaymentLink`, `fetchPaymentLink`).
+  - [`webhook.service.js`](file:///c:/Users/91930/OneDrive/Desktop/Mai-Hoonaa/apps/admin-backend/modules/payments/webhook.service.js): HMAC SHA-256 signature verification (`x-razorpay-signature`) & event payload normalizer.
+  - [`payment.repository.js`](file:///c:/Users/91930/OneDrive/Desktop/Mai-Hoonaa/apps/admin-backend/modules/payments/payment.repository.js): Atomic database transactions (`prisma.$transaction()`), subscriber resolution, & idempotency guards.
+  - [`subscription.service.js`](file:///c:/Users/91930/OneDrive/Desktop/Mai-Hoonaa/apps/admin-backend/modules/payments/subscription.service.js): Subscription state manager (`PENDING_PAYMENT` ➔ `ACTIVE`).
+  - [`payment.service.js`](file:///c:/Users/91930/OneDrive/Desktop/Mai-Hoonaa/apps/admin-backend/modules/payments/payment.service.js): Business orchestrator for link creation, webhook event routing, and live status verification.
+  - [`payment.controller.js`](file:///c:/Users/91930/OneDrive/Desktop/Mai-Hoonaa/apps/admin-backend/modules/payments/payment.controller.js): Clean HTTP request/response handlers.
+  - [`payment.routes.js`](file:///c:/Users/91930/OneDrive/Desktop/Mai-Hoonaa/apps/admin-backend/modules/payments/payment.routes.js): Express route definitions mapped to controller methods.
+
+### Idempotency, Database Transactions & Full JSONB Auditing
+- **Idempotent Webhook Guard**: `markPaymentSuccessfulTransaction()` verifies if `paymentStatus === 'success'` or `'PAID'`. Duplicate webhook retries from Razorpay exit immediately without duplicate DB mutations.
+- **Atomic `$transaction()`**: Payment update, Subscription activation, and Audit Log insertion (`ActivityLog`) are executed in a single atomic PostgreSQL transaction.
+- **Full Gateway Response**: Saves full raw JSON response from Razorpay in `gatewayResponse` (JSONB) for auditability and reconciliation.
+
+### Frontend Live Polling & State Machine UI
+- **3-Second Status Polling**: [`PaymentMethodSelector.tsx`](file:///c:/Users/91930/OneDrive/Desktop/Mai-Hoonaa/apps/admin-frontend/src/app/components/payment/PaymentMethodSelector.tsx) automatically polls `GET /api/payments/status/:orderId` every 3 seconds while payment is pending.
+- **Live Razorpay API Check**: In `checkLiveStatus()`, if DB status is pending, queries `razorpayInstance.paymentLink.fetch()` directly to verify live status from Razorpay API, ensuring local dev status updates work 100% without public Ngrok tunnels.
+- **State Machine Badges**: Dynamic UI badges (`🟡 PENDING PAYMENT`, `🟢 PAID & ACTIVATED`, `🔴 EXPIRED`), green celebration banner, and manual **Check Status Now 🔄** button.
+
+---
+
 ## Session: Official Razorpay Payment Link API, Webhook Verification & Dual Payment Architecture (2026-08-04)
 
 ### Razorpay Payment Links API Integration & Backend Architecture

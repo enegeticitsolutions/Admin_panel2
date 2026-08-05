@@ -143,13 +143,30 @@ export default function RenewalWizardPage() {
   const [customStartDate, setCustomStartDate] = useState('');
   const [currentExpiryDate, setCurrentExpiryDate] = useState('');
 
-  // ── Payment
   const [amountPaid, setAmountPaid] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('Cash');
   const [transactionId, setTransactionId] = useState('');
   const [paymentNote, setPaymentNote] = useState('');
   const [paymentMode, setPaymentMode] = useState<'offline' | 'online_link'>('offline');
-  const [paymentLinkDetails, setPaymentLinkDetails] = useState<any>(null);
+  const [paymentLinkDetailsState, setPaymentLinkDetailsState] = useState<any>(() => {
+    try {
+      const saved = sessionStorage.getItem(`renewal_payment_link_details_${subscriptionId}`);
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  const setPaymentLinkDetails = (data: any) => {
+    setPaymentLinkDetailsState(data);
+    if (data) {
+      sessionStorage.setItem(`renewal_payment_link_details_${subscriptionId}`, JSON.stringify(data));
+    } else {
+      sessionStorage.removeItem(`renewal_payment_link_details_${subscriptionId}`);
+    }
+  };
+
+  const paymentLinkDetails = paymentLinkDetailsState;
   const [generatingLink, setGeneratingLink] = useState(false);
 
   // ── Add Medicine Dialog State
@@ -1548,6 +1565,11 @@ export default function RenewalWizardPage() {
                 onPaymentNoteChange={setPaymentNote}
                 paymentLinkDetails={paymentLinkDetails}
                 generatingLink={generatingLink}
+                onPaymentCompleted={(completedDetails) => {
+                  setPaymentMethod('Razorpay Online');
+                  if (completedDetails?.orderId) setTransactionId(completedDetails.orderId);
+                  toast.success('Online Payment Verified & Renewal Activated! 🎉');
+                }}
                 onGenerateLink={async () => {
                   setGeneratingLink(true);
                   try {
@@ -1555,7 +1577,7 @@ export default function RenewalWizardPage() {
                       subscriberId: original.subscriberId || '',
                       beneficiaryId: original.beneficiaryId || '',
                       subscriptionId: original.subscriptionId || subscriptionId || '',
-                      packageType: selectedPackage?.type || 'silver',
+                      packageType: selectedPackage?.type || selectedPackage?.name || 'gold',
                       packageName: selectedPackage?.name || 'Care Package',
                       amount: parseFloat(amountPaid) || selectedPackage?.basePrice || 4999,
                       subscriberPhone,

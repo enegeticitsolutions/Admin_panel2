@@ -152,7 +152,25 @@ export default function EnrollmentWizardPage() {
   const [paymentNote, setPaymentNote] = useState('');
   const [transactionId, setTransactionId] = useState('');
   const [paymentMode, setPaymentMode] = useState<'offline' | 'online_link'>('offline');
-  const [paymentLinkDetails, setPaymentLinkDetails] = useState<any>(null);
+  const [paymentLinkDetailsState, setPaymentLinkDetailsState] = useState<any>(() => {
+    try {
+      const saved = sessionStorage.getItem('enrollment_payment_link_details');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  const setPaymentLinkDetails = (data: any) => {
+    setPaymentLinkDetailsState(data);
+    if (data) {
+      sessionStorage.setItem('enrollment_payment_link_details', JSON.stringify(data));
+    } else {
+      sessionStorage.removeItem('enrollment_payment_link_details');
+    }
+  };
+
+  const paymentLinkDetails = paymentLinkDetailsState;
   const [generatingLink, setGeneratingLink] = useState(false);
 
   // ── Add Medicine Dialog State
@@ -1674,6 +1692,11 @@ export default function EnrollmentWizardPage() {
                 onPaymentNoteChange={setPaymentNote}
                 paymentLinkDetails={paymentLinkDetails}
                 generatingLink={generatingLink}
+                onPaymentCompleted={(completedDetails) => {
+                  setPaymentMethod('Razorpay Online');
+                  if (completedDetails?.orderId) setTransactionId(completedDetails.orderId);
+                  toast.success('Online Payment Verified & Subscription Activated! 🎉');
+                }}
                 onGenerateLink={async () => {
                   setGeneratingLink(true);
                   try {
