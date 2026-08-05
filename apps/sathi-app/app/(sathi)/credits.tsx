@@ -41,7 +41,7 @@ export default function SathiCreditsScreen() {
   const [loading, setLoading] = useState(true);
   const [redeeming, setRedeeming] = useState(false);
   const [summary, setSummary] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState<'REDEEM' | 'HISTORY'>('REDEEM');
+  const [activeTab, setActiveTab] = useState<'REDEEM' | 'HISTORY' | 'VOUCHERS'>('REDEEM');
 
   // Gift Card form state
   const [giftPoints, setGiftPoints] = useState('10');
@@ -351,8 +351,24 @@ export default function SathiCreditsScreen() {
               color={activeTab === 'REDEEM' ? '#FFFFFF' : '#4B5563'}
               style={{ marginRight: 6 }}
             />
-            <Text style={[styles.tabButtonText, activeTab === 'REDEEM' && styles.tabButtonTextActive]}>
-              Redeem Rewards
+            <Text style={[styles.tabButtonText, activeTab === 'REDEEM' && styles.tabButtonTextActive, { fontSize: 11 }]}>
+              Redeem
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.tabButton, activeTab === 'VOUCHERS' && styles.tabButtonActive]}
+            onPress={() => setActiveTab('VOUCHERS')}
+            activeOpacity={0.8}
+          >
+            <Ionicons
+              name="ticket"
+              size={18}
+              color={activeTab === 'VOUCHERS' ? '#FFFFFF' : '#4B5563'}
+              style={{ marginRight: 6 }}
+            />
+            <Text style={[styles.tabButtonText, activeTab === 'VOUCHERS' && styles.tabButtonTextActive, { fontSize: 11 }]}>
+              Vouchers ({coupons.length})
             </Text>
           </TouchableOpacity>
 
@@ -367,8 +383,8 @@ export default function SathiCreditsScreen() {
               color={activeTab === 'HISTORY' ? '#FFFFFF' : '#4B5563'}
               style={{ marginRight: 6 }}
             />
-            <Text style={[styles.tabButtonText, activeTab === 'HISTORY' && styles.tabButtonTextActive]}>
-              History & Vouchers ({coupons.length + (summary?.transactions?.length || 0)})
+            <Text style={[styles.tabButtonText, activeTab === 'HISTORY' && styles.tabButtonTextActive, { fontSize: 11 }]}>
+              History
             </Text>
           </TouchableOpacity>
         </View>
@@ -376,13 +392,7 @@ export default function SathiCreditsScreen() {
         {/* Tab Content: REDEEM */}
         {activeTab === 'REDEEM' && (
           <View style={styles.tabContent}>
-            {/* Showcase Disclaimer Banner */}
-            <View style={styles.infoBanner}>
-              <Ionicons name="information-circle" size={22} color="#D97706" style={{ marginRight: 10, marginTop: 2 }} />
-              <Text style={styles.infoBannerText}>
-                <Text style={{ fontWeight: '700' }}>Database-Driven Rewards:</Text> Options below are stored in database tables and dynamically configured. Gift cards generate unique codes valid across MaiHoonNa services.
-              </Text>
-            </View>
+
 
             {/* Option 1: Gift Card (MHN Gift Card Only - Stored in DB) */}
             <View style={styles.rewardCard}>
@@ -492,8 +502,8 @@ export default function SathiCreditsScreen() {
           </View>
         )}
 
-        {/* Tab Content: HISTORY & VOUCHERS */}
-        {activeTab === 'HISTORY' && (
+        {/* Tab Content: VOUCHERS */}
+        {activeTab === 'VOUCHERS' && (
           <View style={styles.tabContent}>
             {/* Section 1: Active & Claimed Gift Cards (With Copy Code support) */}
             <View style={styles.sectionHeaderRow}>
@@ -502,7 +512,11 @@ export default function SathiCreditsScreen() {
             </View>
 
             {coupons.length > 0 ? (
-              coupons.map((coupon: any, index: number) => {
+              [...coupons].sort((a: any, b: any) => {
+                if (a.status !== 'CLAIMED' && b.status === 'CLAIMED') return -1;
+                if (a.status === 'CLAIMED' && b.status !== 'CLAIMED') return 1;
+                return 0;
+              }).map((coupon: any, index: number) => {
                 const isClaimed = coupon.status === 'CLAIMED';
                 return (
                   <View key={coupon.id || index} style={[styles.couponCard, isClaimed && styles.couponCardClaimed]}>
@@ -557,8 +571,13 @@ export default function SathiCreditsScreen() {
               </View>
             )}
 
-            {/* Section 2: Transaction Ledger History */}
-            <Text style={[styles.historySectionTitle, { marginTop: 12 }]}>All Credit Ledger History</Text>
+          </View>
+        )}
+
+        {/* Tab Content: HISTORY */}
+        {activeTab === 'HISTORY' && (
+          <View style={styles.tabContent}>
+            <Text style={styles.historySectionTitle}>All Credit Ledger History</Text>
             {summary?.transactions && summary.transactions.length > 0 ? (
               summary.transactions.map((tx: any, index: number) => {
                 const isEarned = tx.type === 'earned' || tx.pointsDelta > 0;
@@ -921,14 +940,11 @@ const styles = StyleSheet.create({
   },
   rewardCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 18,
+    borderRadius: 24,
     padding: 18,
     marginBottom: 18,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    elevation: 2,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
   },
   rewardHeader: {
     flexDirection: 'row',

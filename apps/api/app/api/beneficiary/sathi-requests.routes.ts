@@ -103,4 +103,31 @@ router.post(
   })
 );
 
+// Route to submit feedback for a volunteer
+router.post(
+  '/:beneficiaryId/sathi/volunteers/:volunteerId/feedback',
+  authenticate,
+  asyncHandler(async (req: any, res: Response) => {
+    const { rating, reviewText } = req.body;
+    const resolvedId = await resolveBeneficiaryId(req.params.beneficiaryId);
+    const review = await beneficiarySathiService.submitVolunteerReview(
+      req.params.volunteerId,
+      resolvedId,
+      rating,
+      reviewText
+    );
+    res.status(201).json(new ApiResponse(201, review, 'Feedback submitted successfully.'));
+  })
+);
+
+// Route to get reviews for a volunteer
+router.get(
+  '/:beneficiaryId/sathi/volunteers/:volunteerId/reviews',
+  authenticate,
+  asyncHandler(async (req: any, res: Response) => {
+    const reviews = await beneficiarySathiService.getVolunteerReviews(req.params.volunteerId);
+    res.json(new ApiResponse(200, reviews));
+  })
+);
+
 export default router;

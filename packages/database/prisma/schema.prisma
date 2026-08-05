@@ -297,6 +297,7 @@ model Beneficiary {
   @@index([primaryCcId])
   @@index([secondaryCcId])
   @@index([latitude, longitude])
+    volunteerReviews   VolunteerReview[]
   @@map("beneficiaries")
 }
 
@@ -1867,6 +1868,7 @@ model Volunteer {
   creditTransactions VolunteerCreditTransaction[]
   sathiVisitRequests SathiVisitRequest[]
   rewardCoupons      VolunteerRewardCoupon[]
+  reviews            VolunteerReview[]
 
   @@index([latitude, longitude])
   @@map("volunteers")
@@ -2105,4 +2107,19 @@ model WebsiteContent {
   updatedAt DateTime @updatedAt
 
   @@map("website_content")
+}
+
+
+model VolunteerReview {
+  id            String      @id @default(uuid())
+  volunteerId   String
+  beneficiaryId String
+  rating        Float
+  reviewText    String?
+  createdAt     DateTime    @default(now())
+
+  volunteer     Volunteer   @relation(fields: [volunteerId], references: [id], onDelete: Cascade)
+  beneficiary   Beneficiary @relation(fields: [beneficiaryId], references: [id], onDelete: Cascade)
+
+  @@map("volunteer_reviews")
 }

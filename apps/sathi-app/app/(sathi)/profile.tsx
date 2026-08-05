@@ -191,9 +191,7 @@ export default function SathiProfile() {
           </View>
           <View style={{ flex: 1, marginLeft: scale(14) }}>
             <Text style={styles.creditsTitle}>Credits & Rewards</Text>
-            <Text style={styles.creditsSubtitle}>
-              {profile?.totalCreditPoints !== undefined ? `${profile.totalCreditPoints} pts available` : 'View balance & redeem options'}
-            </Text>
+
           </View>
           <View style={styles.creditsActionBadge}>
             <Text style={styles.creditsActionText}>Redeem</Text>

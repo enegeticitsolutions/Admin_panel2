@@ -182,6 +182,22 @@ export const getVolunteerDashboard = async (id: string) => {
 
   const beneficiaryIds = volunteer.assignments.map(a => a.beneficiaryId);
 
+  const threeHoursAgo = new Date(Date.now() - 3 * 60 * 60 * 1000);
+  await prisma.sathiVisitRequest.updateMany({
+    where: {
+      OR: [
+        { volunteerId: id },
+        { beneficiaryId: { in: beneficiaryIds } }
+      ],
+      status: { in: ['PENDING', 'ACCEPTED'] },
+      dateTime: { lt: threeHoursAgo }
+    },
+    data: {
+      status: 'REJECTED',
+      rejectionReason: 'Automatically marked as not completed due to timeout.'
+    }
+  });
+
   // Fetch pending visit requests (where not rejected by this volunteer)
   const pendingRequests = await prisma.sathiVisitRequest.findMany({
     where: {
@@ -497,7 +513,11 @@ export const checkoutVolunteerVisit = async (volunteerId: string, visitLogId: st
 
   const creditRateStr = await getSystemConfig('SATHI_CREDIT_RATE', '10');
   const creditRate = parseFloat(creditRateStr);
-  const pointsEarned = hoursEarned * creditRate;
+  
+  let pointsEarned = 0;
+  if (rawMinutes > 0) {
+    pointsEarned = Math.max(5, (rawMinutes / 60) * creditRate);
+  }
 
   const result = await prisma.$transaction(async (tx) => {
     await tx.subscriptionBenefitBalance.update({
@@ -532,7 +552,7 @@ export const checkoutVolunteerVisit = async (volunteerId: string, visitLogId: st
         minutesDelta: rawMinutes,
         pointsDelta: pointsEarned,
         balanceAfter: newPointsTotal,
-        description: `Completed volunteering session with Beneficiary.`
+        description: `Visit Completed`
       }
     });
 
@@ -756,7 +776,9 @@ export const redeemVolunteerCredits = async (
         minutesDelta: 0,
         pointsDelta: -points,
         balanceAfter: newBalance,
-        description: `Redeemed ${points} credits for ${redeemType.replace(/_/g, ' ')} (${targetDesc})`.trim(),
+        description: redeemType === 'GIFT_CARD' 
+          ? 'Gift Card Claimed' 
+          : `UPI Withdrawal\nID: ${targetDesc}`,
       }
     });
 
