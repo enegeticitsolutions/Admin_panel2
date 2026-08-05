@@ -256,8 +256,10 @@ export const completeSathiVisit = async (beneficiaryId: string, requestId: strin
       const checkOutTime = new Date();
       const rawMinutes = (checkOutTime.getTime() - activeLog.checkInTime.getTime()) / 60000;
       const hoursEarned = rawMinutes / 60;
-      const pointsEarned = hoursEarned * 10; // Default rate
-
+      
+      const config = await prisma.systemConfig.findUnique({ where: { key: 'SATHI_CREDIT_RATE' } });
+      const creditRate = parseFloat(config ? config.value : '10');
+      const pointsEarned = hoursEarned * creditRate;
       await prisma.$transaction(async (tx) => {
         // Update the actualDurationMinutes
         await tx.sathiVisitRequest.update({
