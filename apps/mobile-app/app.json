@@ -24,6 +24,7 @@
     },
     "android": {
       "package": "com.rajeev_23.maihoonna",
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/icon.png",
         "backgroundColor": "#FE6700"
