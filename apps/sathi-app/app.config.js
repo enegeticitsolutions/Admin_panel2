@@ -32,6 +32,9 @@ export default ({ config }) => {
     extra: {
       ...config.extra,
       razorpayKeyId,
+      eas: {
+        projectId: "f43f1b8e-74f7-484e-9a39-73ee7827c4d2"
+      }
     },
   };
 };
