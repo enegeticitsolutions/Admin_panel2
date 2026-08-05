@@ -511,7 +511,7 @@ export default function SathiDashboard() {
       fetchDashboardData();
       const pollTimer = setInterval(() => {
         fetchDashboardData();
-      }, 1000);
+      }, 30000);
 
       return () => clearInterval(pollTimer);
     }, [])
@@ -951,7 +951,7 @@ export default function SathiDashboard() {
                     >
                       <Ionicons name="time" size={18} color="#1E40AF" style={{ marginRight: 6 }} />
                       <Text style={{ color: '#1E40AF', fontFamily: 'Poppins-SemiBold', fontSize: scale(14) }}>
-                        {activeVisitElapsedTime} (Waiting for Beneficiary to complete)
+                        {activeVisitElapsedTime}
                       </Text>
                     </TouchableOpacity>
                   </View>
