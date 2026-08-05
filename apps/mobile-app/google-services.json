@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1024621796653",
+    "project_id": "maihoonna-999af",
+    "storage_bucket": "maihoonna-999af.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1024621796653:android:468a40329e2f9066fc07a4",
+        "android_client_info": {
+          "package_name": "com.rajeev_23.maihoonna"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAgQPAScwUnUfSLcehCRwyhsVQFSlesaCQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
