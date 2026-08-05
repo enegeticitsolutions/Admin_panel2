@@ -87,31 +87,83 @@ export const createSathiVisitRequest = async (beneficiaryId: string, dateTime: s
   return request;
 };
 
+function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371; // Radius of the earth in km
+  const dLat = (lat2 - lat1) * Math.PI / 180;  
+  const dLon = (lon2 - lon1) * Math.PI / 180; 
+  const a = 
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+    Math.sin(dLon/2) * Math.sin(dLon/2); 
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
+  const d = R * c; 
+  return d;
+}
+
 export const getLinkedVolunteers = async (beneficiaryId: string) => {
+  const beneficiary = await prisma.beneficiary.findUnique({
+    where: { id: beneficiaryId },
+    select: { latitude: true, longitude: true }
+  });
+
   const assignments = await prisma.volunteerAssignment.findMany({
     where: { beneficiaryId, isActive: true },
     include: {
-      volunteer: true
+      volunteer: {
+        include: {
+          reviews: true
+        }
+      }
     }
   });
 
   return assignments.map(a => {
     const v = a.volunteer;
-    const rating = Math.min(5, Math.max(3, 3 + (v.totalCreditPoints / 100)));
+    
+    let rating = 0;
+    let reviewCount = 0;
+    if (v.reviews && v.reviews.length > 0) {
+      const sum = v.reviews.reduce((acc: any, rev: any) => acc + rev.rating, 0);
+      rating = sum / v.reviews.length;
+      reviewCount = v.reviews.length;
+    } else {
+      rating = Math.min(5, Math.max(3, 3 + (v.totalCreditPoints / 100)));
+    }
+    
+    let distanceStr = v.city ? `${v.city}${v.state ? `, ${v.state}` : ''}` : (v.address || 'Nearby');
+    if (beneficiary?.latitude && beneficiary?.longitude && v.latitude && v.longitude) {
+      const dist = calculateDistance(beneficiary.latitude, beneficiary.longitude, v.latitude, v.longitude);
+      distanceStr = `${dist.toFixed(1)} km`;
+    }
+
     return {
       id: v.id,
       name: v.name,
       photo: v.profilePhoto || 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=120',
       rating: rating.toFixed(1),
-      distance: '2.0 km', 
-      location: v.address || 'Nearby',
+      reviewCount: reviewCount,
+      distance: distanceStr, 
+      location: v.city ? `${v.city}${v.state ? `, ${v.state}` : ''}` : (v.address || 'Nearby'),
       hours: v.totalCreditHours.toFixed(1),
-      bio: v.previousExperience || 'Volunteer passionate about community support.'
+      bio: v.previousExperience || v.whyJoin || 'Volunteer passionate about community support.'
     };
   });
 };
 
 export const getBeneficiarySathiRequests = async (beneficiaryId: string) => {
+  const threeHoursAgo = new Date(Date.now() - 3 * 60 * 60 * 1000);
+  await prisma.sathiVisitRequest.updateMany({
+    where: {
+      beneficiaryId,
+      status: { in: ['PENDING', 'ACCEPTED'] },
+      dateTime: { lt: threeHoursAgo }
+    },
+    data: {
+      status: 'REJECTED',
+      rejectionReason: 'Automatically marked as not completed due to timeout.'
+    }
+  });
+
   const requests = await prisma.sathiVisitRequest.findMany({
     where: { beneficiaryId },
     include: {
@@ -241,7 +293,7 @@ export const completeSathiVisit = async (beneficiaryId: string, requestId: strin
               minutesDelta: rawMinutes,
               pointsDelta: pointsEarned,
               balanceAfter: volunteer.totalCreditPoints + pointsEarned,
-              description: `Beneficiary confirmed completion.`
+              description: `Visit Verified`
             }
           });
         }
@@ -261,4 +313,37 @@ export const completeSathiVisit = async (beneficiaryId: string, requestId: strin
   }
 
   return { request: updatedRequest, message: 'Visit marked as completed successfully and Sathi hours logged.' };
+};
+
+export const submitVolunteerReview = async (volunteerId: string, beneficiaryId: string, rating: number, reviewText?: string) => {
+  if (!rating || rating < 1 || rating > 5) {
+    throw new ApiError(400, 'Rating must be between 1 and 5');
+  }
+
+  const review = await prisma.volunteerReview.create({
+    data: {
+      volunteerId,
+      beneficiaryId,
+      rating,
+      reviewText: reviewText || null
+    }
+  });
+
+  return review;
+};
+
+export const getVolunteerReviews = async (volunteerId: string) => {
+  const reviews = await prisma.volunteerReview.findMany({
+    where: { volunteerId },
+    include: {
+      beneficiary: {
+        select: {
+          name: true,
+          photo: true
+        }
+      }
+    },
+    orderBy: { createdAt: 'desc' }
+  });
+  return reviews;
 };

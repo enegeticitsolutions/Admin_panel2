@@ -36,6 +36,7 @@ export default function SathiHours() {
   const [visitHistory, setVisitHistory] = useState<any[]>([]);
   const [creditsLedger, setCreditsLedger] = useState<any[]>([]);
   const [upcomingVisits, setUpcomingVisits] = useState<any[]>([]);
+  const [showAllHistory, setShowAllHistory] = useState(false);
 
   // OTP Modal State
   const [showOtpModal, setShowOtpModal] = useState(false);
@@ -373,9 +374,18 @@ export default function SathiHours() {
         </Modal>
 
         {/* Visit Logs History */}
-        <Text style={styles.sectionTitle}>Completed Visits History</Text>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' }}>
+          <Text style={styles.sectionTitle}>Completed Visits History</Text>
+          {visitHistory.length > 2 && (
+            <TouchableOpacity onPress={() => setShowAllHistory(!showAllHistory)}>
+              <Text style={{ color: '#FE6700', fontWeight: 'bold' }}>
+                {showAllHistory ? 'Show Less' : 'View All'}
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
         {visitHistory.length > 0 ? (
-          visitHistory.map((item) => (
+          (showAllHistory ? visitHistory : visitHistory.slice(0, 2)).map((item) => (
               <View key={item.id} style={[styles.historyItem, { flexDirection: 'column', alignItems: 'stretch' }]}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                   <View>
@@ -393,12 +403,7 @@ export default function SathiHours() {
                     <Text style={styles.historyPoints}>+{item.creditPointsEarned?.toFixed(0)} pts</Text>
                   </View>
                 </View>
-                <TouchableOpacity 
-                  style={{ marginTop: 12, backgroundColor: '#E5E7EB', paddingVertical: 8, borderRadius: 12, alignItems: 'center' }}
-                  onPress={() => Alert.alert('Feedback', 'Thank you for your feedback! This helps us improve the program.')}
-                >
-                  <Text style={{ color: '#4B5563', fontFamily: 'Poppins-Medium', fontSize: 13 }}>⭐ Feedback</Text>
-                </TouchableOpacity>
+
               </View>
           ))
         ) : (

@@ -2508,3 +2508,32 @@ The vital tracking system is now completely dynamic and configuration-driven. Ne
   - Moved `GET /api/visits/service-requests` handler above `GET /api/visits/:id` (moved from line 1057 to line 432).
   - Fixed route swallowing bug where Express caught `"service-requests"` as a visit ID parameter (`:id`), resulting in 404 "Visit not found" errors instead of executing the service request aggregation query.
 
+
+---
+
+## Session: Sathi/Volunteer Feedback & Review System (2026-08-05)
+
+### Database Architecture & Prisma Models
+- **VolunteerReview Model**:
+  - Added `VolunteerReview` model with fields: `id`, `volunteerId`, `beneficiaryId`, `rating`, `reviewText`, `createdAt`, `updatedAt`.
+  - Added inverse relations `reviews` in `Volunteer` model and `volunteerReviews` in `Beneficiary` model.
+  - Synchronized schema using direct Supabase pooler connection (`npx prisma db push`).
+  - Generated Prisma Client across the monorepo (`packages/database` and `apps/api`).
+
+### Service Layer & Core Engine
+- **Beneficiary Sathi Service (`beneficiary_sathi_service.ts`)**:
+  - `submitVolunteerReview()`: Creates a new `VolunteerReview` in the database.
+  - `getVolunteerReviews()`: Fetches all reviews for a specific volunteer, including the beneficiary's name and photo.
+  - Updated `getLinkedVolunteers()`: Dynamically calculates the average rating and review count from the `VolunteerReview` table instead of hardcoded values.
+
+### API Routes
+- **Sathi Requests Routes (`sathi-requests.routes.ts`)**:
+  - Added `POST /api/v1/beneficiary/sathi-requests/:beneficiaryId/sathi/review` endpoint.
+  - Added `GET /api/v1/beneficiary/sathi-requests/:beneficiaryId/sathi/reviews/:volunteerId` endpoint.
+
+### Frontend App (`apps/mobile-app`)
+- **Sathi Request Screen (`sathi-request.tsx`)**:
+  - **Feedback Submission Modal**: Implemented star rating (1-5) and text review form.
+  - **Reviews Viewer Modal**: Implemented modal to view all historical reviews left by beneficiaries for a specific volunteer.
+  - **Design Adjustments**: Rounded edges on Reward Cards, shortened visit status copy (e.g. "Visit Completed", "Visit Verified").
+  - Dynamically displaying the fetched average rating and review count directly on the volunteer assignment card.

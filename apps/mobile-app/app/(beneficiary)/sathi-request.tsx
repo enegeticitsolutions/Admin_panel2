@@ -49,6 +49,20 @@ export default function SathiRequestScreen() {
   const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
   const [isTimePickerVisible, setTimePickerVisibility] = useState(false);
 
+  const [showAllRescheduled, setShowAllRescheduled] = useState(false);
+  const [showAllMyRequests, setShowAllMyRequests] = useState(false);
+
+  // Feedback State
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [feedbackTarget, setFeedbackTarget] = useState<any | null>(null);
+  const [feedbackRating, setFeedbackRating] = useState(5);
+  const [feedbackText, setFeedbackText] = useState('');
+
+  // Reviews State
+  const [showReviewsModal, setShowReviewsModal] = useState(false);
+  const [selectedReviews, setSelectedReviews] = useState<any[]>([]);
+  const [fetchingReviews, setFetchingReviews] = useState(false);
+
   const showAlert = (title: string, message: string) => {
     if (Platform.OS === 'web') {
       try { window.alert(`${title}: ${message}`); } catch {}
@@ -253,6 +267,62 @@ export default function SathiRequestScreen() {
       }
     } catch (err: any) {
       showAlert('Error', err.message || 'Network error.');
+    }
+  };
+
+  const handleSubmitFeedback = async () => {
+    if (!feedbackTarget) return;
+    try {
+      const token = await AsyncStorage.getItem('userToken');
+      const userStr = await AsyncStorage.getItem('userData');
+      if (!token || !userStr) return;
+      const user = JSON.parse(userStr);
+      
+      const res = await fetch(`${API_URL}/beneficiary/sathi-requests/${user.id}/sathi/volunteers/${feedbackTarget.id}/feedback`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ rating: feedbackRating, reviewText: feedbackText }),
+      });
+      const data = await res.json();
+      if (res.ok || data.success) {
+        showAlert('Success', 'Feedback submitted successfully.');
+        setShowFeedbackModal(false);
+        setFeedbackTarget(null);
+        setFeedbackRating(5);
+        setFeedbackText('');
+        checkEligibility(); // Refresh list to get new rating
+      } else {
+        throw new Error(data.message || 'Failed to submit feedback.');
+      }
+    } catch (err: any) {
+      showAlert('Error', err.message || 'Network error.');
+    }
+  };
+
+  const handleViewReviews = async (volunteer: any) => {
+    setFetchingReviews(true);
+    setSelectedVolunteer(volunteer); // store the volunteer whose reviews we're viewing
+    setShowReviewsModal(true);
+    try {
+      const token = await AsyncStorage.getItem('userToken');
+      const userStr = await AsyncStorage.getItem('userData');
+      if (!token || !userStr) return;
+      const user = JSON.parse(userStr);
+      
+      const res = await fetch(`${API_URL}/beneficiary/sathi-requests/${user.id}/sathi/volunteers/${volunteer.id}/reviews`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (res.ok || data.success) {
+        setSelectedReviews(data.data);
+      }
+    } catch (err: any) {
+      console.log('Failed to fetch reviews', err);
+    } finally {
+      setFetchingReviews(false);
     }
   };
 
@@ -478,14 +548,26 @@ export default function SathiRequestScreen() {
         </View>
 
         {(() => {
-          const rescheduledRequests = myRequests.filter(req => req.proposedDateTime != null);
-          const otherRequests = myRequests.filter(req => req.proposedDateTime == null);
+          const rescheduledRequestsAll = myRequests.filter(req => req.proposedDateTime != null);
+          const otherRequestsAll = myRequests.filter(req => req.proposedDateTime == null);
+          
+          const rescheduledRequests = showAllRescheduled ? rescheduledRequestsAll : rescheduledRequestsAll.slice(0, 3);
+          const otherRequests = showAllMyRequests ? otherRequestsAll : otherRequestsAll.slice(0, 3);
           
           return (
             <>
-              {rescheduledRequests.length > 0 && (
+              {rescheduledRequestsAll.length > 0 && (
                 <View style={styles.requestsContainer}>
-                  <Text style={styles.sectionTitle}>Rescheduled Requests</Text>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                    <Text style={styles.sectionTitle}>Rescheduled Requests</Text>
+                    {rescheduledRequestsAll.length > 3 && (
+                      <TouchableOpacity onPress={() => setShowAllRescheduled(!showAllRescheduled)}>
+                        <Text style={{ color: '#FF6A00', fontWeight: 'bold' }}>
+                          {showAllRescheduled ? 'Show Less' : 'View All'}
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
                   {rescheduledRequests.map((req) => (
                     <View key={req.id} style={styles.requestCard}>
                       <View style={styles.reqHeader}>
@@ -585,9 +667,18 @@ export default function SathiRequestScreen() {
                 </View>
               )}
 
-              {otherRequests.length > 0 && (
+              {otherRequestsAll.length > 0 && (
                 <View style={styles.requestsContainer}>
-                  <Text style={styles.sectionTitle}>My Requests</Text>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                    <Text style={styles.sectionTitle}>My Requests</Text>
+                    {otherRequestsAll.length > 3 && (
+                      <TouchableOpacity onPress={() => setShowAllMyRequests(!showAllMyRequests)}>
+                        <Text style={{ color: '#FF6A00', fontWeight: 'bold' }}>
+                          {showAllMyRequests ? 'Show Less' : 'View All'}
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
                   {otherRequests.map((req) => (
                     <View key={req.id} style={styles.requestCard}>
                       <View style={styles.reqHeader}>
@@ -597,6 +688,7 @@ export default function SathiRequestScreen() {
                         <View style={[
                           styles.statusBadge, 
                           req.status === 'ACCEPTED' ? styles.statusAccepted : 
+                          (req.status === 'REJECTED' && req.rejectionReason === 'Automatically marked as not completed due to timeout.') ? { backgroundColor: '#FEE2E2' } :
                           req.status === 'REJECTED' ? styles.statusRejected : 
                           req.status === 'IN_PROGRESS' ? { backgroundColor: '#DBEAFE' } :
                           req.status === 'COMPLETED' ? { backgroundColor: '#ECFCCB' } :
@@ -605,6 +697,7 @@ export default function SathiRequestScreen() {
                           <Text style={[
                             styles.statusText,
                             req.status === 'ACCEPTED' ? styles.statusTextAccepted : 
+                            (req.status === 'REJECTED' && req.rejectionReason === 'Automatically marked as not completed due to timeout.') ? { color: '#991B1B' } :
                             req.status === 'REJECTED' ? styles.statusTextRejected : 
                             req.status === 'IN_PROGRESS' ? { color: '#1E40AF' } :
                             req.status === 'COMPLETED' ? { color: '#3F6212' } :
@@ -619,6 +712,7 @@ export default function SathiRequestScreen() {
                                return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
                              })() : 
                              req.status === 'COMPLETED' ? 'COMPLETED' : 
+                             (req.status === 'REJECTED' && req.rejectionReason === 'Automatically marked as not completed due to timeout.') ? 'NOT COMPLETED' :
                              req.status}
                           </Text>
                         </View>
@@ -684,15 +778,15 @@ export default function SathiRequestScreen() {
                 <View style={styles.volInfo}>
                   <Text style={styles.volName}>{v.name}</Text>
                   <View style={styles.volStatsRow}>
-                    <View style={styles.ratingBadge}>
+                    <TouchableOpacity style={styles.ratingBadge} onPress={() => handleViewReviews(v)}>
                       {Array.from({ length: Math.floor(parseFloat(v.rating)) }).map((_, i) => (
                         <FontAwesome key={`star-${i}`} name="star" size={12} color="#FBBF24" style={{marginRight: 2}} />
                       ))}
                       {parseFloat(v.rating) % 1 !== 0 && (
                         <FontAwesome name="star-half-o" size={12} color="#FBBF24" style={{marginRight: 2}} />
                       )}
-                      <Text style={styles.ratingText}>{v.rating}</Text>
-                    </View>
+                      <Text style={styles.ratingText}>{v.rating} ({v.reviewCount || 0} reviews)</Text>
+                    </TouchableOpacity>
                     <View style={styles.distanceBadge}>
                       <Feather name="map-pin" size={10} color="#6B7280" />
                       <Text style={styles.distanceText}>{v.distance}</Text>
@@ -714,7 +808,7 @@ export default function SathiRequestScreen() {
                 <TouchableOpacity style={styles.reqBtn} onPress={() => setSelectedVolunteer(v)}>
                   <Text style={styles.reqBtnText}>Request Visit</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.feedBtn} onPress={() => Alert.alert('Feedback', 'Feedback feature coming soon.')}>
+                <TouchableOpacity style={styles.feedBtn} onPress={() => { setFeedbackTarget(v); setShowFeedbackModal(true); setFeedbackRating(5); setFeedbackText(''); }}>
                   <Text style={styles.feedBtnText}>Feedback</Text>
                 </TouchableOpacity>
               </View>
@@ -724,6 +818,79 @@ export default function SathiRequestScreen() {
 
         <View style={{ height: 40 }} />
       </ScrollView>
+
+      {/* Feedback Modal */}
+      {showFeedbackModal && feedbackTarget && (
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Rate {feedbackTarget.name}</Text>
+            <View style={{ flexDirection: 'row', justifyContent: 'center', marginBottom: 16 }}>
+              {[1, 2, 3, 4, 5].map((star) => (
+                <TouchableOpacity key={star} onPress={() => setFeedbackRating(star)}>
+                  <FontAwesome
+                    name={star <= feedbackRating ? 'star' : 'star-o'}
+                    size={32}
+                    color="#FBBF24"
+                    style={{ marginHorizontal: 4 }}
+                  />
+                </TouchableOpacity>
+              ))}
+            </View>
+            <TextInput
+              style={styles.textArea}
+              placeholder="Leave a review..."
+              placeholderTextColor="#9CA3AF"
+              multiline
+              numberOfLines={3}
+              value={feedbackText}
+              onChangeText={setFeedbackText}
+            />
+            <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
+              <TouchableOpacity style={[styles.submitBtn, { flex: 1, backgroundColor: '#E5E7EB' }]} onPress={() => setShowFeedbackModal(false)}>
+                <Text style={[styles.submitBtnText, { color: '#374151' }]}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.submitBtn, { flex: 1 }]} onPress={handleSubmitFeedback}>
+                <Text style={styles.submitBtnText}>Submit</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      )}
+
+      {/* Reviews Modal */}
+      {showReviewsModal && selectedVolunteer && (
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalCard, { maxHeight: '80%' }]}>
+            <Text style={styles.modalTitle}>Reviews for {selectedVolunteer.name}</Text>
+            {fetchingReviews ? (
+              <ActivityIndicator size="small" color="#FF6A00" style={{ marginVertical: 24 }} />
+            ) : selectedReviews.length === 0 ? (
+              <Text style={{ textAlign: 'center', color: '#6B7280', marginVertical: 24 }}>No reviews yet.</Text>
+            ) : (
+              <ScrollView style={{ width: '100%', marginVertical: 12 }} showsVerticalScrollIndicator={false}>
+                {selectedReviews.map((rev: any) => (
+                  <View key={rev.id} style={{ borderBottomWidth: 1, borderBottomColor: '#F3F4F6', paddingVertical: 12 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                      <Text style={{ fontWeight: 'bold', color: '#1F2937' }}>{rev.beneficiary?.name || 'User'}</Text>
+                      <View style={{ flexDirection: 'row' }}>
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <FontAwesome key={star} name={star <= rev.rating ? 'star' : 'star-o'} size={12} color="#FBBF24" />
+                        ))}
+                      </View>
+                    </View>
+                    <Text style={{ fontSize: 12, color: '#9CA3AF', marginBottom: 8 }}>{format(new Date(rev.createdAt), 'MMM d, yyyy')}</Text>
+                    {rev.reviewText && <Text style={{ color: '#4B5563', fontSize: 14 }}>{rev.reviewText}</Text>}
+                  </View>
+                ))}
+              </ScrollView>
+            )}
+            <TouchableOpacity style={[styles.modalDoneBtn, { width: '100%', marginTop: 12 }]} onPress={() => setShowReviewsModal(false)}>
+              <Text style={styles.modalDoneBtnText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
     </SafeAreaView>
   );
 }
