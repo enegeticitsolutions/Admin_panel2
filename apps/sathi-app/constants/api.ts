@@ -26,9 +26,8 @@ const getLocalUrl = () => {
 
     // 3. Android emulators / physical devices
     if (Platform.OS === 'android') {
-        // For physical devices using `adb reverse tcp:PORT tcp:PORT`, 127.0.0.1 works via USB tunnel.
-        // 10.0.2.2 is only for the Android emulator (which does NOT support adb reverse).
-        const host = LOCAL_IP === 'localhost' ? '127.0.0.1' : LOCAL_IP;
+        // Use 10.0.2.2 for the Android Emulator to access the host Mac's localhost
+        const host = LOCAL_IP === 'localhost' ? '10.0.2.2' : LOCAL_IP;
         return `http://${host}:${PORT}/api`;
     }
     

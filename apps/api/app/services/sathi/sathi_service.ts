@@ -516,7 +516,7 @@ export const checkoutVolunteerVisit = async (volunteerId: string, visitLogId: st
   
   let pointsEarned = 0;
   if (rawMinutes > 0) {
-    pointsEarned = Math.max(5, (rawMinutes / 60) * creditRate);
+    pointsEarned = (rawMinutes / 60) * creditRate;
   }
 
   const result = await prisma.$transaction(async (tx) => {
