@@ -1,4 +1,7 @@
 # Execution Plan
+- [x] Merged Sathi Reviews & iOS Build Branches (2026-08-05)
+  - [x] Merged `harshit/feature/sathi-reviews-and-optimizations` (`5374ff1`): Comprehensive Sathi volunteer review system, API polling limit fixes, and UI layout optimizations.
+  - [x] Merged `harshit/fix-ios-build` (`01bdc5c`): iOS simulator build fix, CocoaPods dependencies update (`Podfile.lock`), Xcode project configuration (`project.pbxproj`), and EAS build profile setup (`eas.json`).
 - [x] Enterprise Modular Payment Engine & State Machine Architecture (2026-08-05)
   - [x] Modular Refactoring: Split monolith into `razorpay.service.js`, `webhook.service.js`, `payment.repository.js`, `subscription.service.js`, `payment.service.js`, `payment.controller.js`, `payment.routes.js` under `apps/admin-backend/modules/payments/`
   - [x] Idempotency Engine: `markPaymentSuccessfulTransaction()` guards against duplicate webhook retries (`paymentStatus === 'success'`)
