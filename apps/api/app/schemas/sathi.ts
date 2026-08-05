@@ -34,6 +34,8 @@ export const volunteerProfileUpdateSchema = Joi.object({
 export const volunteerCheckinSchema = Joi.object({
   beneficiaryId: Joi.string().required(),
   assignmentId: Joi.string().required(),
+  visitRequestId: Joi.string().required(),
+  otpCode: Joi.string().required(),
   notes: Joi.string().optional().allow(''),
 });
 

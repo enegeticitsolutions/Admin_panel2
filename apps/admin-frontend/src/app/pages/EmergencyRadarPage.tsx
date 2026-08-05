@@ -165,7 +165,7 @@ export default function EmergencyRadarPage() {
     if (!autoRefresh) return;
     const interval = setInterval(() => {
       fetchRequests();
-    }, 5000);
+    }, 30000);
     return () => clearInterval(interval);
   }, [autoRefresh, filterStatus]);
 
