@@ -1,4 +1,11 @@
 # Execution Plan
+- [x] Enterprise Omnichannel Notification Engine & Centralized Dispatcher (2026-08-05)
+  - [x] Monorepo Notification SDK (`packages/notifications`): Created `whatsapp.registry.ts` mapping all 63 business events to MSG91 template IDs, namespaces, and required variables.
+  - [x] Outbound MSG91 Integration (`notification.service.ts`): Built HTTP strategy for MSG91 bulk WhatsApp API with fail-safe exception handling.
+  - [x] Centralized Backend Dispatcher (`apps/admin-backend/services/notification.dispatcher.js`): Abstracted notification logic away from controllers into semantic helpers (`dispatchPaymentLinkGenerated`, `dispatchPaymentSuccessful`, `dispatchVisitScheduled`, `dispatchCareCompanionAssigned`).
+  - [x] Omnichannel Target Normalization: Single dispatcher call simultaneously triggers WhatsApp messages (via MSG91 SDK) and Swiggy-style In-App Lock-Screen Push notifications (via Expo Push API and PostgreSQL notification logging) when passed `{ phone, userId }`.
+  - [x] Integrated Controller Call Sites: Wired into `payment.service.js` (Payment Links), `payment.repository.js` (Receipts & Activations), `visits.js` (Visit Scheduling), and `beneficiaries.js` (Care Companion Assignments).
+  - [x] Git Multi-Branch Merges: Merged and pushed `feature/notification-engine-integration`, `feature/home-ui`, and `fix-points-logic` into remote repository `harshit/main`.
 - [x] Merged Sathi Reviews & iOS Build Branches (2026-08-05)
   - [x] Merged `harshit/feature/sathi-reviews-and-optimizations` (`5374ff1`): Comprehensive Sathi volunteer review system, API polling limit fixes, and UI layout optimizations.
   - [x] Merged `harshit/fix-ios-build` (`01bdc5c`): iOS simulator build fix, CocoaPods dependencies update (`Podfile.lock`), Xcode project configuration (`project.pbxproj`), and EAS build profile setup (`eas.json`).
