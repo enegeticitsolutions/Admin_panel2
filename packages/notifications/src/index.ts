@@ -6,6 +6,8 @@ import { WhatsAppMessage } from './interfaces/IWhatsAppProvider';
 export * from './interfaces/ISmsProvider';
 export * from './interfaces/IWhatsAppProvider';
 export * from './providers/provider.factory';
+export * from './services/notification.service';
+export * from './registry/whatsapp.registry';
 
 const smsChannel = new SmsChannel();
 const whatsAppChannel = new WhatsAppChannel();

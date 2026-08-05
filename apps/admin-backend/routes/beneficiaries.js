@@ -7,6 +7,7 @@ const { checkCCAvailability } = require('../services/scheduling');
 const { calculateDistance } = require('../utils/location');
 const { notifyMany } = require('../services/notifications');
 const { calculateAge } = require('../utils/age');
+const { dispatchCareCompanionAssigned } = require('../services/notification.dispatcher');
 
 // ── GET /api/beneficiaries ───────────────────────────────────────────────────
 router.get('/', async (req, res) => {
@@ -373,6 +374,7 @@ router.put('/:id/assign-staff', async (req, res) => {
         secondaryCcId: true,
         userId: true,
         subscriberId: true,
+        subscriber: { select: { phone: true } },
         address: true,
       },
     });
@@ -543,6 +545,16 @@ router.put('/:id/assign-staff', async (req, res) => {
       notifyMany(prisma, notifications).catch(err =>
         console.error('[AssignStaff] Notification batch error:', err.message)
       );
+      
+      // Fire WhatsApp CC_ASSIGNED Notification
+      if (beneficiary.subscriber?.phone) {
+        dispatchCareCompanionAssigned(beneficiary.subscriber.phone, {
+          ccName: newPrimaryCC.name || 'Your Care Companion',
+          beneficiaryName: beneficiary.name || 'your beneficiary',
+          primaryOrSecondary: 'Primary'
+        });
+      }
+      
       // (Auto-visit creation removed — admin must schedule visits explicitly)
     } else if (newSecondaryCcUserId) {
       // Only secondary CC changed — still notify them

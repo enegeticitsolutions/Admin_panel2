@@ -7,6 +7,7 @@ const multer = require('multer');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 const storage = require('../services/storage');
+const { dispatchVisitScheduled } = require('../services/notification.dispatcher');
 
 const uploadMemory = multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 * 1024 * 1024 } });
 
@@ -238,6 +239,26 @@ router.post('/', async (req, res) => {
 
       return visit;
     });
+
+    // Fire WhatsApp Notification (async)
+    if (result && result.beneficiaryId) {
+      prisma.user.findUnique({
+        where: { id: result.beneficiary.subscriberId }
+      }).then(subscriberUser => {
+        if (subscriberUser && subscriberUser.phone) {
+          const formattedDate = startTime.toLocaleDateString('en-IN', { weekday: 'short', month: 'short', day: 'numeric' });
+          const formattedTime = startTime.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+          
+          dispatchVisitScheduled(subscriberUser.phone, {
+            ccName: result.careCompanion?.name || 'Your Care Companion',
+            beneficiaryName: result.beneficiary?.name || 'the beneficiary',
+            date: formattedDate,
+            time: formattedTime,
+            address: 'the registered address', // Ideally fetch from beneficiary's address
+          });
+        }
+      }).catch(err => console.error('[Visit Scheduling Subscriber Lookup Error]', err.message));
+    }
 
     res.status(201).json({ success: true, data: result });
   } catch (err) {

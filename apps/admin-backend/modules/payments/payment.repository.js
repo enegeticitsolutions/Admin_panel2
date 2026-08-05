@@ -1,5 +1,6 @@
 const { prisma } = require('../../lib/prisma');
 const { v4: uuidv4 } = require('uuid');
+const { dispatchPaymentSuccessful } = require('../../services/notification.dispatcher');
 
 /**
  * Resolves a valid User ID for subscriber. Creates pending subscriber if not found.
@@ -134,7 +135,13 @@ async function createPendingPaymentRecord(data) {
  */
 async function markPaymentSuccessfulTransaction(paymentId, gatewayPaymentId, paidAt = new Date(), fullResponse = null) {
   try {
-    const existing = await prisma.payment.findUnique({ where: { id: paymentId } });
+    const existing = await prisma.payment.findUnique({
+      where: { id: paymentId },
+      include: {
+        subscriber: true,
+        beneficiary: true,
+      }
+    });
     if (!existing) return null;
 
     // Idempotency check: Exit immediately if payment is ALREADY marked as success/paid
@@ -180,6 +187,19 @@ async function markPaymentSuccessfulTransaction(paymentId, gatewayPaymentId, pai
     ]);
 
     console.log(`[Payment Repository Transaction OK] Payment ${paymentId} & Subscription ${existing.subscriptionId} ACTIVATED!`);
+
+    // Fire notifications asynchronously so it doesn't block the request response
+    if (existing.subscriber && existing.subscriber.phone) {
+      dispatchPaymentSuccessful(existing.subscriber.phone, {
+        amount: existing.amountPaid.toString(),
+        beneficiaryName: existing.beneficiary ? existing.beneficiary.name : 'you',
+        packageName: existing.packageType,
+        isSubscriptionActive: !!existing.subscriptionId,
+        subscriberName: existing.subscriber.name || 'Subscriber',
+        startDate: paidAt.toLocaleDateString(),
+      });
+    }
+
     return updatedPayment;
   } catch (err) {
     console.error('[Payment Repository Transaction Error]:', err.message);

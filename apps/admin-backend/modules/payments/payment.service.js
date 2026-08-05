@@ -4,6 +4,7 @@ const webhookService = require('./webhook.service');
 const paymentRepository = require('./payment.repository');
 const subscriptionService = require('./subscription.service');
 const { prisma } = require('../../lib/prisma');
+const { dispatchPaymentLinkGenerated } = require('../../services/notification.dispatcher');
 
 /**
  * Orchestrates payment link generation, DB persistence, and prefilled WhatsApp text.
@@ -95,6 +96,13 @@ async function generatePaymentLink(params) {
     `Hi ${subscriberName || 'there'},\n\nYour MaiHoonNa ${packageName || resolvedPackageType} payment link is ready.\n\nAmount: ₹${numericAmount}\n\nPay securely here:\n${paymentLinkUrl}\n\nThank you!`
   );
   const whatsappUrl = `https://wa.me/91${cleanPhone}?text=${whatsappMsg}`;
+
+  // Automatically trigger backend notification (via MSG91 SDK) if phone is valid
+  dispatchPaymentLinkGenerated(subscriberPhone, {
+    beneficiaryName: beneficiaryId ? 'your beneficiary' : 'you', // ideally fetch the real beneficiary name
+    packageName: packageName || resolvedPackageType,
+    paymentLink: paymentLinkUrl
+  });
 
   return {
     paymentId: paymentRecord?.id || uuidv4(),
