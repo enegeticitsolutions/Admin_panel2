@@ -1,3 +1,14 @@
+## Session: Android Adaptive Icon & Mobile App Icon Asset Optimization (2026-08-07)
+
+### Android Adaptive Icon Safe-Zone & Asset Resolution (`apps/mobile-app`)
+- **Android Launcher Icon Issue Resolution**: Fixed issue where Android builds displayed a solid orange square icon due to Android adaptive icon safe zone viewport cropping (66% inner circle safe zone masking) and transparent cutout asset overlay.
+- **`adaptive-icon.png` ([`assets/images/adaptive-icon.png`](file:///c:/Users/91930/OneDrive/Desktop/Mai-Hoonaa/apps/mobile-app/assets/images/adaptive-icon.png))**: Generated a 1024×1024 px PNG with the white Hindi "म" logo centered inside the ~52% safe zone (540px height) so it fits safely inside all Android launcher icon masks (circle, squircle, rounded rectangle).
+- **`icon.png` ([`assets/images/icon.png`](file:///c:/Users/91930/OneDrive/Desktop/Mai-Hoonaa/apps/mobile-app/assets/images/icon.png))**: Re-generated a 1024×1024 px legacy and iOS icon with solid `#FE6700` background and centered 620px padded logo to prevent edge clipping.
+- **`splash.png` ([`assets/images/splash.png`](file:///c:/Users/91930/OneDrive/Desktop/Mai-Hoonaa/apps/mobile-app/assets/images/splash.png))**: Generated a 1024×1024 px splash screen asset with centered logo on `#FE6700` background.
+- **Expo App Config ([`app.json`](file:///c:/Users/91930/OneDrive/Desktop/Mai-Hoonaa/apps/mobile-app/app.json#L28-L31))**: Updated `expo.android.adaptiveIcon.foregroundImage` to point to `./assets/images/adaptive-icon.png` and `backgroundColor` set to `#FE6700`.
+
+---
+
 ## Session: Merged Sathi Reviews Optimization & iOS Build Configurations (2026-08-05)
 
 ### Merged Branch 1: `feature/sathi-reviews-and-optimizations` (`5374ff1`)
