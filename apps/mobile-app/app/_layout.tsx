@@ -60,11 +60,24 @@ function RootNavigator() {
     resetStack();
   }, [isLoggedIn, resetStack]);
 
-  // Register for push notifications when logged in
+  // Register for push notifications and listen for incoming messages when logged in
   useEffect(() => {
     if (isLoggedIn) {
       registerForPushNotifications();
     }
+  }, [isLoggedIn]);
+
+  // Real-time Query Cache Invalidation on Push Notification Delivery
+  useEffect(() => {
+    if (!isLoggedIn || Platform.OS === 'web') return;
+
+    const sub = Notifications.addNotificationReceivedListener((notification) => {
+      console.log('[Push Notification Received] Auto-refreshing dashboard queries:', notification.request.content.data);
+      queryClient.invalidateQueries({ queryKey: ['subscriberDashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['beneficiaryDashboardInfo'] });
+    });
+
+    return () => sub.remove();
   }, [isLoggedIn]);
 
   // ─── SOS Background Persistent Notification (Beneficiary only) ───────────────
