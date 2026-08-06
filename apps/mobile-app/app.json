@@ -26,7 +26,7 @@
       "package": "com.rajeev_23.maihoonna",
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/icon.png",
+        "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#FE6700"
       },
       "predictiveBackGestureEnabled": false,
