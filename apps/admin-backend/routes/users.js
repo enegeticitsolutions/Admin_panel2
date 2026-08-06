@@ -108,6 +108,33 @@ function ensureOnboardingModels(res) {
   return false;
 }
 
+// ── POST /api/users/push-token ── Save Expo FCM push token on user record ──
+router.post(['/push-token', '/shared/users/push-token'], async (req, res) => {
+  try {
+    const { token, userId: bodyUserId } = req.body;
+    const userId = req.user?.id || bodyUserId;
+
+    if (!token) {
+      return res.status(400).json({ success: false, message: 'Push token is required' });
+    }
+
+    if (!userId) {
+      return res.status(400).json({ success: false, message: 'User ID is required' });
+    }
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: { fcmToken: token }
+    });
+
+    console.log(`[PushToken] Saved FCM token for user ${userId}`);
+    res.json({ success: true, message: 'Push token updated successfully' });
+  } catch (err) {
+    console.error('POST /push-token error:', err.message);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 function asTrimmedString(value) {
   if (value === undefined || value === null) return '';
   if (typeof value !== 'string' && typeof value !== 'number') return '';

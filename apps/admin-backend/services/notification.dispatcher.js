@@ -103,9 +103,14 @@ async function dispatchCareCompanionAssigned(phone, variables) {
   }).catch(err => console.error('[Notification Dispatcher] CC Assigned error:', err.message));
 }
 
+const domainEvents = require('./events');
+
 module.exports = {
   dispatchPaymentLinkGenerated,
   dispatchPaymentSuccessful,
   dispatchVisitScheduled,
   dispatchCareCompanionAssigned,
+  // Domain Event Registry
+  ...domainEvents,
+  domainEvents,
 };

@@ -5,6 +5,8 @@
   - [x] Centralized Backend Dispatcher (`apps/admin-backend/services/notification.dispatcher.js`): Abstracted notification logic away from controllers into semantic helpers (`dispatchPaymentLinkGenerated`, `dispatchPaymentSuccessful`, `dispatchVisitScheduled`, `dispatchCareCompanionAssigned`).
   - [x] Omnichannel Target Normalization: Single dispatcher call simultaneously triggers WhatsApp messages (via MSG91 SDK) and Swiggy-style In-App Lock-Screen Push notifications (via Expo Push API and PostgreSQL notification logging) when passed `{ phone, userId }`.
   - [x] Integrated Controller Call Sites: Wired into `payment.service.js` (Payment Links), `payment.repository.js` (Receipts & Activations), `visits.js` (Visit Scheduling), and `beneficiaries.js` (Care Companion Assignments).
+  - [x] Firebase FCM & Google Services Setup: Configured `google-services.json` in root and `android/app/`, updated `app.json` (`googleServicesFile`), and added `com.google.gms:google-services` plugin to `android/build.gradle` & `android/app/build.gradle`.
+  - [x] Environment Security & Dynamic App Config: Secured Firebase FCM project credentials in `.env`/`.env.example` and bound dynamically in `app.config.js` (`extra.firebase`).
   - [x] Git Multi-Branch Merges: Merged and pushed `feature/notification-engine-integration`, `feature/home-ui`, and `fix-points-logic` into remote repository `harshit/main`.
 - [x] Merged Sathi Reviews & iOS Build Branches (2026-08-05)
   - [x] Merged `harshit/feature/sathi-reviews-and-optimizations` (`5374ff1`): Comprehensive Sathi volunteer review system, API polling limit fixes, and UI layout optimizations.

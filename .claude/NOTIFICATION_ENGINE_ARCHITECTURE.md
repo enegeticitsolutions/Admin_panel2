@@ -161,3 +161,208 @@ const { prisma } = require('../lib/prisma');
 1. Extend `NotificationRequest` interface in `packages/notifications/src/services/notification.service.ts` to include `channel: 'sms' | 'email'`.
 2. Implement SMS (e.g., MSG91 SMS API) or Email (e.g., SendGrid / AWS SES) strategy method inside `NotificationService`.
 3. In `notification.dispatcher.js`, include the new channel call inside the corresponding `dispatch...()` function.
+
+---
+
+## 7. Firebase FCM Android Setup & Configuration
+
+### Firebase Project & Android Credentials
+- **Firebase Project ID**: `YOUR_FIREBASE_PROJECT_ID`
+- **Project Number**: `YOUR_FIREBASE_PROJECT_NUMBER`
+- **Storage Bucket**: `YOUR_FIREBASE_STORAGE_BUCKET`
+- **Android Package Name**: `com.rajeev_23.maihoonna`
+
+### `google-services.json` File Locations
+1. `apps/mobile-app/google-services.json` *(Expo managed & EAS build)*
+2. `apps/mobile-app/android/app/google-services.json` *(Native Android build)*
+
+### Expo & Gradle Integration
+- **`apps/mobile-app/app.json`**:
+  ```json
+  "android": {
+    "package": "com.rajeev_23.maihoonna",
+    "googleServicesFile": "./google-services.json"
+  }
+  ```
+- **`apps/mobile-app/android/build.gradle`**:
+  ```groovy
+  classpath('com.google.gms:google-services:4.4.1')
+  ```
+- **`apps/mobile-app/android/app/build.gradle`**:
+  ```groovy
+  apply plugin: "com.google.gms.google-services"
+  ```
+
+### Secure Environment Variables (`.env` & `app.config.js`)
+All Firebase parameters are secured in `apps/mobile-app/.env` and `.env.example`:
+```env
+EXPO_PUBLIC_FIREBASE_PROJECT_NUMBER=YOUR_FIREBASE_PROJECT_NUMBER
+EXPO_PUBLIC_FIREBASE_PROJECT_ID=YOUR_FIREBASE_PROJECT_ID
+EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET=YOUR_FIREBASE_STORAGE_BUCKET
+EXPO_PUBLIC_FIREBASE_APP_ID=YOUR_FIREBASE_APP_ID
+EXPO_PUBLIC_FIREBASE_API_KEY=YOUR_FIREBASE_API_KEY
+```
+Dynamically bound in `apps/mobile-app/app.config.js` under `extra.firebase`.
+
+---
+
+## 8. Verified End-to-End Execution Flow
+
+```
+[ Mobile App Launch ] ➔ Permission Granted ➔ Gets Expo Push Token
+        │
+        ▼
+[ POST /shared/users/push-token ] ➔ Saved to User.fcmToken in DB
+        │
+        ▼
+[ Field Management / Backend Operation ] ➔ Fires Domain Event (e.g., Visit Scheduled)
+        │
+        ▼
+[ services/events/visit-event.dispatcher.js ]
+        ├─── Beneficiary: In-App Bell Tray + Expo FCM Lock-Screen Push
+        ├─── Subscriber:  In-App Bell Tray + Expo FCM Push + Outbound MSG91 WhatsApp
+        └─── Care Companion: In-App Bell Tray + Expo FCM Push
+        │
+        ▼
+[ Mobile App Receiver (_layout.tsx) ] ➔ Invalidation Trigger ➔ React Query Live UI Refresh
+```
+
+---
+
+## 9. Completed Implementations (Full Modular Event Dispatcher Suite)
+
+All 5 core domain event groups are fully implemented under `apps/admin-backend/services/events/`:
+
+### 1. Visit Lifecycle Events (`services/events/visit-event.dispatcher.js`)
+- `dispatchVisitScheduled`: Triggered from `POST /api/visits` (Field Management Page).
+- `dispatchVisitRescheduled`: Triggered from `PUT /api/visits/:id` or `PATCH /api/visits/:id/resolve-change`.
+- `dispatchVisitCancelled`: Triggered from `DELETE /api/visits/:id`.
+- `dispatchVisitStarted`: Triggered when Care Companion checks in.
+- `dispatchVisitCompleted`: Triggered from `PATCH /api/visits/:id/complete`.
+
+### 2. Medication Events (`services/events/medication-event.dispatcher.js`)
+- `dispatchMedicationReminder`: Beneficiary FCM Push + WhatsApp `MEDICATION_REMINDER` template.
+- `dispatchMedicationMissed`: Subscriber & Care Companion alert + WhatsApp `MEDICATION_MISSED` template.
+
+### 3. Emergency Response Events (`services/events/emergency-event.dispatcher.js`)
+- `dispatchEmergencyTriggered`: High-priority alert to Emergency Radar, Subscriber, and Care Companions.
+- `dispatchAmbulanceDispatched`: Dispatched status update with ETA to Subscriber & Beneficiary.
+- `dispatchEmergencyResolved`: Outcome summary sent to Subscriber.
+
+### 4. Vitals Alert Events (`services/events/vitals-event.dispatcher.js`)
+- `dispatchVitalsAlert`: Triggered when abnormal BP, SpO2, or Glucose is logged. Sends FCM Push + WhatsApp `VITALS_ALERT`.
+
+### 5. Roster & Care Team Events (`services/events/roster-event.dispatcher.js`)
+- `dispatchCareCompanionAssigned`: Triggered from `PUT /api/beneficiaries/:id/assign-staff`.
+- `dispatchCCReallocated`: Alert when temporary substitute CC is assigned.
+- `dispatchRosterApproved`: Triggered from `POST /api/visits/roster/approve` to notify Field Managers and CCs.
+
+### Mobile Client Live Refresh (`apps/mobile-app/app/_layout.tsx`)
+- Added global listener via `Notifications.addNotificationReceivedListener`.
+- Automatically executes `queryClient.invalidateQueries` for `['subscriberDashboard']` and `['beneficiaryDashboardInfo']` to instantly refresh dashboard cards upon push arrival.
+
+---
+
+## 11. Redis & BullMQ Message Queue Architecture Blueprint (Future Expansion)
+
+When transitioning to a distributed Message Queue pattern (using Redis & BullMQ), the modular dispatchers in `apps/admin-backend/services/events/` will serve as the background worker handlers.
+
+### Proposed Architecture & Flow:
+```
+[ API Route Handler (Express) ]
+        │ (Fast <20ms HTTP response)
+        ▼
+[ notificationQueue.add(eventName, payload) ] ➔ Redis Data Store
+                                                       │
+                                                       ▼
+                                      [ BullMQ Worker Process (Background) ]
+                                                       │
+                                                       ▼
+                                [ services/events/domainDispatcher.js ]
+                                       ├── In-App FCM Push
+                                       └── Outbound WhatsApp MSG91
+```
+
+### 1. Producer Pattern (Inside Route Handlers):
+```javascript
+const { notificationQueue } = require('../queues/notification.queue');
+
+// Publish lightweight job payload (returns HTTP 201 immediately)
+await notificationQueue.add('VISIT_SCHEDULED', { visitId: result.id });
+```
+
+### 2. Consumer Pattern (Inside `workers/notification.worker.js`):
+```javascript
+const { Worker } = require('bullmq');
+const { visitEvents, medicationEvents, emergencyEvents, vitalsEvents, rosterEvents } = require('../services/events');
+
+const worker = new Worker('notifications', async (job) => {
+  const { name, data } = job;
+  switch (name) {
+    case 'VISIT_SCHEDULED':
+      return visitEvents.dispatchVisitScheduled(data.visitId);
+    case 'VISIT_CANCELLED':
+      return visitEvents.dispatchVisitCancelled(data.visitId, data.reason);
+    case 'EMERGENCY_TRIGGERED':
+      return emergencyEvents.dispatchEmergencyTriggered(data);
+    case 'MEDICATION_REMINDER':
+      return medicationEvents.dispatchMedicationReminder(data);
+    case 'VITALS_ALERT':
+      return vitalsEvents.dispatchVitalsAlert(data);
+    default:
+      console.warn(`[NotificationWorker] Unknown job name: ${name}`);
+  }
+}, { connection: { host: process.env.REDIS_HOST || 'localhost', port: 6379 } });
+```
+
+### 3. Key Benefits of Queue Layer:
+- **Zero API Latency**: API endpoints return HTTP success in `<20ms` without awaiting external push or WhatsApp network responses.
+- **Exponential Retry Backoff**: Automatic 3x retries if MSG91 or Expo API is temporarily unreachable.
+- **Concurrency & Rate Limiting**: Enforces strict rates (e.g., max 50 WhatsApp messages per second) to prevent vendor throttling.
+
+---
+
+## 12. Push Token Registration API Endpoint (`apps/admin-backend/routes/users.js`)
+
+To ensure mobile app clients can save and sync their Expo FCM push tokens seamlessly upon user login, the following dual-route endpoint is registered:
+
+### Endpoint Definition:
+- **HTTP Methods**: `POST /api/users/push-token` & `POST /api/shared/users/push-token`
+- **Request Body**:
+  ```json
+  {
+    "token": "ExponentPushToken[XXXXXXXXXXXXXXXXXXXXXX]",
+    "userId": "user-uuid-optional-if-jwt-present"
+  }
+  ```
+- **Database Action**:
+  Updates `User.fcmToken` in PostgreSQL for the authenticated user.
+
+---
+
+## 13. Production Deployment & Standalone Build Runbook
+
+When deploying the backend to a remote server (AWS, Render, DigitalOcean) and generating release builds:
+
+### Step 1: Environment Variable Configuration
+Set mobile app API URL in `apps/mobile-app/.env`:
+```env
+EXPO_PUBLIC_API_URL=https://your-production-backend-domain.com/api
+```
+
+### Step 2: Firebase FCM V1 Credentials Linkage
+1. Download `service-account.json` from Firebase Console ➔ Project Settings ➔ Service Accounts.
+2. Go to Expo Dashboard (`expo.dev`) ➔ Project (`maihoonna`) ➔ Credentials ➔ Android FCM V1 Credentials.
+3. Upload `service-account.json` to link FCM with Expo Push Gateway (`https://exp.host`).
+
+### Step 3: Standalone Application Build
+Execute EAS build for production Android/iOS binaries:
+```bash
+# Generate Production APK / AAB
+eas build -p android --profile production
+```
+*(Push notifications deliver lock-screen alerts on physical devices running release builds).*
+
+
+
+

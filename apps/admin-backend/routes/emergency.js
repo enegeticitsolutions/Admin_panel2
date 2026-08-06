@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { prisma } = require('../lib/prisma');
+const { emergencyEvents } = require('../services/events');
 
 // GET all emergency requests
 router.get('/requests', async (req, res) => {
@@ -263,6 +264,21 @@ router.put('/requests/:id/status', async (req, res) => {
         }
       }
     });
+
+    // Trigger Emergency Event Dispatchers asynchronously
+    if (status === 'resolved') {
+      emergencyEvents.dispatchEmergencyResolved({
+        requestId: updated.id,
+        beneficiaryId: updated.beneficiaryId,
+        outcome: resolutionNotes || 'Issue safely handled and resolved by ERC team'
+      });
+    } else if (status === 'in_progress' || status === 'assigned') {
+      emergencyEvents.dispatchAmbulanceDispatched({
+        requestId: updated.id,
+        beneficiaryId: updated.beneficiaryId,
+        eta: '10-15 minutes'
+      });
+    }
 
     res.json({ success: true, data: updated, message: `Emergency request status updated to ${status}.${deductionNote}` });
   } catch (error) {

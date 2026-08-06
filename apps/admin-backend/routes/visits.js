@@ -8,6 +8,8 @@ const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 const storage = require('../services/storage');
 const { dispatchVisitScheduled } = require('../services/notification.dispatcher');
+const visitEventDispatcher = require('../services/events/visit-event.dispatcher');
+const { rosterEvents } = require('../services/events');
 
 const uploadMemory = multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 * 1024 * 1024 } });
 
@@ -183,40 +185,7 @@ router.post('/', async (req, res) => {
       }
 
 
-      // C. Send Notifications
-      const formattedTime = startTime.toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
-
-      if (visit.careCompanion?.userId) {
-        await notifyUser(tx, {
-          userId: visit.careCompanion.userId,
-          type: 'visit_reminder',
-          title: 'New Visit Scheduled',
-          body: `A new visit has been scheduled with ${visit.beneficiary?.name || 'a beneficiary'} for ${formattedTime}.`,
-          data: { visitId: visit.id },
-        });
-      }
-
-      if (visit.beneficiary?.userId) {
-        await notifyUser(tx, {
-          userId: visit.beneficiary.userId,
-          type: 'visit_reminder',
-          title: 'Care Companion Visit Scheduled',
-          body: `${visit.careCompanion?.name || 'Your Care Companion'} will visit you on ${formattedTime}.`,
-          data: { visitId: visit.id },
-        });
-      }
-
-      if (visit.beneficiary?.subscriberId && visit.beneficiary.subscriberId !== visit.beneficiary.userId) {
-        await notifyUser(tx, {
-          userId: visit.beneficiary.subscriberId,
-          type: 'visit_reminder',
-          title: 'Care Companion Visit Scheduled',
-          body: `A visit for ${visit.beneficiary?.name || 'your beneficiary'} with ${visit.careCompanion?.name || 'the Care Companion'} has been scheduled for ${formattedTime}.`,
-          data: { visitId: visit.id },
-        });
-      }
-
-      // D. Activity Log
+      // C. Activity Log
       await tx.activityLog.create({
         data: {
           userId: visit.beneficiary.userId,
@@ -240,25 +209,8 @@ router.post('/', async (req, res) => {
       return visit;
     });
 
-    // Fire WhatsApp Notification (async)
-    if (result && result.beneficiaryId) {
-      prisma.user.findUnique({
-        where: { id: result.beneficiary.subscriberId }
-      }).then(subscriberUser => {
-        if (subscriberUser && subscriberUser.phone) {
-          const formattedDate = startTime.toLocaleDateString('en-IN', { weekday: 'short', month: 'short', day: 'numeric' });
-          const formattedTime = startTime.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
-          
-          dispatchVisitScheduled(subscriberUser.phone, {
-            ccName: result.careCompanion?.name || 'Your Care Companion',
-            beneficiaryName: result.beneficiary?.name || 'the beneficiary',
-            date: formattedDate,
-            time: formattedTime,
-            address: 'the registered address', // Ideally fetch from beneficiary's address
-          });
-        }
-      }).catch(err => console.error('[Visit Scheduling Subscriber Lookup Error]', err.message));
-    }
+    // Fire Omnichannel Notifications (FCM Push + WhatsApp) asynchronously
+    visitEventDispatcher.dispatchVisitScheduled(result);
 
     res.status(201).json({ success: true, data: result });
   } catch (err) {
@@ -418,6 +370,9 @@ router.patch('/:id/complete', async (req, res) => {
 
       return updatedVisit;
     });
+
+    // Trigger VISIT_COMPLETED event notification (Push + WhatsApp)
+    visitEventDispatcher.dispatchVisitCompleted(result, actualMinutes);
 
     res.json({ success: true, data: result });
   } catch (err) {
@@ -918,42 +873,10 @@ router.delete('/:id', async (req, res) => {
       }
 
       console.log(`[CANCEL VISIT] Visit ${id} cancelled. No benefit deduction had occurred — no refund needed.`);
-
-      const formattedTime = visit.scheduledTime.toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
-
-      // Notify Care Companion
-      if (visit.careCompanion?.userId) {
-        await notifyUser(tx, {
-          userId: visit.careCompanion.userId,
-          type: 'visit_cancelled',
-          title: 'Visit Cancelled',
-          body: `Your scheduled visit with ${visit.beneficiary?.name || 'a beneficiary'} on ${formattedTime} has been cancelled.`,
-          data: { visitId: visit.id },
-        });
-      }
-
-      // Notify Beneficiary
-      if (visit.beneficiary?.userId) {
-        await notifyUser(tx, {
-          userId: visit.beneficiary.userId,
-          type: 'visit_cancelled',
-          title: 'Visit Cancelled',
-          body: `Your scheduled visit with ${visit.careCompanion?.name || 'the Care Companion'} on ${formattedTime} has been cancelled.`,
-          data: { visitId: visit.id },
-        });
-      }
-
-      // Notify Subscriber
-      if (visit.beneficiary?.subscriberId && visit.beneficiary.subscriberId !== visit.beneficiary.userId) {
-        await notifyUser(tx, {
-          userId: visit.beneficiary.subscriberId,
-          type: 'visit_cancelled',
-          title: 'Visit Cancelled',
-          body: `The scheduled visit for ${visit.beneficiary?.name || 'your beneficiary'} with ${visit.careCompanion?.name || 'the Care Companion'} on ${formattedTime} has been cancelled.`,
-          data: { visitId: visit.id },
-        });
-      }
     });
+
+    // Trigger VISIT_CANCELLED event notification (Push + WhatsApp)
+    visitEventDispatcher.dispatchVisitCancelled(visit);
 
     res.json({ success: true, message: 'Visit cancelled successfully' });
   } catch (err) {
@@ -1014,38 +937,6 @@ router.put('/:id', async (req, res) => {
         },
       });
 
-      const formattedTime = startTime.toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
-
-      if (updatedVisit.careCompanion?.userId) {
-        await notifyUser(tx, {
-          userId: updatedVisit.careCompanion.userId,
-          type: 'visit_reminder',
-          title: 'Scheduled Visit Updated',
-          body: `Your visit with ${updatedVisit.beneficiary?.name || 'Unknown'} has been updated to ${formattedTime}.`,
-          data: { visitId: updatedVisit.id },
-        });
-      }
-
-      if (updatedVisit.beneficiary?.userId) {
-        await notifyUser(tx, {
-          userId: updatedVisit.beneficiary.userId,
-          type: 'visit_reminder',
-          title: 'Scheduled Visit Updated',
-          body: `Your visit with ${updatedVisit.careCompanion?.name || 'Unknown'} has been rescheduled to ${formattedTime}.`,
-          data: { visitId: updatedVisit.id },
-        });
-      }
-
-      if (updatedVisit.beneficiary?.subscriberId && updatedVisit.beneficiary.subscriberId !== updatedVisit.beneficiary.userId) {
-        await notifyUser(tx, {
-          userId: updatedVisit.beneficiary.subscriberId,
-          type: 'visit_reminder',
-          title: 'Scheduled Visit Updated',
-          body: `The visit for ${updatedVisit.beneficiary?.name || 'Unknown'} with ${updatedVisit.careCompanion?.name || 'Unknown'} has been rescheduled to ${formattedTime}.`,
-          data: { visitId: updatedVisit.id },
-        });
-      }
-
       await tx.activityLog.create({
         data: {
           userId: updatedVisit.beneficiary.userId,
@@ -1067,6 +958,9 @@ router.put('/:id', async (req, res) => {
 
       return updatedVisit;
     });
+
+    // Trigger VISIT_RESCHEDULED event notification (Push + WhatsApp)
+    visitEventDispatcher.dispatchVisitRescheduled(result, existingVisit.scheduledTime);
 
     res.json({ success: true, data: result });
   } catch (err) {
@@ -1106,6 +1000,14 @@ router.post('/roster/approve', async (req, res) => {
         zoneId,
         approvedBy
       }
+    });
+
+    // Trigger Roster Approved Event Dispatcher
+    rosterEvents.dispatchRosterApproved({
+      zoneId,
+      date: approvalDate,
+      periodType,
+      approvedByName: req.user?.name || 'Admin'
     });
 
     res.status(201).json({ success: true, data: approval });

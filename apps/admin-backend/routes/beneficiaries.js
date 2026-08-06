@@ -8,6 +8,7 @@ const { calculateDistance } = require('../utils/location');
 const { notifyMany } = require('../services/notifications');
 const { calculateAge } = require('../utils/age');
 const { dispatchCareCompanionAssigned } = require('../services/notification.dispatcher');
+const { rosterEvents } = require('../services/events');
 
 // ── GET /api/beneficiaries ───────────────────────────────────────────────────
 router.get('/', async (req, res) => {
@@ -546,14 +547,12 @@ router.put('/:id/assign-staff', async (req, res) => {
         console.error('[AssignStaff] Notification batch error:', err.message)
       );
       
-      // Fire WhatsApp CC_ASSIGNED Notification
-      if (beneficiary.subscriber?.phone) {
-        dispatchCareCompanionAssigned(beneficiary.subscriber.phone, {
-          ccName: newPrimaryCC.name || 'Your Care Companion',
-          beneficiaryName: beneficiary.name || 'your beneficiary',
-          primaryOrSecondary: 'Primary'
-        });
-      }
+      // Fire Omnichannel CC_ASSIGNED Event Dispatcher (FCM Push + WhatsApp)
+      rosterEvents.dispatchCareCompanionAssigned({
+        beneficiaryId: id,
+        ccName: newPrimaryCC.name || 'Your Care Companion',
+        primaryOrSecondary: 'Primary'
+      });
       
       // (Auto-visit creation removed — admin must schedule visits explicitly)
     } else if (newSecondaryCcUserId) {
