@@ -11,7 +11,7 @@ export default ({ config }) => {
       ...config.ios,
       config: {
         ...config.ios?.config,
-        googleMapsApiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || config.ios?.config?.googleMapsApiKey,
+        googleMapsApiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY_IOS || config.ios?.config?.googleMapsApiKey,
       },
     },
 
@@ -21,7 +21,7 @@ export default ({ config }) => {
         ...config.android?.config,
         googleMaps: {
           ...config.android?.config?.googleMaps,
-          apiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || config.android?.config?.googleMaps?.apiKey,
+          apiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY_ANDROID || config.android?.config?.googleMaps?.apiKey,
         },
       },
     },
