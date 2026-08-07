@@ -30,6 +30,9 @@ export default ({ config }) => {
     // (Expo Go dev builds, EAS preview APKs, and production builds)
     extra: {
       ...config.extra,
+      eas: {
+        projectId: "f714f4d8-66b4-4262-aa35-aad105d9fbaa",
+      },
       razorpayKeyId,
       firebase: {
         projectNumber: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_NUMBER || "1024621796653",
