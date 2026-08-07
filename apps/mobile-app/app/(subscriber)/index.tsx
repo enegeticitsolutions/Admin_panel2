@@ -252,7 +252,7 @@ export default function SubscriberDashboardScreen() {
                     style={styles.heroBanner}
                     imageStyle={styles.heroBannerImage}
                 >
-                    <Text style={styles.heroGreeting}>Hi {firstName}!</Text>
+                    <Text style={styles.heroGreeting}>Hi {firstName}</Text>
 
                     {/* Row 1 — sits inside the orange image */}
                     <View style={styles.statsGrid}>
@@ -317,8 +317,7 @@ export default function SubscriberDashboardScreen() {
                 <View style={styles.sectionHeaderRow}>
                     <Text style={styles.sectionTitle}>Your Beneficiaries</Text>
                     <TouchableOpacity style={styles.addBtn} onPress={() => router.push('/(setup)/subscription-packages')}>
-                        <Ionicons name="add" size={14} color="#FFF" style={{ marginRight: 2 }} />
-                        <Text style={styles.addBtnText}>Add</Text>
+                        <Text style={styles.addBtnText}>+ Add</Text>
                     </TouchableOpacity>
                 </View>
 
@@ -409,24 +408,7 @@ export default function SubscriberDashboardScreen() {
                                     <Text style={styles.benName}>{b.name}</Text>
                                     <Text style={styles.benMeta}>{getDisplayAge(b)}{b.relationship ? ` • ${b.relationship}` : ''}</Text>
                                 </View>
-                                {isPending ? (
-                                    <View style={{ backgroundColor: '#E5E7EB', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4, marginRight: 8 }}>
-                                        <Text style={{ color: '#6B7280', fontSize: 10, fontWeight: '700' }}>Inactive - Verification Required</Text>
-                                    </View>
-                                ) : isExpired ? (
-                                    <TouchableOpacity 
-                                        onPress={() => router.push('/(setup)/subscription-packages')}
-                                        style={{ backgroundColor: '#FEE2E2', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4, marginRight: 8, flexDirection: 'row', alignItems: 'center' }}
-                                    >
-                                        <Ionicons name="alert-circle" size={12} color="#991B1B" style={{ marginRight: 3 }} />
-                                        <Text style={{ color: '#991B1B', fontSize: 10, fontWeight: '700' }}>Expired - Renew</Text>
-                                    </TouchableOpacity>
-                                ) : (
-                                    <View style={{ backgroundColor: '#D1FAE5', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4, marginRight: 8 }}>
-                                        <Text style={{ color: '#065F46', fontSize: 10, fontWeight: '700' }}>Active</Text>
-                                    </View>
-                                )}
-                                <Ionicons name="chevron-forward" size={20} color={isExpired ? "#DC2626" : "#FE6700"} />
+                                <Ionicons name="chevron-forward" size={20} color="#A3A3A3" />
                             </TouchableOpacity>
                         );
                     })
@@ -435,7 +417,7 @@ export default function SubscriberDashboardScreen() {
 
                 {/* ── Recent Updates ── */}
                 {recentUpdates.length > 0 && (
-                    <>
+                    <View style={{ position: 'relative' }}>
                         <View style={styles.sectionHeaderRow}>
                             <Text style={styles.sectionTitle}>Recent Updates</Text>
                             <TouchableOpacity><Text style={styles.viewAllText}>View All</Text></TouchableOpacity>
@@ -444,7 +426,7 @@ export default function SubscriberDashboardScreen() {
                         {recentUpdates.map((update: any, i: number) => (
                             <View key={update.id || i} style={styles.updateCard}>
                                 <View style={styles.updateIconBox}>
-                                    <Ionicons name="document-text-outline" size={20} color="#6B7280" />
+                                    <Ionicons name="chatbox-outline" size={20} color="#FE6700" />
                                 </View>
                                 <View style={{ flex: 1, marginLeft: 14 }}>
                                     <View style={styles.updateTopRow}>
@@ -456,7 +438,13 @@ export default function SubscriberDashboardScreen() {
                                 </View>
                             </View>
                         ))}
-                    </>
+                        
+                        {/* Overlapping View Volunteers Button */}
+                        <TouchableOpacity style={styles.viewVolunteersBtn}>
+                            <Ionicons name="people-outline" size={22} color="#FFFFFF" style={{ marginRight: 6 }} />
+                            <Text style={styles.viewVolunteersText}>View Volunteers</Text>
+                        </TouchableOpacity>
+                    </View>
                 )}
 
                 {/* ── Assistance Card ── */}
@@ -482,7 +470,7 @@ export default function SubscriberDashboardScreen() {
                             notes="Requested assistance from Subscriber Dashboard"
                         />
                         <TouchableOpacity style={styles.whatsappBtn}>
-                            <MaterialCommunityIcons name="whatsapp" size={28} color="#FE6700" />
+                            <Ionicons name="chatbubbles" size={36} color="#FE6700" />
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -501,16 +489,16 @@ export default function SubscriberDashboardScreen() {
 }
 
 const styles = StyleSheet.create({
-    safeArea: { flex: 1, backgroundColor: '#FFFFFF' },
+    safeArea: { flex: 1, backgroundColor: '#FAF5F0' },
     centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FAF5F0' },
 
     /* ── Dashboard Header ── */
     dashHeader: {
         flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
         paddingHorizontal: scale(20), paddingVertical: scale(12),
-        backgroundColor: '#FFFFFF',
+        backgroundColor: '#FE6700', // Matches the top of the banner
     },
-    dashTitle: { fontSize: scale(17), fontWeight: '600', color: '#111827' },
+    dashTitle: { fontSize: scale(17), fontWeight: '600', color: '#FFFFFF' },
     headerIconBtn: { width: scale(36), height: scale(36), justifyContent: 'center', alignItems: 'center', position: 'relative' },
     headerBadge: {
         position: 'absolute', top: 2, right: -2, width: scale(18), height: scale(18),
@@ -567,7 +555,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: HORIZONTAL_PADDING,
         paddingTop: scale(14),
         paddingBottom: scale(20),
-        backgroundColor: '#FFFFFF',
+        backgroundColor: 'transparent',
     },
     statCard: {
         width: (width - HORIZONTAL_PADDING * 2 - CARD_GAP) / 2,
@@ -647,11 +635,11 @@ const styles = StyleSheet.create({
     /* ── Beneficiary Card ── */
     benCard: {
         backgroundColor: '#FFFFFF',
-        borderRadius: scale(14),
+        borderRadius: scale(16),
         paddingHorizontal: scale(16),
-        paddingVertical: scale(14),
+        paddingVertical: scale(16),
         marginHorizontal: HORIZONTAL_PADDING,
-        marginBottom: scale(10),
+        marginBottom: scale(12),
         flexDirection: 'row',
         alignItems: 'center',
         ...Platform.select({
@@ -669,10 +657,10 @@ const styles = StyleSheet.create({
         borderColor: '#FCA5A5',
         borderWidth: 1,
     },
-    benPhoto: { width: scale(52), height: scale(52), borderRadius: scale(26), marginRight: scale(14), backgroundColor: '#E5E7EB' },
+    benPhoto: { width: scale(64), height: scale(64), borderRadius: scale(32), marginRight: scale(16), backgroundColor: '#E5E7EB' },
     benDetails: { flex: 1 },
-    benName: { fontSize: scale(15), fontWeight: '600', color: '#111827', marginBottom: scale(3) },
-    benMeta: { fontSize: scale(12), color: '#6B7280' },
+    benName: { fontSize: scale(16), fontWeight: '700', color: '#111827', marginBottom: scale(4) },
+    benMeta: { fontSize: scale(13), color: '#6B7280' },
 
     /* ── Recent Updates ── */
     updateCard: {
@@ -689,7 +677,7 @@ const styles = StyleSheet.create({
         }),
     },
     updateIconBox: {
-        width: scale(42), height: scale(42), borderRadius: scale(10), backgroundColor: '#F3F4F6',
+        width: scale(42), height: scale(42), borderRadius: scale(21), backgroundColor: '#FFE8CE',
         justifyContent: 'center', alignItems: 'center',
     },
     updateTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: scale(3) },
@@ -722,8 +710,29 @@ const styles = StyleSheet.create({
     },
     callbackText: { color: '#FE6700', fontWeight: '600', fontSize: scale(14) },
     whatsappBtn: {
-        width: scale(48), height: scale(48), borderRadius: scale(12), backgroundColor: '#FFF5ED',
+        width: scale(48), height: scale(48),
         justifyContent: 'center', alignItems: 'center',
+        marginLeft: scale(8),
+    },
+    viewVolunteersBtn: {
+        position: 'absolute',
+        right: scale(-10),
+        top: '30%',
+        backgroundColor: '#FE6700',
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: scale(18),
+        paddingVertical: scale(12),
+        borderRadius: scale(25),
+        ...Platform.select({
+            ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8 },
+            android: { elevation: 8 },
+        }),
+    },
+    viewVolunteersText: {
+        color: '#FFFFFF',
+        fontSize: scale(14),
+        fontWeight: '600',
     },
     unlinkedSubCard: {
         backgroundColor: '#FFF5ED',
