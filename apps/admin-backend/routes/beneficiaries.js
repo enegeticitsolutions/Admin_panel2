@@ -94,7 +94,22 @@ router.get('/', async (req, res) => {
     const subscriptions = await prisma.subscription.findMany({
       where: { beneficiaryId: { in: beneficiaryIds } },
       orderBy: { createdAt: 'desc' },
-      include: { package: { select: { name: true } } },
+      include: {
+        package: {
+          select: {
+            name: true,
+            packageBenefits: {
+              include: {
+                benefit: {
+                  include: {
+                    benefitType: { select: { code: true } }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
     });
 
     const now = new Date();
@@ -168,7 +183,11 @@ router.get('/', async (req, res) => {
         isActive: b.isActive,
         createdAt: b.createdAt,
         distance: minDistance ? parseFloat(minDistance.toFixed(2)) : null,
-        nearestZone: nearestZoneName
+        nearestZone: nearestZoneName,
+        hasSathiBenefit: (activeSub?.package?.packageBenefits || []).some(
+          (pb) => pb.benefit?.benefitType?.code === 'SATHI_COMPANION' ||
+                  pb.benefit?.benefitType?.code?.startsWith('SATHI_')
+        )
       };
     });
 
