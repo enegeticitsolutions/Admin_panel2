@@ -83,24 +83,23 @@ app.use(globalLimiter as unknown as express.RequestHandler);
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow all origins to resolve CORS issue for APK testing
-      return callback(null, true);
+      // Allow requests with no origin (mobile apps, native HTTP clients, curl, etc.)
+      if (!origin) return callback(null, true);
 
-      // // Allow requests with no origin (mobile app, curl, etc.)
-      // if (!origin) return callback(null, true);
+      // If allowed origin is '*', allow everything
+      if (config.corsOrigin === '*' || (Array.isArray(config.corsOrigin) && config.corsOrigin.includes('*'))) {
+        return callback(null, true);
+      }
 
-      // // If allowed origin is '*', allow everything
-      // if (config.corsOrigin === '*') return callback(null, true);
+      // Check if current origin is in the allowed list
+      if (Array.isArray(config.corsOrigin) && config.corsOrigin.includes(origin)) {
+        return callback(null, true);
+      }
 
-      // // Check if current origin is in the allowed list
-      // if (Array.isArray(config.corsOrigin) && config.corsOrigin.includes(origin)) {
-      //   return callback(null, true);
-      // }
+      // If literal match
+      if (config.corsOrigin === origin) return callback(null, true);
 
-      // // If literal match
-      // if (config.corsOrigin === origin) return callback(null, true);
-
-      // // callback(new Error(`CORS: Origin ${origin} not allowed`));
+      return callback(new Error(`CORS: Origin ${origin} not allowed`));
     },
     credentials: true,
   })
@@ -172,10 +171,11 @@ app.use(`${API}/sathi`, sathiRouter);
 
 // Website-specific Internal endpoints
 app.use(`${API}/website`, websiteRouter);
-app.use(websiteRouter);
 
-// ⚠️ DEV-ONLY — Remove this block when done testing (also delete app/api/dev/dev.routes.ts)
-app.use(`${API}/dev`, devRouter);
+// ⚠️ DEV-ONLY — Only enabled in development environment
+if (config.nodeEnv === 'development') {
+  app.use(`${API}/dev`, devRouter);
+}
 
 // ─── 404 ──────────────────────────────────────────────────────────────────────
 app.use((req, res, next) => {

@@ -1,10 +1,19 @@
-import { Router } from 'express';
+import { Router, RequestHandler } from 'express';
+import rateLimit from 'express-rate-limit';
 import prisma from '../../core/database';
 
 const router = Router();
 
+const callbackLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: { success: false, message: 'Too many callback requests. Please try again after 15 minutes.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // ── POST /api/shared/callbacks ─────────────────────────────────────────────
-router.post('/', async (req, res) => {
+router.post('/', callbackLimiter as unknown as RequestHandler, async (req, res) => {
     try {
         const { name, phone, subscriberId, beneficiaryId, notes } = req.body;
 

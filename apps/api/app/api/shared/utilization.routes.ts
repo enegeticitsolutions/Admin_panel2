@@ -471,9 +471,29 @@ router.post('/request-service', authenticate, async (req: AuthRequest, res: Resp
 });
 
 // GET /api/shared/utilization/ledger/:beneficiaryId — Complete immutable transaction ledger history
-router.get('/ledger/:beneficiaryId', async (req: Request, res: Response) => {
+router.get('/ledger/:beneficiaryId', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const beneficiaryId = String(req.params.beneficiaryId || '');
+    const { userId, userRole } = req;
+
+    // Check authorization: beneficiary viewing self OR subscriber viewing owned beneficiary OR admin
+    if (userRole === 'beneficiary') {
+      const ben = await prisma.beneficiary.findFirst({
+        where: { OR: [{ id: userId }, { userId: userId }] }
+      });
+      if (!ben || ben.id !== beneficiaryId) {
+        return res.status(403).json({ success: false, message: 'Unauthorized' });
+      }
+    } else if (userRole === 'subscriber') {
+      const ben = await prisma.beneficiary.findFirst({
+        where: { id: beneficiaryId, subscriberId: userId }
+      });
+      if (!ben) {
+        return res.status(403).json({ success: false, message: 'Unauthorized' });
+      }
+    } else if (userRole !== 'admin' && userRole !== 'super_admin' && userRole !== 'field_manager') {
+      return res.status(403).json({ success: false, message: 'Unauthorized' });
+    }
 
     const activeSub = await prisma.subscription.findFirst({
       where: { beneficiaryId, isActive: true },

@@ -11,7 +11,7 @@ const router = Router();
 // Rate Limiter for OTP Requests (e.g., max 5 requests per 15 mins per IP)
 const otpLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 1000, // Limit each IP to 5 OTP requests per window
+  max: 5, // Limit each IP to 5 OTP requests per window
   message: { success: false, message: 'Too many OTP requests from this IP. Please try again after 15 minutes.' },
   standardHeaders: true,
   legacyHeaders: false,
@@ -20,7 +20,7 @@ const otpLimiter = rateLimit({
 // Rate Limiter for Password Logins (e.g., max 10 requests per 15 mins per IP)
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 1000, // Limit each IP to 10 password login attempts per window
+  max: 10, // Limit each IP to 10 password login attempts per window
   message: { success: false, message: 'Too many login attempts. Please try again after 15 minutes.' },
   standardHeaders: true,
   legacyHeaders: false,
