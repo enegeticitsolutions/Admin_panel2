@@ -98,7 +98,7 @@ async function handleUserDashboard(req: AuthRequest, res: Response) {
     // unless they are an admin/staff
     if (req.userId !== userId && req.userRole !== 'admin' && req.userRole !== 'field_manager') {
       console.warn(`[Dashboard] User ${req.userId} attempting to access dashboard for ${userId}`);
-      // return res.status(403).json({ success: false, message: 'Unauthorized' });
+      return res.status(403).json({ success: false, message: 'Unauthorized' });
     }
 
     const targetBeneficiaryId = req.query.beneficiaryId as string | undefined;

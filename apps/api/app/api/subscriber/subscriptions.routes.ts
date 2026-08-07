@@ -4,6 +4,7 @@ import * as subscriptionService from '../../services/subscriber/subscription_ser
 import { validateCoupon } from '../../services/coupon_service';
 import prisma from '../../core/database';
 import { createOrder, verifyPaymentSignature } from '../../services/razorpay_service';
+import { config } from '../../core/config';
 
 const router = Router();
 
@@ -173,7 +174,7 @@ router.post('/purchase', authenticate, async (req: AuthRequest, res: Response) =
 
     // Verify Payment Signature if payment details are provided
     if (razorpay_payment_id && razorpay_order_id && razorpay_signature) {
-      if (razorpay_signature === 'DEV_MOCK_SIGNATURE') {
+      if (razorpay_signature === 'DEV_MOCK_SIGNATURE' && config.nodeEnv === 'development') {
         console.log("⚠️ DEV MODE: Bypassing Razorpay Signature Verification using mock signature.");
       } else {
         const isValid = verifyPaymentSignature(razorpay_order_id, razorpay_payment_id, razorpay_signature);
