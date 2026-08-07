@@ -25,6 +25,10 @@ export const createBeneficiary = async (req: Request, res: Response) => {
 export const getSubscriberBeneficiaries = async (req: Request, res: Response) => {
   try {
     const subscriberId = req.params.subscriberId as string;
+    const authReq = req as any;
+    if (authReq.userId !== subscriberId && authReq.userRole !== 'admin' && authReq.userRole !== 'super_admin' && authReq.userRole !== 'field_manager') {
+      return res.status(403).json({ success: false, message: 'Unauthorized' });
+    }
     const list = await beneficiaryService.getSubscriberBeneficiaries(subscriberId);
     res.json({ success: true, data: list });
   } catch (error: any) {

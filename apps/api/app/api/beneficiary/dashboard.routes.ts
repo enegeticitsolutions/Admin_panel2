@@ -21,7 +21,9 @@ async function handleBeneficiaryDashboard(req: AuthRequest, res: Response) {
         const userId = req.params.beneficiaryId as string;
 
         const beneficiary = await prisma.beneficiary.findFirst({
-            where: { userId: userId },
+            where: {
+                OR: [{ userId: userId }, { id: userId }]
+            },
             include: {
                 primaryCC: {
                     include: { user: true }
@@ -31,6 +33,15 @@ async function handleBeneficiaryDashboard(req: AuthRequest, res: Response) {
 
         if (!beneficiary) {
             return res.status(404).json({ success: false, message: 'Beneficiary profile not found for this user' });
+        }
+
+        // Security authorization check
+        const isSelf = req.userId === beneficiary.userId || req.userId === beneficiary.id;
+        const isOwnerSubscriber = req.userId === beneficiary.subscriberId;
+        const isStaff = ['admin', 'super_admin', 'field_manager', 'care_companion'].includes(req.userRole || '');
+
+        if (!isSelf && !isOwnerSubscriber && !isStaff) {
+            return res.status(403).json({ success: false, message: 'Unauthorized access to beneficiary dashboard' });
         }
 
         // Determine greeting based on time in IST (server time assumption or static for now)

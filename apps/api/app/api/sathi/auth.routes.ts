@@ -1,4 +1,5 @@
-import { Router, Request, Response } from 'express';
+import { Router, Request, Response, RequestHandler } from 'express';
+import rateLimit from 'express-rate-limit';
 import { validate, authenticate, AuthRequest } from '../shared/deps';
 import { ApiResponse } from '../../utils/ApiResponse';
 import * as sathiService from '../../services/sathi/sathi_service';
@@ -10,14 +11,30 @@ import { sendOtpSchema, verifyOtpSchema } from '../../schemas/auth';
 
 const router = Router();
 
+const otpLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: { success: false, message: 'Too many OTP requests from this IP. Please try again after 15 minutes.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: { success: false, message: 'Too many login attempts. Please try again after 15 minutes.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // ─── Password Onboarding ─────────────────────────────────────────────────────
 
-router.post('/auth/register', validate(volunteerRegisterSchema), async (req: Request, res: Response) => {
+router.post('/auth/register', loginLimiter as unknown as RequestHandler, validate(volunteerRegisterSchema), async (req: Request, res: Response) => {
   const result = await sathiService.registerVolunteer(req.body);
   res.status(201).json(new ApiResponse(201, result, 'Volunteer registered successfully.'));
 });
 
-router.post('/auth/login', validate(volunteerLoginSchema), async (req: Request, res: Response) => {
+router.post('/auth/login', loginLimiter as unknown as RequestHandler, validate(volunteerLoginSchema), async (req: Request, res: Response) => {
   const { phone, password } = req.body;
   const result = await sathiService.loginVolunteer(phone, password);
   res.json(new ApiResponse(200, result, 'Login successful'));
@@ -25,12 +42,12 @@ router.post('/auth/login', validate(volunteerLoginSchema), async (req: Request, 
 
 // ─── OTP Login ───────────────────────────────────────────────────────────────
 
-router.post('/auth/send-otp', validate(sendOtpSchema), async (req: Request, res: Response) => {
+router.post('/auth/send-otp', otpLimiter as unknown as RequestHandler, validate(sendOtpSchema), async (req: Request, res: Response) => {
   const result = await sathiService.sendVolunteerOtp(req.body.phone);
   res.json(new ApiResponse(200, result, 'OTP sent successfully'));
 });
 
-router.post('/auth/verify-otp', validate(verifyOtpSchema), async (req: Request, res: Response) => {
+router.post('/auth/verify-otp', otpLimiter as unknown as RequestHandler, validate(verifyOtpSchema), async (req: Request, res: Response) => {
   const result = await sathiService.verifyVolunteerOtp(req.body.phone, req.body.otp);
   res.json(new ApiResponse(200, result, 'OTP verified successfully'));
 });
