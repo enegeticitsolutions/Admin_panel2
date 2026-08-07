@@ -324,6 +324,9 @@ export default function VolunteersPage() {
       const assignedIds = selectedVolunteer.assignments?.map((a) => a.beneficiaryId) || [];
       if (assignedIds.includes(b.id)) return false;
 
+      // 0. Sathi benefit filter — only seniors whose package includes SATHI_COMPANION
+      if (!b.hasSathiBenefit) return false;
+
       // 1. Search term filter
       if (searchTerm && !b.name.toLowerCase().includes(searchTerm.toLowerCase())) {
         return false;
@@ -343,6 +346,7 @@ export default function VolunteersPage() {
 
       return true;
     })
+
     .map((b) => {
       const match = selectedVolunteer
         ? computeMatchScore(selectedVolunteer, b)

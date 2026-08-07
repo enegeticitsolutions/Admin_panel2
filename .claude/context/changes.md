@@ -2585,3 +2585,37 @@ The vital tracking system is now completely dynamic and configuration-driven. Ne
   - **Reviews Viewer Modal**: Implemented modal to view all historical reviews left by beneficiaries for a specific volunteer.
   - **Design Adjustments**: Rounded edges on Reward Cards, shortened visit status copy (e.g. "Visit Completed", "Visit Verified").
   - Dynamically displaying the fetched average rating and review count directly on the volunteer assignment card.
+
+---
+
+## Session: Security Hardening, API Audit Cleanups, Sathi Companion Filtering & Asset Updates (2026-08-07)
+
+### Security Vulnerability Remediations & API Audit Cleanups (`apps/api`)
+- **`DEV_MOCK_SIGNATURE` Environment Isolation**: Guarded signature verification bypass in `apps/api/app/api/subscriber/subscriptions.routes.ts` so mock signatures are strictly restricted to `config.nodeEnv === 'development'`.
+- **Server-Side Subscription Pricing & Payment Enforcement**: Added server-side price evaluation (`calculatePricing`) on `POST /subscriber/subscriptions/purchase`. Enforced Razorpay payment validation when `pricing.total > 0`, restricting bypasses strictly to 100% discount coupons (`pricing.total === 0`).
+- **Production `JWT_SECRET` Validation**: Hardened `apps/api/app/core/config.ts` to throw a fatal error on application startup if `JWT_SECRET` environment variable is missing in production environments.
+- **Dashboard Authorization Guards**: Re-enabled 403 authorization checks in `apps/api/app/api/subscriber/dashboard.routes.ts`.
+- **RBAC Middleware Integration**: Attached `requireAdmin` RBAC middleware to administrative user management endpoints in `apps/api/app/api/admin/users.routes.ts`.
+- **Rate Limiting Hardening**: Applied `otpLimiter` (max 5 requests) and `loginLimiter` (max 10 requests) to authentication routes in `apps/api/app/api/auth/auth.routes.ts`, `apps/api/app/api/sathi/auth.routes.ts`, and `callbackLimiter` in `apps/api/app/api/shared/callback.routes.ts`.
+- **CORS Configuration Hardening**: Refactored origin validation in `apps/api/app/main.ts` to permit native mobile client requests (missing origin header) while strictly verifying web browser domain origins.
+- **Development Router Protection**: Guarded `devRouter` mounting with `config.nodeEnv === 'development'` in `apps/api/app/main.ts`.
+- **Ownership & Authentication Controls**: Secured `getSubscriberBeneficiaries` in `apps/api/app/controllers/subscriber/beneficiary.controller.ts`, `handleBeneficiaryDashboard` in `apps/api/app/api/beneficiary/dashboard.routes.ts`, and `GET /api/shared/utilization/ledger/:beneficiaryId` in `apps/api/app/api/shared/utilization.routes.ts` with `authenticate` middleware and ownership authorization checks.
+- **Beneficiary Router Restoration**: Restored `app.use('/api/beneficiary', beneficiaryDashboardRouter)` endpoint mounting in `apps/api/app/main.ts`.
+
+### Android Mobile App Adaptive Icon Replacement (`apps/mobile-app`)
+- **Asset Replacement**: Replaced `apps/mobile-app/assets/images/adaptive-icon.png` with the new optimized asset.
+- **App JSON Config**: Updated `apps/mobile-app/app.json` `android.adaptiveIcon.backgroundColor` from `#FE6700` to `#FFFFFF`.
+
+### Sathi Companion Senior Filtering (`apps/admin-backend` & `apps/admin-frontend`)
+- **Admin Backend (`apps/admin-backend/routes/beneficiaries.js`)**:
+  - Updated `GET /api/beneficiaries` subscription query to include `packageBenefits → benefit → benefitType { code }`.
+  - Added dynamic `hasSathiBenefit: boolean` flag per beneficiary (`true` if active package contains a benefit with `benefitType.code === 'SATHI_COMPANION'` or starts with `'SATHI_'`).
+- **Admin Frontend (`apps/admin-frontend/src/app/pages/VolunteersPage.tsx`)**:
+  - Updated `modalAvailableBeneficiaries` in the "Assign Senior to Volunteer" modal to filter by `if (!b.hasSathiBenefit) return false;`.
+  - Ensures only seniors enrolled in packages containing Sathi Companion benefits appear in the volunteer assignment modal list.
+
+### Git Repository Synchronization
+- Merged branches `secure-maps-api-keys` and `ui-figma-updates` into `main`.
+- Pushed changes to primary remote `harshit` (`https://github.com/Harshit00018/MHN.git`) `main` branch.
+- Pushed testing branch to `origin` (`https://github.com/enegeticitsolutions/Admin_panel4.git`) `feature/monorepo-structure-testing` branch.
+
