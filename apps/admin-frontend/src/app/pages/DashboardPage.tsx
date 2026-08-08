@@ -56,8 +56,8 @@ export default function DashboardPage() {
       bgColor: 'bg-blue-50',
     },
     {
-      label: 'Total Beneficiaries',
-      value: (beneficiaries || []).filter(b => b.isActive).length,
+      label: 'Active Beneficiaries',
+      value: (beneficiaries || []).length,
       icon: Heart,
       color: 'text-pink-600',
       bgColor: 'bg-pink-50',

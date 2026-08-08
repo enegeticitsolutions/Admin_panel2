@@ -13,8 +13,28 @@ const { rosterEvents } = require('../services/events');
 // ── GET /api/beneficiaries ───────────────────────────────────────────────────
 router.get('/', async (req, res) => {
   try {
-    const { search, searchBy, page, limit, sortBy, sortOrder = 'desc', filterBy = 'all', statusFilter = 'active', teamId } = req.query;
+    const { search, searchBy, page, limit, sortBy, sortOrder = 'desc', filterBy = 'all', statusFilter = 'active', includeInactive, teamId } = req.query;
     const filterParams = {};
+
+    if (includeInactive !== 'true') {
+      filterParams.isActive = true;
+    }
+
+    if (statusFilter === 'active') {
+      filterParams.subscriptions = {
+        some: {
+          isActive: true,
+          endDate: { gt: new Date() }
+        }
+      };
+    } else if (statusFilter === 'expired') {
+      filterParams.subscriptions = {
+        none: {
+          isActive: true,
+          endDate: { gt: new Date() }
+        }
+      };
+    }
 
     if (teamId) {
       filterParams.teamId = teamId;
@@ -191,7 +211,7 @@ router.get('/', async (req, res) => {
       };
     });
 
-    // ── Apply Status Filter ('active' by default | 'expired' | 'all') ─────────
+    // ── Apply Status Filter ('active' package | 'expired' package | 'all') ─────────
     if (statusFilter === 'active') {
       mapped = mapped.filter((b) => b.packageStatus === 'active');
     } else if (statusFilter === 'expired') {
@@ -208,20 +228,29 @@ router.get('/', async (req, res) => {
     }
 
     const totalCount = mapped.length;
-    const pageNum = Number(page) || 1;
-    const limitNum = Number(limit) || 10;
-    const paginatedData = mapped.slice((pageNum - 1) * limitNum, pageNum * limitNum);
-    const totalPages = Math.ceil(totalCount / limitNum) || 1;
+
+    // Only apply pagination if page or limit query parameters were explicitly passed
+    if (req.query.page || req.query.limit) {
+      const pageNum = Number(page) || 1;
+      const limitNum = Number(limit) || 10;
+      const paginatedData = mapped.slice((pageNum - 1) * limitNum, pageNum * limitNum);
+      const totalPages = Math.ceil(totalCount / limitNum) || 1;
+
+      return res.json({
+        success: true,
+        data: {
+          data: paginatedData,
+          total: totalCount,
+          page: pageNum,
+          limit: limitNum,
+          totalPages,
+        }
+      });
+    }
 
     res.json({
       success: true,
-      data: {
-        data: paginatedData,
-        total: totalCount,
-        page: pageNum,
-        limit: limitNum,
-        totalPages,
-      }
+      data: mapped
     });
   } catch (err) {
     console.error('GET /beneficiaries error:', err);

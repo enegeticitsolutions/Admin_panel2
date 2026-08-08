@@ -476,8 +476,8 @@ export const subscriberApi = {
 export const beneficiaryApi = {
   async getAll(): Promise<any[]> {
     try {
-      const res = await apiJson<any>('/beneficiaries');
-      const data = Array.isArray(res) ? res : (res?.data || []);
+      const res = await apiJson<any>('/beneficiaries?statusFilter=active&limit=5000');
+      const data = Array.isArray(res) ? res : (Array.isArray(res?.data) ? res.data : (res?.data?.data || []));
       
       // Normalize to match expected shape
       return data.map((b: any) => {
