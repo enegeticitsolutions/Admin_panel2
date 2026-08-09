@@ -1,5 +1,5 @@
 import React, { useState, useRef } from "react";
-import { sendOtp, verifyOtp, registerUser, loginWithPassword } from "../services/api";
+import { sendOtp, verifyOtp, registerUser, loginWithPassword } from "../../services/api";
 
 export default function AuthModal({ isOpen, onClose, onSuccess, initialPhone = "", initialView = "PHONE" }) {
   const [view, setView] = useState(initialView); // 'PHONE' | 'OTP' | 'REGISTER' | 'PASSWORD_LOGIN'
@@ -68,11 +68,9 @@ export default function AuthModal({ isOpen, onClose, onSuccess, initialPhone = "
     try {
       const res = await verifyOtp(phone, enteredOtp);
       if (res.isNewUser) {
-        // User not in DB -> switch to registration form
         setInfoMessage("Phone verified! Please complete your account profile.");
         setView("REGISTER");
       } else if (res.user && res.token) {
-        // Logged in successfully
         onSuccess(res.user, res.token);
         onClose();
       } else {
@@ -213,7 +211,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess, initialPhone = "
           </div>
         )}
 
-        {/* ── View 1: PHONE INPUT ── */}
+        {/* View 1: PHONE INPUT */}
         {view === "PHONE" && (
           <form onSubmit={handlePhoneSubmit} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
             <div>
@@ -293,7 +291,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess, initialPhone = "
           </form>
         )}
 
-        {/* ── View 2: OTP VERIFICATION ── */}
+        {/* View 2: OTP VERIFICATION */}
         {view === "OTP" && (
           <form onSubmit={handleVerifyOtpSubmit} style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
             <div style={{ display: "flex", justifyContent: "space-between", gap: "8px" }}>
@@ -363,7 +361,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess, initialPhone = "
           </form>
         )}
 
-        {/* ── View 3: ACCOUNT REGISTRATION ── */}
+        {/* View 3: ACCOUNT REGISTRATION */}
         {view === "REGISTER" && (
           <form onSubmit={handleRegisterSubmit} style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
             <div>
@@ -433,7 +431,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess, initialPhone = "
           </form>
         )}
 
-        {/* ── View 4: PASSWORD LOGIN ── */}
+        {/* View 4: PASSWORD LOGIN */}
         {view === "PASSWORD_LOGIN" && (
           <form onSubmit={handlePasswordLoginSubmit} style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
             <div>

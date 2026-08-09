@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { validateCouponCode, purchaseSubscription } from "../services/api";
+import { validateCouponCode, purchaseSubscription } from "../../services/api";
 
 export default function CheckoutModal({ isOpen, onClose, selectedPackage, token, user, onSuccess }) {
   const [duration, setDuration] = useState("1"); // "1" | "3" | "6" | "12"
