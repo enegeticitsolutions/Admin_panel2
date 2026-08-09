@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import PackageCard from "../components/PackageCard";
+import PackageCard from "../components/packages/PackageCard";
 
 
 
@@ -131,32 +131,60 @@ export default function PlansPage({
               Prepaid hours of in-home care. You always know exactly what you've used and what's left - no surprises, no caps.
             </p>
             <div className="plans-hero__badges">
-              <span>No hidden fees</span>
-              <span>Hours roll over 30 days</span>
-              <span>Cancel anytime</span>
+              <div className="plans-hero__badge">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FE6700" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                  <polyline points="9 12 11 14 15 10"/>
+                </svg>
+                <span>No hidden fees</span>
+              </div>
+              <div className="plans-hero__badge">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FE6700" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10"/>
+                  <polyline points="12 6 12 12 16 14"/>
+                </svg>
+                <span>Hours roll over 30 days</span>
+              </div>
+              <div className="plans-hero__badge">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FE6700" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10"/>
+                  <polyline points="9 12 11 14 15 9"/>
+                </svg>
+                <span>Cancel anytime</span>
+              </div>
             </div>
           </div>
 
           <div className="hours-card" aria-label="Your hours always visible">
-            <h2>Your hours - always visible</h2>
+            <h2>YOUR HOURS — ALWAYS VISIBLE</h2>
             {[
-              ["Saathi Starter", "7", "10", "3", "#10b981"],
-              ["Saathi Plus", "18", "25", "7", "#fe6700"],
-              ["Saathi Premium", "31", "50", "19", "#8b45ff"],
+              ["Saathi Starter", "7", "10", "3", "#10B981"],
+              ["Saathi Plus", "18", "25", "7", "#FE6700"],
+              ["Saathi Premium", "31", "50", "19", "#7C3AED"],
             ].map(([name, used, total, remaining, color]) => (
               <div className="hours-row" key={name}>
-                <div>
-                  <strong>{name}</strong>
-                  <span>{used} hrs used</span>
+                <div className="hours-row__header">
+                  <strong className="hours-row__name">{name}</strong>
+                  <span className="hours-row__ratio">
+                    <strong>{used}</strong> / {total} hrs used
+                  </span>
                 </div>
-                <small>{used} / {total} hrs used</small>
                 <div className="hours-bar">
                   <span style={{ width: `${(Number(used) / Number(total)) * 100}%`, background: color }} />
                 </div>
-                <em style={{ color }}>{remaining} hrs remaining</em>
+                <div className="hours-row__footer">
+                  <span className="hours-row__used">{used} hrs used</span>
+                  <em className="hours-row__remaining" style={{ color }}>{remaining} hrs remaining</em>
+                </div>
               </div>
             ))}
-            <div className="rollover-note">Unused hours roll over for 30 days automatically</div>
+            <div className="rollover-note">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FE6700" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <polyline points="12 6 12 12 16 14" />
+              </svg>
+              <span>Unused hours roll over for <strong>30 days</strong> automatically</span>
+            </div>
           </div>
         </div>
       </section>
@@ -333,9 +361,10 @@ export default function PlansPage({
         <form className="quote-card" onSubmit={handleSubmit}>
           <h2>Get a personalised quote</h2>
           <p>Tell us which plan interests you and we'll call back within 2 hours with pricing and availability for your area.</p>
+          
           <div className="quote-grid">
             <label>
-              Your name
+              <span>Your name</span>
               <input
                 name="name"
                 placeholder="Rahul Gupta"
@@ -344,7 +373,7 @@ export default function PlansPage({
               />
             </label>
             <label>
-              Phone
+              <span>Phone</span>
               <input
                 name="phone"
                 placeholder="+91 98765 43210"
@@ -353,14 +382,28 @@ export default function PlansPage({
               />
             </label>
           </div>
-          <div className="plan-pills" aria-label="Interested plan">
-            <button type="button">Saathi Starter</button>
-            <button type="button">Saathi Plus</button>
-            <button type="button">Saathi Premium</button>
-            <button type="button">Bespoke</button>
+
+          <div className="plan-pills-group">
+            <span className="plan-pills-label">Interested plan</span>
+            <div className="plan-pills" aria-label="Interested plan">
+              {["Saathi Starter", "Saathi Plus", "Saathi Premium", "Bespoke"].map((plan) => {
+                const isSelected = (formData.interestedPlan || "Saathi Starter") === plan;
+                return (
+                  <button
+                    key={plan}
+                    type="button"
+                    className={`plan-pill ${isSelected ? "plan-pill--active" : ""}`}
+                    onClick={() => handleInputChange({ target: { name: "interestedPlan", value: plan } })}
+                  >
+                    {plan}
+                  </button>
+                );
+              })}
+            </div>
           </div>
-          <label>
-            Your area
+
+          <label className="quote-field-full">
+            <span>Your area</span>
             <input
               name="pinCode"
               placeholder="e.g. Gurugram Sector 55"
@@ -368,6 +411,7 @@ export default function PlansPage({
               onChange={handleInputChange}
             />
           </label>
+
           <button type="submit" disabled={isSubmitting || showSuccess}>
             {isSubmitting ? "Requesting..." : "Request a Callback"}
           </button>
