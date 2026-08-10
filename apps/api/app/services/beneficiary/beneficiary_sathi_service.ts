@@ -117,7 +117,7 @@ export const getLinkedVolunteers = async (beneficiaryId: string) => {
     }
   });
 
-  return assignments.map(a => {
+  const mapVolunteer = (a: any) => {
     const v = a.volunteer;
     
     let rating = 0;
@@ -145,12 +145,78 @@ export const getLinkedVolunteers = async (beneficiaryId: string) => {
       distance: distanceStr, 
       location: v.city ? `${v.city}${v.state ? `, ${v.state}` : ''}` : (v.address || 'Nearby'),
       hours: v.totalCreditHours.toFixed(1),
+      visits: Math.floor(v.totalCreditHours),
       bio: v.previousExperience || v.whyJoin || 'Volunteer passionate about community support.',
       availability: (v as any).availability || [],
       languages: (v as any).languages || [],
       interests: (v as any).interests || []
     };
+  };
+
+  const pending = assignments
+    .filter(a => a.status === 'PENDING')
+    .map(mapVolunteer);
+
+  const connected = assignments
+    .filter(a => a.status === 'CONNECTED' || a.status === null || a.status === undefined)
+    .map(mapVolunteer);
+
+  return { pending, connected };
+};
+
+export const getVolunteerDetailedProfile = async (beneficiaryId: string, volunteerId: string) => {
+  const beneficiary = await prisma.beneficiary.findUnique({
+    where: { id: beneficiaryId },
+    select: { latitude: true, longitude: true }
   });
+
+  const v = await prisma.volunteer.findUnique({
+    where: { id: volunteerId },
+    include: {
+      reviews: {
+        orderBy: { createdAt: 'desc' },
+        take: 5
+      }
+    }
+  });
+
+  if (!v) {
+    throw new ApiError(404, 'Volunteer not found.');
+  }
+
+  let rating = 0;
+  let reviewCount = 0;
+  if (v.reviews && v.reviews.length > 0) {
+    const sum = v.reviews.reduce((acc: any, rev: any) => acc + rev.rating, 0);
+    rating = sum / v.reviews.length;
+    reviewCount = v.reviews.length;
+  } else {
+    rating = Math.min(5, Math.max(3, 3 + (v.totalCreditPoints / 100)));
+  }
+  
+  let distanceStr = v.city ? `${v.city}${v.state ? `, ${v.state}` : ''}` : (v.address || 'Nearby');
+  if (beneficiary?.latitude && beneficiary?.longitude && v.latitude && v.longitude) {
+    const dist = calculateDistance(beneficiary.latitude, beneficiary.longitude, v.latitude, v.longitude);
+    distanceStr = `${dist.toFixed(1)} km`;
+  }
+
+  return {
+    id: v.id,
+    name: v.name,
+    photo: v.profilePhoto || 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=120',
+    rating: rating.toFixed(1),
+    reviewCount: reviewCount,
+    distance: distanceStr, 
+    location: v.city ? `${v.city}${v.state ? `, ${v.state}` : ''}` : (v.address || 'Nearby'),
+    hours: v.totalCreditHours.toFixed(1),
+    visits: Math.floor(v.totalCreditHours),
+    age: (v as any).age || 35,
+    bio: v.previousExperience || v.whyJoin || 'Experienced care companion with a passion for providing companionship and emotional support to seniors.',
+    availability: (v as any).availability || [],
+    languages: (v as any).languages || ['Hindi', 'English'],
+    interests: (v as any).interests || ['Gardening', 'Cooking', 'Temple visits'],
+    reviews: v.reviews || []
+  };
 };
 
 export const getBeneficiarySathiRequests = async (beneficiaryId: string) => {
@@ -351,4 +417,27 @@ export const getVolunteerReviews = async (volunteerId: string) => {
     orderBy: { createdAt: 'desc' }
   });
   return reviews;
+};
+
+
+export const updateAssignmentStatus = async (beneficiaryId: string, volunteerId: string, status: any) => {
+  const assignment = await prisma.volunteerAssignment.findUnique({
+    where: {
+      volunteerId_beneficiaryId: {
+        volunteerId,
+        beneficiaryId
+      }
+    }
+  });
+
+  if (!assignment) {
+    throw new ApiError(404, 'Assignment not found');
+  }
+
+  await prisma.volunteerAssignment.update({
+    where: { id: assignment.id },
+    data: { status }
+  });
+
+  return { success: true };
 };

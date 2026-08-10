@@ -56,6 +56,32 @@ router.get(
   })
 );
 
+// Route to get a specific volunteer's detailed profile
+router.get(
+  '/:beneficiaryId/sathi/volunteers/:volunteerId/profile',
+  authenticate,
+  asyncHandler(async (req: any, res: Response) => {
+    const resolvedId = await resolveBeneficiaryId(req.params.beneficiaryId);
+    const profile = await beneficiarySathiService.getVolunteerDetailedProfile(resolvedId, req.params.volunteerId);
+    res.json(new ApiResponse(200, profile));
+  })
+);
+
+// Route to update assignment status (Connect/Reject)
+router.put(
+  '/:beneficiaryId/sathi/volunteers/:volunteerId/status',
+  authenticate,
+  asyncHandler(async (req: any, res: Response) => {
+    const { status } = req.body;
+    if (!['CONNECTED', 'REJECTED'].includes(status)) {
+      return res.status(400).json({ success: false, message: 'Invalid status. Must be CONNECTED or REJECTED.' });
+    }
+    const resolvedId = await resolveBeneficiaryId(req.params.beneficiaryId);
+    const result = await beneficiarySathiService.updateAssignmentStatus(resolvedId, req.params.volunteerId, status);
+    res.json(new ApiResponse(200, result));
+  })
+);
+
 // Route to submit a Sathi visit request
 router.post(
   '/:beneficiaryId/sathi/visit-requests',

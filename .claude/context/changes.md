@@ -1,3 +1,19 @@
+## Session: Sathi Connection Workflow & Verification System (2026-08-10)
+
+### Sathi Volunteer Connection Workflow
+- **Database Architecture (`apps/api` & `packages/database`)**: Added `AssignmentStatus` enum (`PENDING`, `CONNECTED`, `REJECTED`) and updated `VolunteerAssignment` schema to track approval states. Default state is `PENDING`.
+- **Backend API (`apps/api`)**: 
+  - Added `updateAssignmentStatus` to `beneficiary_sathi_service.ts`.
+  - Created `PUT /beneficiary/sathi-requests/:id/sathi/volunteers/:volunteerId/status` route for users to Accept/Reject volunteers.
+  - Successfully ran a database migration to update all pre-existing assigned volunteers to `CONNECTED` status.
+  - Diagnosed Supabase Storage configuration and guided user to add `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` to `.env` for profile photo uploads.
+- **Frontend Beneficiary App (`apps/mobile-app`)**:
+  - **Sathi Network Tabs (`sathi-request.tsx`)**: Re-architected the screen to feature a dynamic Top Tab Bar with "Available Volunteers" (default) and "Connect Volunteer".
+  - **Pending Sathi Cards**: Designed a custom 3-button layout (View, Connect, Reject) for pending volunteers in the Connect tab.
+  - **Dynamic Profile Details (`sathi-details/[id].tsx`)**: Replaced the standard "Book Visit" button with dynamic "Connect" and "Reject" header actions when a pending volunteer is viewed. Added `router.back()` upon successful connection or rejection.
+
+---
+
 ## Session: Android Adaptive Icon & Mobile App Icon Asset Optimization (2026-08-07)
 
 ### Android Adaptive Icon Safe-Zone & Asset Resolution (`apps/mobile-app`)
