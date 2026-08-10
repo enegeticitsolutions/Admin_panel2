@@ -33,6 +33,7 @@ async function sendExpoPush(expoPushToken, title, body, data = {}) {
     sound: 'default',
     badge: 1,
     priority: 'high',
+    channelId: 'default',
   });
 
   return new Promise((resolve) => {

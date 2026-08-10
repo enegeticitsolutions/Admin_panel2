@@ -263,6 +263,31 @@ All 5 core domain event groups are fully implemented under `apps/admin-backend/s
 
 ---
 
+## 10. Celebration Notification Engine & Offline Catch-Up Sync (`CareCompanionCelebrationNotificationService`)
+
+### Overview
+Enterprise automated celebration notification engine managing birthday push alerts and offline synchronization for Care Companions regarding their assigned primary and secondary beneficiaries.
+
+### Key Operational Components:
+- **Service**: `apps/api/app/services/care_companion/celebration_notification_service.ts`
+- **Worker**: `apps/api/app/workers/celebrationWorker.ts`
+- **Constants & Templates**: `apps/api/app/constants/celebration_constants.ts`
+- **UI Component**: `apps/mobile-app/components/care-companion/UpcomingCelebrationsCard.tsx`
+
+### Functional Features:
+1. **Targeting Scope**: Filters strictly for active beneficiaries (`isActive: true`) assigned to the companion as `primaryCcId` or `secondaryCcId`.
+2. **Notification Schedule**:
+   - **1 Day Before**: `🎂 Tomorrow is [Beneficiary]'s Birthday!`
+   - **On the Day**: `🎉 Today is [Beneficiary]'s Birthday!`
+3. **Offline Catch-Up Sync**:
+   - Notifications write directly to `prisma.notification` table for in-app bell tray persistence.
+   - On dashboard fetch (`GET /api/care-companion/dashboard`), a non-blocking `setImmediate` catch-up execution fires to immediately deliver any pending birthday alerts to companions returning online.
+4. **Lock-Screen Push Banners**:
+   - Payload includes `"channelId": "default"` to ensure Android 8.0+ system tray banners display when the app is killed/closed.
+5. **Idempotency**: Checked against past lookback window (`config.notifications.lookbackDays`) to prevent duplicate notification delivery.
+
+---
+
 ## 11. Redis & BullMQ Message Queue Architecture Blueprint (Future Expansion)
 
 When transitioning to a distributed Message Queue pattern (using Redis & BullMQ), the modular dispatchers in `apps/admin-backend/services/events/` will serve as the background worker handlers.
