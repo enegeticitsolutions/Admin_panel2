@@ -44,6 +44,8 @@ export default function EditProfile() {
   const [gender, setGender] = useState('');
   const [whyJoin, setWhyJoin] = useState('');
   const [interests, setInterests] = useState<string[]>([]);
+  const [availability, setAvailability] = useState<string[]>([]);
+  const [languagesStr, setLanguagesStr] = useState('');
   
   // Location State
   const [showAddressPicker, setShowAddressPicker] = useState(false);
@@ -83,6 +85,8 @@ export default function EditProfile() {
       setGender(p.gender || '');
       setWhyJoin(p.whyJoin || '');
       setInterests(p.interests || []);
+      setAvailability(p.availability || []);
+      setLanguagesStr((p.languages || []).join(', '));
       setAddressDetails({
         address: [p.flatPlot, p.streetArea, p.landmark, p.city, p.state, p.pincode].filter(Boolean).join(', '),
         flatPlot: p.flatPlot,
@@ -110,6 +114,14 @@ export default function EditProfile() {
     }
   };
 
+  const toggleAvailability = (opt: string) => {
+    if (availability.includes(opt)) {
+      setAvailability(availability.filter(a => a !== opt));
+    } else {
+      setAvailability([...availability, opt]);
+    }
+  };
+
   const handleAddressSelected = (selected: SelectedAddress) => {
     setAddressDetails(selected);
     setShowAddressPicker(false);
@@ -124,6 +136,8 @@ export default function EditProfile() {
         gender,
         whyJoin,
         interests,
+        availability,
+        languages: languagesStr.split(',').map(l => l.trim()).filter(Boolean),
         flatPlot: addressDetails.flatPlot || '',
         streetArea: addressDetails.streetArea || addressDetails.address || '',
         city: addressDetails.city || '',
@@ -270,6 +284,56 @@ export default function EditProfile() {
               <Text style={styles.locationBtnText}>Update</Text>
             </TouchableOpacity>
           </View>
+        </View>
+
+        {/* Availability */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Availability</Text>
+          <Text style={styles.label}>Weekdays</Text>
+          <View style={[styles.chipContainer, { marginBottom: 16 }]}>
+            {['Weekday morning (6.00 am - 1.00 pm)', 'Weekday evening (1.00 pm - 7.00 pm)'].map((opt) => {
+              const isSelected = availability.includes(opt);
+              return (
+                <TouchableOpacity
+                  key={opt}
+                  style={[styles.chip, isSelected && styles.chipSelected]}
+                  onPress={() => toggleAvailability(opt)}
+                >
+                  <Text style={[styles.chipText, isSelected && styles.chipTextSelected]}>
+                    {opt.replace('Weekday ', '')}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+          <Text style={styles.label}>Weekends</Text>
+          <View style={styles.chipContainer}>
+            {['Weekend morning (6.00 am - 1.00 pm)', 'Weekend evening (1.00 pm - 7.00 pm)'].map((opt) => {
+              const isSelected = availability.includes(opt);
+              return (
+                <TouchableOpacity
+                  key={opt}
+                  style={[styles.chip, isSelected && styles.chipSelected]}
+                  onPress={() => toggleAvailability(opt)}
+                >
+                  <Text style={[styles.chipText, isSelected && styles.chipTextSelected]}>
+                    {opt.replace('Weekend ', '')}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+
+        {/* Languages */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Languages</Text>
+          <TextInput
+            style={styles.input}
+            value={languagesStr}
+            onChangeText={setLanguagesStr}
+            placeholder="e.g. Hindi, English, Punjabi"
+          />
         </View>
 
         {/* Interests */}
