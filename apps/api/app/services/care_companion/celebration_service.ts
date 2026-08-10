@@ -1,10 +1,11 @@
 import prisma from '../../core/database';
+import { MONTH_NAMES, CELEBRATION_TYPES } from '../../constants/celebration_constants';
 
 export interface CelebrationItem {
   id: string;
   beneficiaryId: string;
   name: string;
-  type: 'Birthday';
+  type: typeof CELEBRATION_TYPES.BIRTHDAY;
   date: string;
   role: 'Primary' | 'Secondary';
   daysUntil: number;
@@ -67,8 +68,7 @@ export class CareCompanionCelebrationService {
         nextBirthday = new Date(currentYear + 1, dobMonth, dobDay);
       }
 
-      const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-      const formattedDate = `${monthNames[dobMonth]} ${dobDay}, ${nextBirthday.getFullYear()}`;
+      const formattedDate = `${MONTH_NAMES[dobMonth]} ${dobDay}, ${nextBirthday.getFullYear()}`;
 
       const diffTime = nextBirthday.getTime() - todayMidnight.getTime();
       const daysUntil = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -77,7 +77,7 @@ export class CareCompanionCelebrationService {
         id: `bday-${b.id}`,
         beneficiaryId: b.id,
         name: b.name,
-        type: 'Birthday',
+        type: CELEBRATION_TYPES.BIRTHDAY,
         date: formattedDate,
         role,
         daysUntil,

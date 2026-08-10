@@ -62,6 +62,41 @@ router.get('/', authenticate, async (req: Request, res: Response) => {
   }
 });
 
+// PUT /api/care-companion/profile - Update Care Companion Profile (Name)
+router.put('/', authenticate, async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).userId;
+    const { name } = req.body;
+
+    if (!name || typeof name !== 'string' || !name.trim()) {
+      return res.status(400).json({ success: false, message: 'Name is required' });
+    }
+
+    const trimmedName = name.trim();
+
+    const updatedUser = await prisma.user.update({
+      where: { id: userId },
+      data: { name: trimmedName },
+    });
+
+    const cc = await prisma.careCompanion.findUnique({ where: { userId } });
+    if (cc) {
+      await prisma.careCompanion.update({
+        where: { userId },
+        data: { name: trimmedName },
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Profile updated successfully',
+      data: { name: updatedUser.name },
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 // GET /api/care-companion/profile/assigned-beneficiaries
 router.get('/assigned-beneficiaries', authenticate, async (req: Request, res: Response) => {
   try {

@@ -17,4 +17,11 @@ export const config = {
   jsonLimit: process.env.JSON_PAYLOAD_LIMIT || '2mb',
   rateLimitWindowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000', 10), // 15 mins
   rateLimitMaxRequests: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '1000', 10),
+  expoPushUrl: process.env.EXPO_PUSH_URL || 'https://exp.host/--/api/v2/push/send',
+  pushTokenPrefix: process.env.EXPO_PUSH_TOKEN_PREFIX || 'ExponentPushToken',
+  notifications: {
+    lookbackDays: parseInt(process.env.NOTIFICATION_LOOKBACK_DAYS || '7', 10),
+    checkIntervalMs: parseInt(process.env.NOTIFICATION_CHECK_INTERVAL_MS || '3600000', 10), // 1 hour
+    maxCelebrationsDashboard: parseInt(process.env.MAX_CELEBRATIONS_DASHBOARD || '5', 10),
+  },
 };

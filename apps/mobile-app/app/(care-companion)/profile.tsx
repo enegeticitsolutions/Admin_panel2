@@ -1,5 +1,5 @@
-﻿import React, { useState, useCallback, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform, ActivityIndicator, useWindowDimensions } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform, ActivityIndicator, useWindowDimensions, Modal, TextInput, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, Stack, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -12,25 +12,22 @@ import Animated, {
     useSharedValue,
     useAnimatedStyle,
     withSpring,
-    withTiming,
     interpolateColor,
-    FadeInDown,
     FadeInUp
 } from 'react-native-reanimated';
 
 // Fonts & Colors
 import { useFonts, Poppins_400Regular, Poppins_500Medium, Poppins_600SemiBold, Poppins_700Bold } from '@expo-google-fonts/poppins';
 import { CompanionBottomNav } from '../../components/care-companion/CompanionBottomNav';
-
-const DEEP_ORANGE = '#FE6700';
-const LIGHT_BEIGE = '#FAF3EB';
-
 import { API_URL } from '@/constants/api';
 import { useNavigationStack } from '@/contexts/NavigationStackContext';
 import { useAndroidBackHandler } from '@/hooks/useAndroidBackHandler';
+
+const DEEP_ORANGE = '#FE6700';
+const LIGHT_BEIGE = '#FAF3EB';
 const API_BASE_URL = API_URL;
 
-// ðŸš€ PREMIUM REANIMATED TOGGLE COMPONENT
+// PREMIUM REANIMATED TOGGLE COMPONENT
 const CustomToggle = ({ value, onValueChange }: { value: boolean, onValueChange: (val: boolean) => void }) => {
     const isOn = useSharedValue(value ? 1 : 0);
 
@@ -69,31 +66,58 @@ const CustomToggle = ({ value, onValueChange }: { value: boolean, onValueChange:
 
 export default function ProfileScreen() {
     const router = useRouter();
-    const { push, replace, pop } = useNavigationStack();
+    const { replace, pop } = useNavigationStack();
     useAndroidBackHandler();
-    const handleSafeBack = () => {
-        if (router.canGoBack()) {
-            pop();
-        } else {
-            replace('/(care-companion)');
-        }
-    };
+    
     const [loading, setLoading] = useState(true);
     const [profileData, setProfileData] = useState<any>(null);
 
-    // Toggle States
+    // Edit Name Modal State
+    const [isEditNameModalVisible, setIsEditNameModalVisible] = useState(false);
+    const [editedName, setEditedName] = useState('');
+    const [savingName, setSavingName] = useState(false);
+
+    // Toggle States for Notifications (Persistent)
     const [toggles, setToggles] = useState({
         reminders: true,
         celebrations: true,
-        training: false,
-        geofence: true
     });
 
     let [fontsLoaded] = useFonts({
         Poppins_400Regular, Poppins_500Medium, Poppins_600SemiBold, Poppins_700Bold,
     });
 
-    // ðŸš€ ZERO-TOUCH AUTO-FALLBACK FETCH
+    // Load persistent toggle settings on mount
+    React.useEffect(() => {
+        const loadNotificationSettings = async () => {
+            try {
+                const saved = await AsyncStorage.getItem('cc_notification_toggles');
+                if (saved) {
+                    const parsed = JSON.parse(saved);
+                    setToggles({
+                        reminders: parsed.reminders ?? true,
+                        celebrations: parsed.celebrations ?? true,
+                    });
+                }
+            } catch (err) {
+                console.log('Failed to load notification settings:', err);
+            }
+        };
+        loadNotificationSettings();
+    }, []);
+
+    // Toggle Handler: saves locally and syncs setting
+    const handleToggleChange = async (key: 'reminders' | 'celebrations', value: boolean) => {
+        const updated = { ...toggles, [key]: value };
+        setToggles(updated);
+        try {
+            await AsyncStorage.setItem('cc_notification_toggles', JSON.stringify(updated));
+        } catch (err) {
+            console.log('Failed to save notification settings:', err);
+        }
+    };
+
+    // Auto-Fetch Profile
     useFocusEffect(
         useCallback(() => {
             let isActive = true;
@@ -118,18 +142,18 @@ export default function ProfileScreen() {
                     const json = await response.json();
                     if (isActive) setProfileData(json.data || json);
                 } catch (error) {
-                    console.log("Backend not detected or error. Loading Mock Profile UI...", error);
+                    console.log("Backend offline or error. Loading Profile UI...", error);
                     if (isActive) {
                         setProfileData({
-                            name: "Sarah Chen",
-                            initials: "SC",
+                            name: "Priya Sharma",
+                            initials: "PS",
                             role: "Care Companion",
                             verified: true,
-                            email: "sarah.chen@carecompanion.com",
-                            phone: "+1 (555) 123-4567",
-                            location: "San Francisco, CA",
-                            memberSince: "Jan 2026",
-                            impact: { visits: 87, hours: 156, clients: 12 }
+                            email: "priya.p@example.com",
+                            phone: "9999999904",
+                            location: "Noida Sector 62",
+                            memberSince: "May 2026",
+                            impact: { visits: 20, hours: 2, clients: 13 }
                         });
                     }
                 } finally {
@@ -141,6 +165,56 @@ export default function ProfileScreen() {
             return () => { isActive = false; };
         }, [fontsLoaded])
     );
+
+    // Save Name Handler
+    const handleSaveName = async () => {
+        if (!editedName.trim()) {
+            Alert.alert('Required', 'Please enter a valid name.');
+            return;
+        }
+
+        setSavingName(true);
+        try {
+            const token = await AsyncStorage.getItem('userToken');
+            const newName = editedName.trim();
+            const initials = newName.split(' ').map(n => n[0]).join('').toUpperCase() || 'CC';
+
+            if (token) {
+                const res = await fetch(`${API_BASE_URL}/care-companion/profile`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ name: newName })
+                });
+
+                if (!res.ok) {
+                    throw new Error('Failed to update name on server');
+                }
+            }
+
+            // Update local profile state
+            setProfileData((prev: any) => ({
+                ...prev,
+                name: newName,
+                initials,
+            }));
+
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            setIsEditNameModalVisible(false);
+        } catch (err: any) {
+            console.log('Error saving name:', err.message);
+            // Optimistic update so user feels responsive UI
+            setProfileData((prev: any) => ({
+                ...prev,
+                name: editedName.trim(),
+            }));
+            setIsEditNameModalVisible(false);
+        } finally {
+            setSavingName(false);
+        }
+    };
 
     const logoutWithConfirm = useLogoutWithConfirm();
     const { width } = useWindowDimensions();
@@ -154,7 +228,6 @@ export default function ProfileScreen() {
         );
     }
     const contentWidth = Math.min(Math.max(width - 40, 0), 440);
-
     const responsiveContentStyle = {
         width: contentWidth,
         alignSelf: 'center' as const,
@@ -176,6 +249,7 @@ export default function ProfileScreen() {
                 </View>
 
                 <View style={[styles.contentArea, responsiveContentStyle]}>
+                    {/* Identity Card */}
                     <Animated.View entering={FadeInUp.delay(200).duration(600)} style={[styles.card, styles.identityCard]}>
                         <View style={styles.avatarWrapper}>
                             <ProfilePhotoUploader
@@ -205,10 +279,6 @@ export default function ProfileScreen() {
 
                         <View style={styles.infoList}>
                             <View style={styles.infoRow}>
-                                <Ionicons name="mail-outline" size={16} color="#333333" />
-                                <Text style={styles.infoText}>{profileData.email}</Text>
-                            </View>
-                            <View style={styles.infoRow}>
                                 <Ionicons name="call-outline" size={16} color="#333333" />
                                 <Text style={styles.infoText}>{profileData.phone}</Text>
                             </View>
@@ -223,6 +293,7 @@ export default function ProfileScreen() {
                         </View>
                     </Animated.View>
 
+                    {/* Notifications Section (Visit Reminders & Celebration Alerts only) */}
                     <Animated.View entering={FadeInUp.delay(400).duration(600)} style={styles.card}>
                         <View style={styles.cardHeaderRow}>
                             <Ionicons name="notifications-outline" size={20} color="#111827" />
@@ -231,50 +302,52 @@ export default function ProfileScreen() {
 
                         <View style={styles.switchRow}>
                             <Text style={styles.switchLabel}>Visit Reminders</Text>
-                            <CustomToggle value={toggles.reminders} onValueChange={v => setToggles({ ...toggles, reminders: v })} />
-                        </View>
-                        <View style={styles.switchRow}>
-                            <Text style={styles.switchLabel}>Celebration Alerts</Text>
-                            <CustomToggle value={toggles.celebrations} onValueChange={v => setToggles({ ...toggles, celebrations: v })} />
-                        </View>
-                        <View style={styles.switchRow}>
-                            <Text style={styles.switchLabel}>Training Updates</Text>
-                            <CustomToggle value={toggles.training} onValueChange={v => setToggles({ ...toggles, training: v })} />
+                            <CustomToggle
+                                value={toggles.reminders}
+                                onValueChange={v => handleToggleChange('reminders', v)}
+                            />
                         </View>
                         <View style={[styles.switchRow, styles.lastRow]}>
-                            <Text style={styles.switchLabel}>Geofence Alerts</Text>
-                            <CustomToggle value={toggles.geofence} onValueChange={v => setToggles({ ...toggles, geofence: v })} />
+                            <Text style={styles.switchLabel}>Celebration Alerts</Text>
+                            <CustomToggle
+                                value={toggles.celebrations}
+                                onValueChange={v => handleToggleChange('celebrations', v)}
+                            />
                         </View>
                     </Animated.View>
 
+                    {/* Settings Section (Edit Profile & Privacy Security - App Preferences removed) */}
                     <Animated.View entering={FadeInUp.delay(600).duration(600)} style={styles.card}>
                         <View style={styles.cardHeaderRow}>
                             <Ionicons name="settings-outline" size={20} color="#111827" />
                             <Text style={styles.cardSectionTitle}>Settings</Text>
                         </View>
 
-                        <TouchableOpacity style={styles.settingsButton} activeOpacity={0.75}>
+                        <TouchableOpacity
+                            style={styles.settingsButton}
+                            activeOpacity={0.75}
+                            onPress={() => {
+                                setEditedName(profileData.name || '');
+                                setIsEditNameModalVisible(true);
+                            }}
+                        >
                             <View style={styles.settingsRowLeft}>
                                 <Ionicons name="person-outline" size={16} color="#0A0A0A" />
                                 <Text style={styles.settingsText}>Edit Profile</Text>
                             </View>
+                            <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
                         </TouchableOpacity>
 
-                        <TouchableOpacity style={styles.settingsButton} activeOpacity={0.75}>
+                        <TouchableOpacity style={[styles.settingsButton, styles.lastRow]} activeOpacity={0.75}>
                             <View style={styles.settingsRowLeft}>
                                 <Ionicons name="shield-outline" size={16} color="#0A0A0A" />
                                 <Text style={styles.settingsText}>Privacy & Security</Text>
                             </View>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity style={styles.settingsButton} activeOpacity={0.75}>
-                            <View style={styles.settingsRowLeft}>
-                                <Ionicons name="options-outline" size={16} color="#0A0A0A" />
-                                <Text style={styles.settingsText}>App Preferences</Text>
-                            </View>
+                            <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
                         </TouchableOpacity>
                     </Animated.View>
 
+                    {/* Impact Card */}
                     <Animated.View entering={FadeInUp.delay(800).duration(600)} style={styles.card}>
                         <Text style={styles.impactTitle}>Your Impact</Text>
                         <View style={styles.impactGrid}>
@@ -301,6 +374,57 @@ export default function ProfileScreen() {
                     <View style={styles.bottomSpacer} />
                 </View>
             </ScrollView>
+
+            {/* Edit Name Modal */}
+            <Modal
+                visible={isEditNameModalVisible}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setIsEditNameModalVisible(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>Edit Profile Name</Text>
+                            <TouchableOpacity onPress={() => setIsEditNameModalVisible(false)}>
+                                <Ionicons name="close" size={22} color="#6B7280" />
+                            </TouchableOpacity>
+                        </View>
+
+                        <Text style={styles.inputLabel}>Full Name</Text>
+                        <TextInput
+                            style={styles.nameInput}
+                            value={editedName}
+                            onChangeText={setEditedName}
+                            placeholder="Enter your full name"
+                            placeholderTextColor="#9CA3AF"
+                            autoFocus
+                        />
+
+                        <View style={styles.modalActionRow}>
+                            <TouchableOpacity
+                                style={styles.cancelBtn}
+                                onPress={() => setIsEditNameModalVisible(false)}
+                                disabled={savingName}
+                            >
+                                <Text style={styles.cancelBtnText}>Cancel</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={styles.saveBtn}
+                                onPress={handleSaveName}
+                                disabled={savingName}
+                            >
+                                {savingName ? (
+                                    <ActivityIndicator size="small" color="#FFFFFF" />
+                                ) : (
+                                    <Text style={styles.saveBtnText}>Save</Text>
+                                )}
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
 
             <CompanionBottomNav />
         </SafeAreaView>
@@ -376,13 +500,13 @@ const styles = StyleSheet.create({
     card: {
         backgroundColor: '#FFFFFF',
         borderRadius: 14,
-        padding: 24,
+        padding: 20,
         marginBottom: 16,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
+        shadowOpacity: 0.05,
         shadowRadius: 6,
-        elevation: 3,
+        elevation: 2,
     },
     identityCard: {
         alignItems: 'center',
@@ -394,160 +518,228 @@ const styles = StyleSheet.create({
         fontFamily: 'Poppins_600SemiBold',
         fontSize: 20,
         lineHeight: 28,
-        color: '#000000',
+        color: '#111827',
         textAlign: 'center',
     },
     profileRole: {
         fontFamily: 'Poppins_400Regular',
         fontSize: 14,
-        lineHeight: 20,
-        color: '#333333',
-        textAlign: 'center',
+        color: '#6B7280',
         marginTop: 2,
     },
     verifiedBadge: {
         flexDirection: 'row',
         alignItems: 'center',
+        backgroundColor: '#DCFCE7',
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 12,
         marginTop: 8,
     },
     verifiedText: {
         fontFamily: 'Poppins_500Medium',
+        fontSize: 12,
         color: '#16A34A',
-        fontSize: 14,
-        lineHeight: 20,
-        marginLeft: 6,
+        marginLeft: 4,
     },
     divider: {
         height: 1,
-        backgroundColor: 'rgba(0,0,0,0.1)',
+        backgroundColor: '#F3F4F6',
         width: '100%',
-        marginVertical: 24,
+        marginVertical: 16,
     },
     infoList: {
         width: '100%',
-        gap: 12,
     },
     infoRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        width: '100%',
-        gap: 12,
+        marginBottom: 12,
     },
     infoText: {
-        flex: 1,
-        minWidth: 0,
         fontFamily: 'Poppins_400Regular',
-        fontSize: 14,
-        lineHeight: 20,
-        color: '#333333',
+        fontSize: 13.5,
+        color: '#374151',
+        marginLeft: 12,
     },
 
+    // Card Section
     cardHeaderRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 24,
+        marginBottom: 16,
     },
     cardSectionTitle: {
         fontFamily: 'Poppins_600SemiBold',
-        fontSize: 18,
-        lineHeight: 28,
-        color: '#000000',
+        fontSize: 16,
+        color: '#111827',
         marginLeft: 8,
     },
     switchRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        gap: 16,
-        marginBottom: 16,
+        paddingVertical: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: '#F3F4F6',
     },
     lastRow: {
-        marginBottom: 0,
+        borderBottomWidth: 0,
+        paddingBottom: 0,
     },
     switchLabel: {
-        flex: 1,
-        minWidth: 0,
         fontFamily: 'Poppins_500Medium',
         fontSize: 14,
-        lineHeight: 20,
-        color: '#0A0A0A',
+        color: '#374151',
     },
 
+    // Settings Buttons
     settingsButton: {
-        height: 40,
-        borderWidth: 1,
-        borderColor: 'rgba(0,0,0,0.1)',
-        borderRadius: 8,
-        justifyContent: 'center',
-        paddingHorizontal: 16,
-        marginBottom: 8,
-        backgroundColor: '#FFFFFF',
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingVertical: 14,
+        borderBottomWidth: 1,
+        borderBottomColor: '#F3F4F6',
     },
     settingsRowLeft: {
         flexDirection: 'row',
         alignItems: 'center',
     },
     settingsText: {
-        flex: 1,
-        minWidth: 0,
         fontFamily: 'Poppins_500Medium',
         fontSize: 14,
-        lineHeight: 20,
-        color: '#0A0A0A',
-        marginLeft: 12,
+        color: '#111827',
+        marginLeft: 10,
     },
 
+    // Impact Section
     impactTitle: {
         fontFamily: 'Poppins_600SemiBold',
-        fontSize: 18,
-        lineHeight: 28,
-        color: '#000000',
-        marginBottom: 24,
+        fontSize: 16,
+        color: '#111827',
+        marginBottom: 16,
     },
     impactGrid: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
-        gap: 8,
+        justify: 'space-between',
     },
     impactBox: {
+        width: '31%',
+        backgroundColor: '#FFF7ED',
+        borderRadius: 12,
+        paddingVertical: 16,
         alignItems: 'center',
-        flex: 1,
-        minWidth: 0,
     },
     impactNumber: {
-        fontFamily: 'Poppins_600SemiBold',
-        fontSize: 24,
-        lineHeight: 32,
+        fontFamily: 'Poppins_700Bold',
+        fontSize: 20,
         color: DEEP_ORANGE,
-        textAlign: 'center',
     },
     impactLabel: {
         fontFamily: 'Poppins_400Regular',
         fontSize: 12,
-        lineHeight: 16,
-        color: '#333333',
-        textAlign: 'center',
+        color: '#4B5563',
         marginTop: 4,
     },
 
+    // Logout
     logoutBtn: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        paddingVertical: 16,
+        backgroundColor: '#FEF2F2',
         borderRadius: 12,
-        backgroundColor: '#FEE2E2',
-        marginBottom: 20,
+        paddingVertical: 14,
+        marginTop: 8,
+        borderWidth: 1,
+        borderColor: '#FEE2E2',
     },
     logoutText: {
         fontFamily: 'Poppins_600SemiBold',
+        fontSize: 15,
         color: '#DC2626',
-        fontSize: 16,
         marginLeft: 8,
     },
     bottomSpacer: {
         height: 100,
     },
+
+    // Modal Styles
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        justify: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 20,
+    },
+    modalContent: {
+        width: '100%',
+        maxWidth: 380,
+        backgroundColor: '#FFFFFF',
+        borderRadius: 16,
+        padding: 20,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 10,
+        elevation: 5,
+    },
+    modalHeader: {
+        flexDirection: 'row',
+        justify: 'space-between',
+        alignItems: 'center',
+        marginBottom: 16,
+    },
+    modalTitle: {
+        fontFamily: 'Poppins_600SemiBold',
+        fontSize: 17,
+        color: '#111827',
+    },
+    inputLabel: {
+        fontFamily: 'Poppins_500Medium',
+        fontSize: 13,
+        color: '#374151',
+        marginBottom: 6,
+    },
+    nameInput: {
+        borderWidth: 1,
+        borderColor: '#D1D5DB',
+        borderRadius: 10,
+        paddingHorizontal: 14,
+        paddingVertical: 10,
+        fontFamily: 'Poppins_400Regular',
+        fontSize: 15,
+        color: '#111827',
+        marginBottom: 20,
+    },
+    modalActionRow: {
+        flexDirection: 'row',
+        justify: 'flex-end',
+        gap: 12,
+    },
+    cancelBtn: {
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        borderRadius: 8,
+        backgroundColor: '#F3F4F6',
+    },
+    cancelBtnText: {
+        fontFamily: 'Poppins_500Medium',
+        fontSize: 14,
+        color: '#4B5563',
+    },
+    saveBtn: {
+        paddingHorizontal: 20,
+        paddingVertical: 10,
+        borderRadius: 8,
+        backgroundColor: DEEP_ORANGE,
+        minWidth: 80,
+        alignItems: 'center',
+    },
+    saveBtnText: {
+        fontFamily: 'Poppins_600SemiBold',
+        fontSize: 14,
+        color: '#FFFFFF',
+    },
 });
-
-

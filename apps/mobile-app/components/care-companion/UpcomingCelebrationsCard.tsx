@@ -98,7 +98,7 @@ const styles = StyleSheet.create({
     },
     celebrationRow: {
         flexDirection: 'row',
-        justify: 'space-between',
+        justifyContent: 'space-between',
         alignItems: 'center',
         marginBottom: 20,
     },

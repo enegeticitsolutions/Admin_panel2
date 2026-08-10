@@ -1,8 +1,10 @@
 import { Router, Request, Response } from 'express';
 import { authenticate } from '../shared/deps';
 import prisma from '../../core/database';
+import { config } from '../../core/config';
 import { autoUpdateMissedVisits } from '../../services/care_companion/visit_service';
 import { celebrationService } from '../../services/care_companion/celebration_service';
+import { celebrationNotificationService } from '../../services/care_companion/celebration_notification_service';
 
 const router = Router();
 
@@ -96,6 +98,11 @@ router.get('/', authenticate, async (req: Request, res: Response) => {
     // 4. Retrieve Celebrations (Birthdays of assigned primary/secondary beneficiaries)
     const celebrations = await celebrationService.getUpcomingBirthdaysForCompanion(ccId);
 
+    // 5. Non-blocking Catch-Up Push Notification check for birthdays (1 day before & on the day)
+    setImmediate(() => {
+      celebrationNotificationService.checkAndDispatchCelebrationNotificationsForCompanion(cc.id, ccId);
+    });
+
     res.json({
       success: true,
       data: {
@@ -109,7 +116,7 @@ router.get('/', authenticate, async (req: Request, res: Response) => {
           hoursToday: Math.round(todaysHoursSum * 10) / 10,
         },
         nextVisit,
-        celebrations: celebrations.slice(0, 5), // Show top upcoming birthdays
+        celebrations: celebrations.slice(0, config.notifications.maxCelebrationsDashboard),
       },
     });
   } catch (error: any) {

@@ -44,7 +44,11 @@ function formatVisitTime(scheduledTime) {
  * Helper to fetch complete visit details with all relations if only ID or partial object is provided
  */
 async function fetchFullVisit(visitOrId) {
-  if (typeof visitOrId === 'object' && visitOrId?.beneficiary && visitOrId?.careCompanion) {
+  if (
+    typeof visitOrId === 'object' &&
+    visitOrId?.beneficiary?.userId &&
+    visitOrId?.careCompanion?.userId
+  ) {
     return visitOrId;
   }
 
