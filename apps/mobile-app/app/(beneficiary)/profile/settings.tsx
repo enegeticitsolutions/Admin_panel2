@@ -25,21 +25,11 @@ export default function SettingsScreen() {
         Linking.openURL(LEGAL_CONFIG.TERMS_OF_SERVICE_URL).catch(err => console.log('Error opening terms link:', err));
     };
 
-    const openHelpSupport = async () => {
+    const openHelpSupport = () => {
         const mailUrl = `mailto:${LEGAL_CONFIG.SUPPORT_EMAIL}?subject=MaiHoonNa%20App%20Support`;
-        const webUrl = LEGAL_CONFIG.WEBSITE_URL;
-        try {
-            const canOpen = await Linking.canOpenURL(mailUrl);
-            if (canOpen) {
-                await Linking.openURL(mailUrl);
-            } else {
-                await Linking.openURL(webUrl);
-            }
-        } catch (err) {
-            Linking.openURL(webUrl).catch(() => {
-                Alert.alert('Help & Support', `For support, please email us at ${LEGAL_CONFIG.SUPPORT_EMAIL}`);
-            });
-        }
+        Linking.openURL(mailUrl).catch(() => {
+            Alert.alert('Help & Support', `For support, please send an email to:\n${LEGAL_CONFIG.SUPPORT_EMAIL}`);
+        });
     };
 
     return (
