@@ -8,7 +8,7 @@ import prisma from '../../core/database';
 
 const router = Router();
 
-async function resolveBeneficiaryId(idParam: string): Promise<string> {
+async function resolveBeneficiaryId(idParam: string, authReq: any): Promise<string> {
   const beneficiary = await prisma.beneficiary.findFirst({
     where: {
       OR: [
@@ -20,6 +20,14 @@ async function resolveBeneficiaryId(idParam: string): Promise<string> {
   if (!beneficiary) {
     throw new Error('Beneficiary not found');
   }
+  
+  const isOwner = beneficiary.userId === authReq.userId || beneficiary.subscriberId === authReq.userId;
+  const isAdmin = ['admin', 'super_admin', 'field_manager'].includes(authReq.userRole);
+  
+  if (!isOwner && !isAdmin) {
+    throw new Error('Unauthorized to access this beneficiary\'s Saathi data');
+  }
+
   return beneficiary.id;
 }
 
@@ -28,7 +36,7 @@ router.get(
   '/:beneficiaryId/sathi/eligibility',
   authenticate,
   asyncHandler(async (req: any, res: Response) => {
-    const resolvedId = await resolveBeneficiaryId(req.params.beneficiaryId);
+    const resolvedId = await resolveBeneficiaryId(req.params.beneficiaryId, req);
     const eligibility = await beneficiarySathiService.getBeneficiarySathiEligibility(resolvedId);
     res.json(new ApiResponse(200, eligibility));
   })
@@ -39,7 +47,7 @@ router.get(
   '/:beneficiaryId/sathi/my-requests',
   authenticate,
   asyncHandler(async (req: any, res: Response) => {
-    const resolvedId = await resolveBeneficiaryId(req.params.beneficiaryId);
+    const resolvedId = await resolveBeneficiaryId(req.params.beneficiaryId, req);
     const requests = await beneficiarySathiService.getBeneficiarySathiRequests(resolvedId);
     res.json(new ApiResponse(200, requests));
   })
@@ -50,7 +58,7 @@ router.get(
   '/:beneficiaryId/sathi/volunteers',
   authenticate,
   asyncHandler(async (req: any, res: Response) => {
-    const resolvedId = await resolveBeneficiaryId(req.params.beneficiaryId);
+    const resolvedId = await resolveBeneficiaryId(req.params.beneficiaryId, req);
     const volunteers = await beneficiarySathiService.getLinkedVolunteers(resolvedId);
     res.json(new ApiResponse(200, volunteers));
   })
@@ -61,7 +69,7 @@ router.get(
   '/:beneficiaryId/sathi/volunteers/:volunteerId/profile',
   authenticate,
   asyncHandler(async (req: any, res: Response) => {
-    const resolvedId = await resolveBeneficiaryId(req.params.beneficiaryId);
+    const resolvedId = await resolveBeneficiaryId(req.params.beneficiaryId, req);
     const profile = await beneficiarySathiService.getVolunteerDetailedProfile(resolvedId, req.params.volunteerId);
     res.json(new ApiResponse(200, profile));
   })
@@ -76,7 +84,7 @@ router.put(
     if (!['CONNECTED', 'REJECTED'].includes(status)) {
       return res.status(400).json({ success: false, message: 'Invalid status. Must be CONNECTED or REJECTED.' });
     }
-    const resolvedId = await resolveBeneficiaryId(req.params.beneficiaryId);
+    const resolvedId = await resolveBeneficiaryId(req.params.beneficiaryId, req);
     const result = await beneficiarySathiService.updateAssignmentStatus(resolvedId, req.params.volunteerId, status);
     res.json(new ApiResponse(200, result));
   })
@@ -88,7 +96,7 @@ router.post(
   authenticate,
   asyncHandler(async (req: any, res: Response) => {
     const { dateTime, reason, targetVolunteerId } = req.body;
-    const resolvedId = await resolveBeneficiaryId(req.params.beneficiaryId);
+    const resolvedId = await resolveBeneficiaryId(req.params.beneficiaryId, req);
     const request = await beneficiarySathiService.createSathiVisitRequest(
       resolvedId,
       dateTime,
@@ -108,7 +116,7 @@ router.post(
     if (!action || !['ACCEPT', 'REJECT'].includes(action)) {
       return res.status(400).json({ success: false, message: 'Invalid action.' });
     }
-    const resolvedId = await resolveBeneficiaryId(req.params.beneficiaryId);
+    const resolvedId = await resolveBeneficiaryId(req.params.beneficiaryId, req);
     const request = await beneficiarySathiService.respondToSathiReschedule(
       resolvedId,
       req.params.requestId,
@@ -123,7 +131,7 @@ router.post(
   '/:beneficiaryId/sathi/visit-requests/:requestId/complete',
   authenticate,
   asyncHandler(async (req: any, res: Response) => {
-    const resolvedId = await resolveBeneficiaryId(req.params.beneficiaryId);
+    const resolvedId = await resolveBeneficiaryId(req.params.beneficiaryId, req);
     const result = await beneficiarySathiService.completeSathiVisit(resolvedId, req.params.requestId);
     res.json(new ApiResponse(200, result.request, result.message));
   })
@@ -135,7 +143,7 @@ router.post(
   authenticate,
   asyncHandler(async (req: any, res: Response) => {
     const { rating, reviewText } = req.body;
-    const resolvedId = await resolveBeneficiaryId(req.params.beneficiaryId);
+    const resolvedId = await resolveBeneficiaryId(req.params.beneficiaryId, req);
     const review = await beneficiarySathiService.submitVolunteerReview(
       req.params.volunteerId,
       resolvedId,

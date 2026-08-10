@@ -138,6 +138,14 @@ const GlobalDrawer = ({ isOpen, onClose, drawerAnim, userData: _userDataProp }: 
                                     }} 
                                 />
                                 <DrawerItem 
+                                    label="Saathi Companion" 
+                                    icon="heart-half-outline" 
+                                    bg="#FFF1F2"
+                                    color="#E11D48"
+                                    active={pathname.includes('/saathi')}
+                                    onPress={() => navigateTo('/(subscriber)/saathi')} 
+                                />
+                                <DrawerItem 
                                     label="Browse Packages" 
                                     icon="sparkles-outline" 
                                     bg="#F5F3FF"
