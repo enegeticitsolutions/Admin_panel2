@@ -15,7 +15,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { API_URL } from '@/constants/api';
 import { SathiBottomNav } from '@/components/shared/SathiBottomNav';
 import * as ImagePicker from 'expo-image-picker';
@@ -30,6 +30,7 @@ const DEEP_ORANGE = '#FE6700';
 export default function SathiProfile() {
   const router = useRouter();
   const { logout } = useAuth();
+  const insets = useSafeAreaInsets();
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [profile, setProfile] = useState<any>(null);
@@ -142,24 +143,30 @@ export default function SathiProfile() {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
-      <View style={styles.header}>
-        <Text style={styles.title}>My Profile</Text>
-        <TouchableOpacity onPress={() => router.push('/(sathi)/edit-profile')} style={styles.editHeaderBtn}>
-          <Ionicons name="pencil" size={20} color="#111827" />
-        </TouchableOpacity>
+    <View style={styles.container}>
+      {/* Orange Background Top Half */}
+      <View style={[styles.orangeHeaderBg, { paddingTop: insets.top }]}>
+        <View style={styles.header}>
+          <Text style={styles.title}>My Profile</Text>
+          <TouchableOpacity onPress={() => router.push('/(sathi)/edit-profile')} style={styles.editHeaderBtn}>
+            <Ionicons name="pencil" size={20} color={DEEP_ORANGE} />
+          </TouchableOpacity>
+        </View>
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* Profile Photo Section */}
-        <View style={styles.photoSection}>
+      <ScrollView 
+        style={{ zIndex: 10 }} 
+        contentContainerStyle={styles.scrollContent} 
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Profile Header Card */}
+        <View style={styles.profileHeaderCard}>
           <View style={styles.avatarContainer}>
             {profile?.profilePhoto ? (
               <Image source={{ uri: sanitizeImageUri(profile.profilePhoto) }} style={styles.avatarImage} />
             ) : (
-
               <View style={[styles.avatarImage, styles.avatarPlaceholder]}>
-                <Ionicons name="person" size={60} color="#D1D5DB" />
+                <Ionicons name="person" size={50} color="#9CA3AF" />
               </View>
             )}
             
@@ -171,14 +178,31 @@ export default function SathiProfile() {
               {uploading ? (
                 <ActivityIndicator size="small" color="#FFFFFF" />
               ) : (
-                <Ionicons name="camera" size={16} color="#FFFFFF" />
+                <Ionicons name="camera" size={14} color="#FFFFFF" />
               )}
             </TouchableOpacity>
           </View>
-          <Text style={styles.profileName}>{profile?.name}</Text>
-          <Text style={styles.profileStatus}>
-            {profile?.applicationStatus === 'APPROVED' ? 'Verified Sathi' : 'Registration Pending'}
-          </Text>
+          <View style={styles.headerTextContainer}>
+            <Text style={styles.profileName}>{profile?.name}</Text>
+            <Text style={styles.profileAge}>{profile?.age ? `${profile.age} years old` : ''}</Text>
+            
+            <View style={styles.statsRow}>
+              <View style={styles.ratingBadge}>
+                <Ionicons name="star" size={12} color="#F59E0B" />
+                <Text style={styles.ratingText}>{profile?.rating || 'New'}</Text>
+              </View>
+              <Text style={styles.visitsText}>
+                {profile?.totalVisits || 0} visits completed
+              </Text>
+            </View>
+            
+            <View style={styles.locationRow}>
+              <Ionicons name="location-outline" size={14} color="#6B7280" />
+              <Text style={styles.locationText}>
+                {profile?.city ? `${profile.city}${profile?.state ? ` - ${profile.state}` : ''}` : 'Location pending'}
+              </Text>
+            </View>
+          </View>
         </View>
 
         {/* Credits & Rewards Banner Option */}
@@ -187,11 +211,10 @@ export default function SathiProfile() {
           onPress={() => router.push('/(sathi)/credits')}
         >
           <View style={styles.creditsIconBox}>
-            <Ionicons name="gift" size={26} color="#FFFFFF" />
+            <Ionicons name="gift" size={24} color="#FFFFFF" />
           </View>
           <View style={{ flex: 1, marginLeft: scale(14) }}>
             <Text style={styles.creditsTitle}>Credits & Rewards</Text>
-
           </View>
           <View style={styles.creditsActionBadge}>
             <Text style={styles.creditsActionText}>Redeem</Text>
@@ -202,7 +225,6 @@ export default function SathiProfile() {
         {/* Details Section */}
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>Personal Information</Text>
-          <View style={styles.divider} />
           
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>Age</Text>
@@ -220,7 +242,6 @@ export default function SathiProfile() {
 
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>Address</Text>
-          <View style={styles.divider} />
           
           <Text style={styles.addressText}>
             {[
@@ -236,8 +257,10 @@ export default function SathiProfile() {
 
         {profile?.interests?.length > 0 && (
           <View style={styles.card}>
-            <Text style={styles.sectionTitle}>Interests</Text>
-            <View style={styles.divider} />
+            <View style={styles.sectionTitleRow}>
+              <Ionicons name="heart-outline" size={20} color="#FE6700" style={{ marginRight: 8 }} />
+              <Text style={styles.sectionTitle}>Interests & Activities</Text>
+            </View>
             <View style={styles.chipContainer}>
               {profile.interests.map((interest: string, index: number) => (
                 <View key={index} style={styles.chip}>
@@ -250,8 +273,7 @@ export default function SathiProfile() {
 
         {profile?.whyJoin && (
           <View style={styles.card}>
-            <Text style={styles.sectionTitle}>Why I Joined</Text>
-            <View style={styles.divider} />
+            <Text style={styles.sectionTitle}>About</Text>
             <Text style={styles.bioText}>{profile.whyJoin}</Text>
           </View>
         )}
@@ -296,14 +318,14 @@ export default function SathiProfile() {
       </Modal>
 
       <SathiBottomNav />
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FAF3EB',
+    backgroundColor: '#F9FAFB', // Off-white for body
   },
   loaderContainer: {
     flex: 1,
@@ -315,152 +337,198 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     fontFamily: 'Poppins-Medium',
   },
+  orangeHeaderBg: {
+    backgroundColor: DEEP_ORANGE,
+    paddingBottom: scale(16),
+    borderBottomLeftRadius: scale(24),
+    borderBottomRightRadius: scale(24),
+    zIndex: 1,
+  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: scale(18),
-    paddingVertical: scale(16),
-    backgroundColor: '#FAF3EB',
-  },
-  editHeaderBtn: {
-    padding: scale(8),
-    backgroundColor: '#FFFFFF',
-    borderRadius: scale(12),
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    paddingHorizontal: scale(20),
+    paddingTop: scale(10),
+    paddingBottom: scale(10),
   },
   title: {
     fontSize: scale(22),
     fontWeight: '700',
-    color: '#111827',
+    color: '#FFFFFF',
+  },
+  editHeaderBtn: {
+    padding: scale(8),
+    backgroundColor: '#FFFFFF',
+    borderRadius: scale(20),
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   scrollContent: {
-    paddingHorizontal: scale(18),
+    paddingHorizontal: scale(16),
     paddingBottom: scale(120),
+    paddingTop: scale(8),
   },
-  photoSection: {
+  profileHeaderCard: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: scale(24),
+    backgroundColor: '#FFFFFF',
+    borderRadius: scale(20),
+    padding: scale(16),
+    marginTop: scale(16),
+    marginBottom: scale(20),
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
   },
   avatarContainer: {
     position: 'relative',
-    marginBottom: scale(12),
+    marginRight: scale(16),
   },
   avatarImage: {
-    width: scale(110),
-    height: scale(110),
-    borderRadius: scale(55),
-    borderWidth: 3,
-    borderColor: '#FFFFFF',
+    width: scale(72),
+    height: scale(72),
+    borderRadius: scale(16),
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    backgroundColor: '#F3F4F6',
   },
   avatarPlaceholder: {
-    backgroundColor: '#F3F4F6',
     justifyContent: 'center',
     alignItems: 'center',
   },
   editBadge: {
     position: 'absolute',
-    bottom: 0,
-    right: 0,
+    bottom: -6,
+    right: -6,
     backgroundColor: DEEP_ORANGE,
-    width: scale(34),
-    height: scale(34),
-    borderRadius: scale(17),
+    width: scale(26),
+    height: scale(26),
+    borderRadius: scale(13),
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
     borderColor: '#FFFFFF',
   },
+  headerTextContainer: {
+    flex: 1,
+  },
   profileName: {
     fontSize: scale(20),
     fontWeight: '700',
     color: '#111827',
-    marginBottom: scale(4),
+    marginBottom: scale(2),
   },
-  profileStatus: {
+  profileAge: {
     fontSize: scale(14),
-    color: DEEP_ORANGE,
-    fontWeight: '600',
+    color: '#6B7280',
+    marginBottom: scale(8),
+  },
+  statsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: scale(6),
+  },
+  ratingBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: scale(8),
+    paddingVertical: scale(4),
+    borderRadius: scale(12),
+    marginRight: scale(8),
+  },
+  ratingText: {
+    fontSize: scale(12),
+    fontWeight: '700',
+    color: '#D97706',
+    marginLeft: scale(4),
+  },
+  visitsText: {
+    fontSize: scale(13),
+    fontWeight: '500',
+    color: '#6B7280',
+  },
+  locationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  locationText: {
+    fontSize: scale(13),
+    color: '#6B7280',
+    marginLeft: scale(4),
   },
   creditsCard: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#111827',
-    borderRadius: scale(18),
+    borderRadius: scale(16),
     padding: scale(16),
     marginBottom: scale(16),
-    shadowColor: DEEP_ORANGE,
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
+    shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 4,
-    borderWidth: 1,
-    borderColor: '#374151',
   },
   creditsIconBox: {
-    width: scale(48),
-    height: scale(48),
-    borderRadius: scale(14),
+    width: scale(44),
+    height: scale(44),
+    borderRadius: scale(12),
     backgroundColor: DEEP_ORANGE,
     justifyContent: 'center',
     alignItems: 'center',
   },
   creditsTitle: {
     fontSize: scale(16),
-    fontWeight: '700',
+    fontWeight: '600',
     color: '#FFFFFF',
-  },
-  creditsSubtitle: {
-    fontSize: scale(12),
-    color: '#FFB74D',
-    marginTop: scale(2),
-    fontWeight: '500',
   },
   creditsActionBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(254, 103, 0, 0.2)',
+    backgroundColor: 'rgba(255,255,255,0.1)',
     paddingHorizontal: scale(12),
     paddingVertical: scale(8),
-    borderRadius: scale(12),
+    borderRadius: scale(20),
     borderWidth: 1,
-    borderColor: DEEP_ORANGE,
+    borderColor: 'rgba(255,255,255,0.2)',
   },
   creditsActionText: {
-    fontSize: scale(12),
-    fontWeight: '700',
+    fontSize: scale(13),
+    fontWeight: '600',
     color: '#FFFFFF',
   },
   card: {
     backgroundColor: '#FFFFFF',
-    borderRadius: scale(16),
-    padding: scale(16),
+    borderRadius: scale(20),
+    padding: scale(20),
     marginBottom: scale(16),
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
+    shadowOpacity: 0.04,
     shadowRadius: 8,
     elevation: 2,
   },
-  sectionTitle: {
-    fontSize: scale(16),
-    fontWeight: '700',
-    color: '#111827',
+  sectionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: scale(12),
   },
-  divider: {
-    height: 1,
-    backgroundColor: '#F3F4F6',
+  sectionTitle: {
+    fontSize: scale(17),
+    fontWeight: '700',
+    color: '#111827',
     marginBottom: scale(12),
   },
   infoRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingVertical: scale(6),
+    paddingVertical: scale(8),
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
   },
   infoLabel: {
     fontSize: scale(14),
@@ -473,30 +541,28 @@ const styles = StyleSheet.create({
   },
   addressText: {
     fontSize: scale(14),
-    color: '#374151',
-    lineHeight: scale(20),
+    color: '#4B5563',
+    lineHeight: scale(22),
   },
   bioText: {
     fontSize: scale(14),
-    color: '#374151',
+    color: '#4B5563',
     lineHeight: scale(22),
   },
   chipContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: scale(8),
+    gap: scale(10),
   },
   chip: {
-    backgroundColor: '#FFF5ED',
-    paddingHorizontal: scale(12),
-    paddingVertical: scale(6),
-    borderRadius: scale(16),
-    borderWidth: 1,
-    borderColor: '#FFEDD5',
+    backgroundColor: '#FFF5F0',
+    paddingHorizontal: scale(14),
+    paddingVertical: scale(8),
+    borderRadius: scale(20),
   },
   chipText: {
     fontSize: scale(13),
-    color: DEEP_ORANGE,
+    color: '#7C3AED', // Purple like the Figma design
     fontWeight: '500',
   },
   logoutBtn: {
@@ -505,9 +571,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: '#FEF2F2',
     padding: scale(16),
-    borderRadius: scale(12),
-    borderWidth: 1,
-    borderColor: '#FCA5A5',
+    borderRadius: scale(16),
     marginTop: scale(8),
     gap: scale(8),
   },
