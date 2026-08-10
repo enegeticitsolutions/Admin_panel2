@@ -154,6 +154,7 @@ app.use(`${API}/shared/emergency`, emergencyRouter);
 app.use(`${API}/shared/callbacks`, callbackRouter);
 app.use(`${API}/shared/utilization`, utilizationRouter);
 app.use(`${API}/shared/users`, sharedUsersRouter);
+app.use(`${API}/notifications`, sharedUsersRouter);
 
 // Profile Photo Upload (all roles)
 app.use(`${API}/profile-photo`, profilePhotoRouter);

@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Animated, Modal, Dimensions, ScrollView, Platform, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Animated, Modal, Dimensions, ScrollView, Platform, Image, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, usePathname } from 'expo-router';
@@ -9,6 +9,7 @@ import { useNavigationStack } from '@/contexts/NavigationStackContext';
 import { useAndroidBackHandler } from '@/hooks/useAndroidBackHandler';
 import { useAuth } from '@/contexts/AuthContext';
 import { sanitizeImageUri } from '@/utils/sanitizeImageUri';
+import { LEGAL_CONFIG } from '@/constants/legal';
 
 const { width } = Dimensions.get('window');
 const DRAWER_WIDTH = Math.min(width * 0.82, 350);
@@ -28,10 +29,11 @@ const GlobalDrawer = ({ isOpen, onClose, drawerAnim, userData: _userDataProp }: 
     const logoutWithConfirm = useLogoutWithConfirm();
     const insets = useSafeAreaInsets();
     const { user: authUser, isLoggedIn } = useAuth();
-
     const userData = authUser || _userDataProp;
     const userName = isLoggedIn ? (userData?.name || 'User') : 'Welcome Guest';
     const userPhone = isLoggedIn ? (userData?.phone || userData?.email || '') : 'Sign in to manage your care';
+    const userRole = (userData?.role || '').toUpperCase();
+    const isSubscriber = isLoggedIn && userRole === 'SUBSCRIBER';
     
     // Get user initials for avatar fallback
     const initials = userName
@@ -83,7 +85,7 @@ const GlobalDrawer = ({ isOpen, onClose, drawerAnim, userData: _userDataProp }: 
                                 <View style={styles.headerInfo}>
                                     <Text style={styles.drawerName} numberOfLines={1}>{userName}</Text>
                                     <Text style={styles.drawerPhone} numberOfLines={1}>{userPhone}</Text>
-                                    {isLoggedIn && (
+                                    {isSubscriber && (
                                         <View style={styles.roleBadge}>
                                             <View style={styles.onlineDot} />
                                             <Text style={styles.roleBadgeText}>Subscriber</Text>
@@ -158,7 +160,10 @@ const GlobalDrawer = ({ isOpen, onClose, drawerAnim, userData: _userDataProp }: 
                                     icon="document-text-outline" 
                                     bg="#F0FDFA"
                                     color="#0D9488"
-                                    onPress={() => navigateTo('/(subscriber)/settings/privacy')} 
+                                    onPress={() => {
+                                        onClose();
+                                        Linking.openURL(LEGAL_CONFIG.PRIVACY_POLICY_URL).catch(() => {});
+                                    }} 
                                 />
 
                                 <View style={styles.sectionDivider} />
@@ -205,7 +210,10 @@ const GlobalDrawer = ({ isOpen, onClose, drawerAnim, userData: _userDataProp }: 
                                     icon="document-text-outline" 
                                     bg="#F0FDFA"
                                     color="#0D9488"
-                                    onPress={() => navigateTo('/(subscriber)/settings/privacy')} 
+                                    onPress={() => {
+                                        onClose();
+                                        Linking.openURL(LEGAL_CONFIG.PRIVACY_POLICY_URL).catch(() => {});
+                                    }} 
                                 />
                             </>
                         )}

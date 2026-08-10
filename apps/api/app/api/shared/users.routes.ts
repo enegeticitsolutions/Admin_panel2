@@ -30,8 +30,8 @@ router.post('/push-token', authenticate, async (req, res, next) => {
   }
 });
 
-// GET /api/users/notifications
-router.get('/notifications', authenticate, async (req, res, next) => {
+// Helper handler for notification list
+const getNotificationsHandler = async (req: any, res: any, next: any) => {
   try {
     const authReq = req as AuthRequest;
     const userId = authReq.userId;
@@ -42,17 +42,17 @@ router.get('/notifications', authenticate, async (req, res, next) => {
     const notifications = await prisma.notification.findMany({
       where: { userId },
       orderBy: { sentAt: 'desc' },
-      take: 50, // Fetch the last 50 notifications
+      take: 50,
     });
 
     res.json({ success: true, data: notifications });
   } catch (error) {
     next(error);
   }
-});
+};
 
-// PATCH /api/users/notifications/:id/read
-router.patch('/notifications/:id/read', authenticate, async (req, res, next) => {
+// Helper handler for mark single as read
+const markReadHandler = async (req: any, res: any, next: any) => {
   try {
     const authReq = req as AuthRequest;
     const id = authReq.params.id as string;
@@ -79,10 +79,10 @@ router.patch('/notifications/:id/read', authenticate, async (req, res, next) => 
   } catch (error) {
     next(error);
   }
-});
+};
 
-// PATCH /api/users/notifications/read-all
-router.patch('/notifications/read-all', authenticate, async (req, res, next) => {
+// Helper handler for mark all as read
+const markAllReadHandler = async (req: any, res: any, next: any) => {
   try {
     const authReq = req as AuthRequest;
     const userId = authReq.userId;
@@ -99,6 +99,16 @@ router.patch('/notifications/read-all', authenticate, async (req, res, next) => 
   } catch (error) {
     next(error);
   }
-});
+};
+
+// Mount handlers for both /notifications and /
+router.get('/', authenticate, getNotificationsHandler);
+router.get('/notifications', authenticate, getNotificationsHandler);
+
+router.patch('/read-all', authenticate, markAllReadHandler);
+router.patch('/notifications/read-all', authenticate, markAllReadHandler);
+
+router.patch('/:id/read', authenticate, markReadHandler);
+router.patch('/notifications/:id/read', authenticate, markReadHandler);
 
 export default router;

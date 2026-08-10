@@ -10,6 +10,7 @@ interface ProfileHeroProps {
         name: string;
         profilePhoto?: string;
         createdAt: string;
+        role?: string;
     };
     stats: {
         beneficiaryCount: number;
@@ -72,7 +73,9 @@ export const ProfileHero = ({ user, stats, onPhotoUpdated }: ProfileHeroProps) =
                 {/* Name & Role */}
                 <Text style={styles.name}>{user.name}</Text>
                 <Text style={styles.meta}>
-                    Subscriber • {getMembershipDuration(user.createdAt)}
+                    {(user.role || '').toUpperCase() === 'SUBSCRIBER'
+                        ? `Subscriber • ${getMembershipDuration(user.createdAt)}`
+                        : `Member since ${getMembershipDuration(user.createdAt)}`}
                 </Text>
 
                 {/* Stats Bar */}

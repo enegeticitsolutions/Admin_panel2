@@ -6,6 +6,7 @@ import { useSafeBack } from '@/hooks/useSafeBack';
 import HeaderSpacer from '@/components/HeaderSpacer';
 import { useNavigationStack } from '@/contexts/NavigationStackContext';
 import { useAndroidBackHandler } from '@/hooks/useAndroidBackHandler';
+import NotificationBell from '@/components/shared/NotificationBell';
 
 interface GlobalHeaderProps {
     title: string;
@@ -43,10 +44,9 @@ const GlobalHeader = ({ title, onMenuPress, showBack = false, rightIcon, onRight
                         <Ionicons name="pencil-outline" size={24} color="#FE6700" />
                     </TouchableOpacity>
                 ) : (
-                    <TouchableOpacity style={styles.iconBtn}>
-                        <Ionicons name="notifications-outline" size={24} color="#111827" />
-                        <View style={styles.badge}><Text style={styles.badgeText}>2</Text></View>
-                    </TouchableOpacity>
+                    <View style={styles.iconBtn}>
+                        <NotificationBell />
+                    </View>
                 )}
                 <TouchableOpacity onPress={onMenuPress} style={styles.iconBtn}>
                     <Ionicons name="menu-outline" size={28} color="#111827" />

@@ -126,20 +126,7 @@ export default function SubscriptionPackagesScreen() {
                 let hasCoords = false;
 
                 if (token) {
-                    // Check for unlinked subscription — redirect to enrollment wizard if found
-                    try {
-                        const unlinkedRes = await fetch(`${API_URL}/subscriber/subscriptions/unlinked-check`, {
-                            headers: { 'Authorization': `Bearer ${token}` }
-                        });
-                        const unlinkedJson = await unlinkedRes.json();
-                        if (unlinkedJson.success && unlinkedJson.hasUnlinkedSubscription) {
-                            // Subscriber has purchased but not enrolled a beneficiary — redirect them
-                            router.replace({ pathname: '/(setup)/subscribe-form', params: { isLinkingFlow: 'true' } });
-                            return;
-                        }
-                    } catch (e) {
-                        console.warn('Unlinked check failed:', e);
-                    }
+
 
                     // Load user profile to check for default coordinates
                     try {
