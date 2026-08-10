@@ -13,7 +13,7 @@ import {
     Alert,
     Animated,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons, Feather, AntDesign, Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -62,12 +62,14 @@ interface DashboardData {
 
 export default function BeneficiaryDashboard() {
     const { width } = useWindowDimensions();
+    const insets = useSafeAreaInsets();
     const MAX_CONTENT_WIDTH = 800;
     const BASE_HORIZONTAL_PADDING = 16;
     const contentWidth = Math.min(Math.max(width - BASE_HORIZONTAL_PADDING * 2, 0), MAX_CONTENT_WIDTH);
     const responsiveContentStyle = { width: contentWidth, alignSelf: 'center' as const };
     const numColumns = contentWidth >= 600 ? 4 : 2;
-    const actionCardWidth = Math.floor((contentWidth - ((numColumns - 1) * 12)) / numColumns);
+    const availableGridWidth = contentWidth - 32; // account for mainContent paddingHorizontal: 16 (16 * 2)
+    const actionCardWidth = Math.floor((availableGridWidth - ((numColumns - 1) * 16)) / numColumns);
     useExitOnBack();
 
     const [triggeringEmergency, setTriggeringEmergency] = useState(false);
@@ -288,7 +290,7 @@ export default function BeneficiaryDashboard() {
                     style={styles.headerBackground}
                     resizeMode="cover"
                 >
-                    <SafeAreaView edges={['top']}>
+                    <View style={{ paddingTop: Math.max(insets.top, Platform.OS === 'android' ? 40 : 20) }}>
                         <View style={[styles.headerContent, responsiveContentStyle]}>
                             <View>
                                 <Text style={styles.greetingTitle}>{displayData.greeting}</Text>
@@ -326,7 +328,7 @@ export default function BeneficiaryDashboard() {
                                 </TouchableOpacity>
                             </Animated.View>
                         )}
-                    </SafeAreaView>
+                    </View>
                 </ImageBackground>
             </View>
 
@@ -807,7 +809,8 @@ const styles = StyleSheet.create({
     quickActionsGrid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
-        gap: 12,
+        justifyContent: 'space-between',
+        rowGap: 16,
     },
     actionCard: {
         height: 132,

@@ -132,20 +132,20 @@ export default function SathiProfile() {
 
   if (loading && !profile) {
     return (
-      <SafeAreaView style={styles.container}>
+      <View style={[styles.container, { paddingTop: Math.max(insets.top, Platform.OS === 'android' ? 40 : 20) }]}>
         <View style={styles.loaderContainer}>
           <ActivityIndicator size="large" color={DEEP_ORANGE} />
           <Text style={styles.loaderText}>Loading Profile...</Text>
         </View>
         <SathiBottomNav />
-      </SafeAreaView>
+      </View>
     );
   }
 
   return (
     <View style={styles.container}>
       {/* Orange Background Top Half */}
-      <View style={[styles.orangeHeaderBg, { paddingTop: insets.top }]}>
+      <View style={[styles.orangeHeaderBg, { paddingTop: Math.max(insets.top, Platform.OS === 'android' ? 40 : 20) }]}>
         <View style={styles.header}>
           <Text style={styles.title}>My Profile</Text>
           <TouchableOpacity onPress={() => router.push('/(sathi)/edit-profile')} style={styles.editHeaderBtn}>
@@ -156,7 +156,7 @@ export default function SathiProfile() {
 
       <ScrollView 
         style={{ zIndex: 10 }} 
-        contentContainerStyle={styles.scrollContent} 
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: 100 + insets.bottom }]} 
         showsVerticalScrollIndicator={false}
       >
         {/* Profile Header Card */}

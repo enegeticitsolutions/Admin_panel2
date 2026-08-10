@@ -2,12 +2,14 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, usePathname } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const DEEP_ORANGE = '#FE6700';
 
 export function SathiBottomNav() {
   const router = useRouter();
   const pathname = usePathname();
+  const insets = useSafeAreaInsets();
 
   const isActive = (route: string) => {
     if (route === '/' && pathname === '/(sathi)') return true;
@@ -16,7 +18,7 @@ export function SathiBottomNav() {
   };
 
   return (
-    <View style={styles.bottomTabBar}>
+    <View style={[styles.bottomTabBar, { paddingBottom: insets.bottom, height: 65 + insets.bottom }]}>
       <View style={styles.tabContainer}>
         {/* Home Tab */}
         <TouchableOpacity
@@ -93,13 +95,11 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    height: Platform.OS === 'ios' ? 85 : 70,
     backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
     borderColor: '#F3F4F6',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingBottom: Platform.OS === 'ios' ? 20 : 0,
     zIndex: 100,
   },
   tabContainer: {
