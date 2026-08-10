@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, usePathname } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from 'expo-router';
 import { addNotificationReceivedListener } from '@/services/notifications';
@@ -9,6 +9,7 @@ import { API_URL } from '@/constants/api';
 
 export default function NotificationBell() {
   const router = useRouter();
+  const pathname = usePathname();
   const [unreadCount, setUnreadCount] = useState(0);
 
   const fetchUnreadCount = async () => {
@@ -42,8 +43,30 @@ export default function NotificationBell() {
     return () => subscription.remove();
   }, []);
 
+  const handlePress = async () => {
+    try {
+      const userStr = await AsyncStorage.getItem('userData');
+      const user = userStr ? JSON.parse(userStr) : null;
+      const role = (user?.role || '').toUpperCase();
+
+      if (role === 'SUBSCRIBER' || pathname.includes('subscriber')) {
+        router.push('/(subscriber)/inbox');
+      } else if (role === 'BENEFICIARY' || pathname.includes('beneficiary')) {
+        router.push('/(beneficiary)/inbox');
+      } else {
+        router.push('/notifications');
+      }
+    } catch {
+      if (pathname.includes('subscriber')) {
+        router.push('/(subscriber)/inbox');
+      } else {
+        router.push('/(beneficiary)/inbox');
+      }
+    }
+  };
+
   return (
-    <TouchableOpacity style={styles.container} onPress={() => router.push('/notifications')}>
+    <TouchableOpacity style={styles.container} onPress={handlePress} activeOpacity={0.7}>
       <Ionicons name="notifications-outline" size={24} color="#111827" />
       {unreadCount > 0 && (
         <View style={styles.badge}>
@@ -56,27 +79,24 @@ export default function NotificationBell() {
 
 const styles = StyleSheet.create({
   container: {
-    padding: 8,
+    padding: 4,
     position: 'relative',
-    marginRight: 8,
   },
   badge: {
     position: 'absolute',
-    top: 4,
-    right: 4,
+    top: 2,
+    right: 2,
     backgroundColor: '#EF4444',
+    borderRadius: 9,
     minWidth: 18,
     height: 18,
-    borderRadius: 9,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: '#FFFFFF',
     paddingHorizontal: 4,
   },
   badgeText: {
     color: '#FFFFFF',
     fontSize: 10,
-    fontWeight: '700',
+    fontWeight: 'bold',
   },
 });

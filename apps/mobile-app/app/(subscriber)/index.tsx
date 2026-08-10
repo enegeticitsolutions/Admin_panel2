@@ -469,9 +469,9 @@ export default function SubscriberDashboardScreen() {
                             textStyle={styles.callbackText}
                             notes="Requested assistance from Subscriber Dashboard"
                         />
-                        <TouchableOpacity style={styles.whatsappBtn}>
+                        {/* <TouchableOpacity style={styles.whatsappBtn}>
                             <Ionicons name="chatbubbles" size={36} color="#FE6700" />
-                        </TouchableOpacity>
+                        </TouchableOpacity> */}
                     </View>
                 </View>
 
@@ -706,7 +706,7 @@ const styles = StyleSheet.create({
     assistanceActions: { flexDirection: 'row', alignItems: 'center' },
     callbackBtn: {
         flex: 1, flexDirection: 'row', borderWidth: 1, borderColor: '#FE6700', borderRadius: scale(12),
-        height: scale(48), alignItems: 'center', justifyContent: 'center', marginRight: scale(12),
+        height: scale(48), alignItems: 'center', justifyContent: 'center',
     },
     callbackText: { color: '#FE6700', fontWeight: '600', fontSize: scale(14) },
     whatsappBtn: {

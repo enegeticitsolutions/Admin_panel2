@@ -140,7 +140,12 @@ async function checkAndDispatchMedicationReminders() {
         }
       }
     }
-  } catch (error) {
+  } catch (error: any) {
+    // If database connection was terminated by Postgres (57P01), retry once gracefully
+    if (error?.code === 'P2039' || error?.message?.includes('57P01') || error?.message?.includes('terminating connection')) {
+      console.warn('⚠️ [MedicationWorker] DB connection reset detected. Reconnecting on next tick.');
+      return;
+    }
     console.error('❌ [MedicationWorker] Error running background check:', error);
   }
 }

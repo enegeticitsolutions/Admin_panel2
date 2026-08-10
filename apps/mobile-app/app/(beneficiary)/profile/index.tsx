@@ -10,6 +10,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigationStack } from '@/contexts/NavigationStackContext';
 import { useAndroidBackHandler } from '@/hooks/useAndroidBackHandler';
 import { AddressInputField } from '@/components/ui/AddressInputField';
+import { EmailVerificationModal } from '@/components/ui/EmailVerificationModal';
 
 interface ContactInfo {
     phone: string;
@@ -193,95 +194,7 @@ export default function ProfileScreen() {
 
     // Open Email Verify Modal
     const handleOpenEmailVerifyModal = () => {
-        const currentEmail = profile.contact.email === 'Not provided' ? '' : profile.contact.email;
-        setVerifyEmailInput(currentEmail);
-        setOtpInput('');
-        setOtpSent(false);
-        setEmailVerifyStatus({ message: '', isError: false });
         setEmailVerifyModalVisible(true);
-    };
-
-    // Send Email OTP Handler
-    const handleSendEmailOtp = async () => {
-        if (!verifyEmailInput || !verifyEmailInput.includes('@')) {
-            setEmailVerifyStatus({ message: 'Please enter a valid email address', isError: true });
-            return;
-        }
-
-        setSendingOtp(true);
-        setEmailVerifyStatus({ message: '', isError: false });
-
-        try {
-            const token = await AsyncStorage.getItem('userToken');
-            const res = await fetch(`${API_URL}/auth/send-email-otp`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(token ? { Authorization: `Bearer ${token}` } : {})
-                },
-                body: JSON.stringify({ email: verifyEmailInput.trim() })
-            });
-
-            const json = await res.json();
-            if (!res.ok || !json.success) {
-                throw new Error(json.message || 'Failed to send OTP code');
-            }
-
-            setOtpSent(true);
-            setEmailVerifyStatus({ message: json.message || 'Verification code sent to your email!', isError: false });
-        } catch (err: any) {
-            setEmailVerifyStatus({ message: err.message || 'Failed to send verification code', isError: true });
-        } finally {
-            setSendingOtp(false);
-        }
-    };
-
-    // Verify OTP Handler
-    const handleVerifyEmailOtp = async () => {
-        if (!otpInput || otpInput.trim().length < 4) {
-            setEmailVerifyStatus({ message: 'Please enter the verification code sent to your email', isError: true });
-            return;
-        }
-
-        setVerifyingOtp(true);
-        setEmailVerifyStatus({ message: '', isError: false });
-
-        try {
-            const token = await AsyncStorage.getItem('userToken');
-            const res = await fetch(`${API_URL}/auth/verify-email-otp`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(token ? { Authorization: `Bearer ${token}` } : {})
-                },
-                body: JSON.stringify({
-                    email: verifyEmailInput.trim(),
-                    otp: otpInput.trim()
-                })
-            });
-
-            const json = await res.json();
-            if (!res.ok || !json.success) {
-                throw new Error(json.message || 'Invalid verification code');
-            }
-
-            // Success! Update local profile state
-            setProfile(prev => ({
-                ...prev,
-                contact: {
-                    ...prev.contact,
-                    email: verifyEmailInput.trim(),
-                    isEmailVerified: true
-                }
-            }));
-
-            Alert.alert('Email Verified', 'Your email address has been verified successfully!');
-            setEmailVerifyModalVisible(false);
-        } catch (err: any) {
-            setEmailVerifyStatus({ message: err.message || 'Failed to verify code', isError: true });
-        } finally {
-            setVerifyingOtp(false);
-        }
     };
 
     if (loading) {
@@ -540,90 +453,22 @@ export default function ProfileScreen() {
             </Modal>
 
             {/* Email Verification Modal */}
-            <Modal visible={emailVerifyModalVisible} animationType="fade" transparent={true}>
-                <View style={styles.modalBackdrop}>
-                    <View style={[styles.modalCard, responsiveContentStyle]}>
-                        <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>Verify Email Address</Text>
-                            <TouchableOpacity onPress={() => setEmailVerifyModalVisible(false)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                                <Feather name="x" size={22} color="#4B5563" />
-                            </TouchableOpacity>
-                        </View>
-
-                        <Text style={{ fontFamily: 'Poppins-Regular', fontSize: 13, color: '#4B5563', marginBottom: 15 }}>
-                            We will send a 6-digit verification code to your email address to confirm ownership.
-                        </Text>
-
-                        <Text style={styles.inputLabel}>Email Address</Text>
-                        <TextInput
-                            style={styles.textInput}
-                            value={verifyEmailInput}
-                            onChangeText={setVerifyEmailInput}
-                            placeholder="Enter your email address"
-                            keyboardType="email-address"
-                            autoCapitalize="none"
-                            editable={!otpSent}
-                        />
-
-                        {emailVerifyStatus.message ? (
-                            <Text style={[styles.statusText, emailVerifyStatus.isError ? styles.errorStatus : styles.successStatus]}>
-                                {emailVerifyStatus.message}
-                            </Text>
-                        ) : null}
-
-                        {!otpSent ? (
-                            <TouchableOpacity
-                                style={[styles.saveBtn, sendingOtp && { opacity: 0.7 }]}
-                                onPress={handleSendEmailOtp}
-                                disabled={sendingOtp}
-                                activeOpacity={0.8}
-                            >
-                                {sendingOtp ? (
-                                    <ActivityIndicator size="small" color="#FFFFFF" />
-                                ) : (
-                                    <Text style={styles.saveBtnText}>Send Verification Code</Text>
-                                )}
-                            </TouchableOpacity>
-                        ) : (
-                            <>
-                                <Text style={[styles.inputLabel, { marginTop: 10 }]}>Enter 6-Digit Verification Code</Text>
-                                <TextInput
-                                    style={[styles.textInput, styles.otpInputStyle]}
-                                    value={otpInput}
-                                    onChangeText={setOtpInput}
-                                    placeholder="• • • • • •"
-                                    keyboardType="number-pad"
-                                    maxLength={6}
-                                    autoFocus
-                                />
-
-                                <TouchableOpacity
-                                    style={[styles.saveBtn, verifyingOtp && { opacity: 0.7 }]}
-                                    onPress={handleVerifyEmailOtp}
-                                    disabled={verifyingOtp}
-                                    activeOpacity={0.8}
-                                >
-                                    {verifyingOtp ? (
-                                        <ActivityIndicator size="small" color="#FFFFFF" />
-                                    ) : (
-                                        <Text style={styles.saveBtnText}>Verify & Save Email</Text>
-                                    )}
-                                </TouchableOpacity>
-
-                                <TouchableOpacity
-                                    style={{ marginTop: 12, alignItems: 'center' }}
-                                    onPress={handleSendEmailOtp}
-                                    disabled={sendingOtp}
-                                >
-                                    <Text style={{ fontFamily: 'Poppins-Medium', fontSize: 13, color: '#FE6700' }}>
-                                        Resend Code
-                                    </Text>
-                                </TouchableOpacity>
-                            </>
-                        )}
-                    </View>
-                </View>
-            </Modal>
+            <EmailVerificationModal
+                visible={emailVerifyModalVisible}
+                initialEmail={profile.contact.email}
+                accentColor="#FE6700"
+                onClose={() => setEmailVerifyModalVisible(false)}
+                onSuccess={(verifiedEmail) => {
+                    setProfile(prev => ({
+                        ...prev,
+                        contact: {
+                            ...prev.contact,
+                            email: verifiedEmail,
+                            isEmailVerified: true
+                        }
+                    }));
+                }}
+            />
         </View>
     );
 }

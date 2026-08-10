@@ -17,6 +17,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigationStack } from '@/contexts/NavigationStackContext';
 import { useAndroidBackHandler } from '@/hooks/useAndroidBackHandler';
 
+import NotificationBell from '@/components/shared/NotificationBell';
+
 type TabType = 'Personal' | 'Security' | 'Subscription';
 
 export default function ProfileScreen() {
@@ -107,8 +109,7 @@ export default function ProfileScreen() {
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>My Profile</Text>
                 <View style={styles.iconBtn}>
-                    <Ionicons name="notifications-outline" size={24} color="#111827" />
-                    <View style={styles.badge}><Text style={styles.badgeText}>2</Text></View>
+                    <NotificationBell />
                 </View>
                 <TouchableOpacity onPress={openDrawer} style={styles.iconBtn}>
                     <Ionicons name="menu-outline" size={28} color="#111827" />

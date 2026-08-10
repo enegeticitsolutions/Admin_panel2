@@ -6,12 +6,13 @@ import {
     TouchableOpacity, 
     TextInput, 
     ActivityIndicator, 
-    Alert 
+    Alert
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_URL } from '@/constants/api';
 import { AddressInputField } from '@/components/ui/AddressInputField';
+import { EmailVerificationModal } from '@/components/ui/EmailVerificationModal';
 
 interface PersonalTabProps {
     user: {
@@ -70,13 +71,13 @@ const InfoRow = ({ icon, label, value, verified, field, type = 'ionicons', isEdi
         </View>
         <View style={styles.infoContent}>
             <Text style={styles.infoLabel}>{label}</Text>
-            {isEditing && field ? (
+            {isEditing && field && field !== 'email' ? (
                 <TextInput 
                     style={styles.editableInput}
                     value={String(formData[field])}
                     onChangeText={(text) => setFormData(prev => ({ ...prev, [field]: text }))}
                     placeholder={`Enter ${label}`}
-                    autoCapitalize={field === 'email' ? 'none' : 'words'}
+                    autoCapitalize="words"
                 />
             ) : (
                 <View style={styles.valueRow}>
@@ -103,6 +104,7 @@ const iconToneByLabel: Record<string, { color: string; box: object }> = {
 export const PersonalTab = ({ user, onUpdate }: PersonalTabProps) => {
     const [isEditing, setIsEditing] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [emailModalVisible, setEmailModalVisible] = useState(false);
     const [formData, setFormData] = useState<PersonalFormData>({
         name: user.name || '',
         email: user.email || '',
@@ -117,7 +119,6 @@ export const PersonalTab = ({ user, onUpdate }: PersonalTabProps) => {
         longitude: user.longitude || 0
     });
 
-    // Sync state if user prop changes (important for re-fetches)
     useEffect(() => {
         setFormData({
             name: user.name || '',
@@ -148,13 +149,16 @@ export const PersonalTab = ({ user, onUpdate }: PersonalTabProps) => {
         setLoading(true);
         try {
             const token = await AsyncStorage.getItem('userToken');
+            // Exclude email from direct payload so email requires OTP verification via modal
+            const { email, ...savePayload } = formData;
+
             const res = await fetch(`${API_URL}/subscriber/profile`, {
                 method: 'PATCH',
                 headers: { 
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify(formData)
+                body: JSON.stringify(savePayload)
             });
             
             const data = await res.json();
@@ -198,10 +202,32 @@ export const PersonalTab = ({ user, onUpdate }: PersonalTabProps) => {
                     isEditing={isEditing} formData={formData} setFormData={setFormData} 
                 />
                 <View style={styles.divider} />
-                <InfoRow 
-                    icon="mail-outline" label="Email Address" value={user.email} verified={user.isVerified} field="email" 
-                    isEditing={isEditing} formData={formData} setFormData={setFormData} 
-                />
+
+                {/* Email Address Row using Reusable EmailVerificationModal */}
+                <View style={styles.infoRow}>
+                    <View style={[styles.iconBox, iconToneByLabel['Email Address']?.box]}>
+                        <Ionicons name="mail-outline" size={23} color={iconToneByLabel['Email Address']?.color} />
+                    </View>
+                    <View style={styles.infoContent}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <Text style={styles.infoLabel}>Email Address</Text>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                                {user.isVerified && (
+                                    <View style={styles.verifiedBadge}>
+                                        <Text style={styles.verifiedText}>Verified</Text>
+                                    </View>
+                                )}
+                                <TouchableOpacity onPress={() => setEmailModalVisible(true)} activeOpacity={0.7}>
+                                    <Text style={styles.verifyActionText}>
+                                        {user.email ? 'Change Email' : 'Verify Email'}
+                                    </Text>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                        <Text style={styles.infoValue}>{user.email || 'Not specified'}</Text>
+                    </View>
+                </View>
+
                 <View style={styles.divider} />
                 <InfoRow 
                     icon="call-outline" label="Phone Number" value={user.phone} verified={true} 
@@ -293,6 +319,17 @@ export const PersonalTab = ({ user, onUpdate }: PersonalTabProps) => {
                     isEditing={isEditing} formData={formData} setFormData={setFormData} 
                 />
             </View>
+
+            {/* Reusable Email Verification Modal */}
+            <EmailVerificationModal
+                visible={emailModalVisible}
+                initialEmail={user.email}
+                accentColor="#FF5B0A"
+                onClose={() => setEmailModalVisible(false)}
+                onSuccess={() => {
+                    if (onUpdate) onUpdate();
+                }}
+            />
         </View>
     );
 };
@@ -340,6 +377,12 @@ const styles = StyleSheet.create({
     },
     valueRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' },
     infoValue: { fontSize: 16, fontWeight: '600', color: '#111111', lineHeight: 21 },
+    verifyActionText: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: '#FF5B0A',
+        textDecorationLine: 'underline',
+    },
     verifiedBadge: { 
         backgroundColor: '#EAFBF0',
         paddingHorizontal: 9, paddingVertical: 2,

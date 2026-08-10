@@ -622,7 +622,7 @@ const styles = StyleSheet.create({
     },
     impactGrid: {
         flexDirection: 'row',
-        justify: 'space-between',
+        justifyContent: 'space-between',
     },
     impactBox: {
         width: '31%',
@@ -669,7 +669,7 @@ const styles = StyleSheet.create({
     modalOverlay: {
         flex: 1,
         backgroundColor: 'rgba(0, 0, 0, 0.5)',
-        justify: 'center',
+        justifyContent: 'center',
         alignItems: 'center',
         paddingHorizontal: 20,
     },
@@ -687,7 +687,7 @@ const styles = StyleSheet.create({
     },
     modalHeader: {
         flexDirection: 'row',
-        justify: 'space-between',
+        justifyContent: 'space-between',
         alignItems: 'center',
         marginBottom: 16,
     },
@@ -715,7 +715,7 @@ const styles = StyleSheet.create({
     },
     modalActionRow: {
         flexDirection: 'row',
-        justify: 'flex-end',
+        justifyContent: 'flex-end',
         gap: 12,
     },
     cancelBtn: {
