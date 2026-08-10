@@ -17,7 +17,7 @@ import {
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { API_URL } from '@/constants/api';
 import { sanitizeImageUri } from '@/utils/sanitizeImageUri';
 import { SathiBottomNav } from '@/components/shared/SathiBottomNav';
@@ -34,6 +34,7 @@ const DEEP_ORANGE = '#FE6700';
 
 export default function SathiDashboard() {
   useExitOnBack();
+  const insets = useSafeAreaInsets();
   const { push, replace } = useNavigationStack();
   useAndroidBackHandler();
   const { width } = useWindowDimensions();
@@ -550,8 +551,8 @@ export default function SathiDashboard() {
     }
 
     return (
-      <SafeAreaView style={styles.container}>
-        <ScrollView contentContainerStyle={styles.scrollContent}>
+    <View style={[styles.container, { paddingTop: Math.max(insets.top, Platform.OS === 'android' ? 40 : 20) }]}>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
           <View style={styles.pendingHeader}>
             <Text style={styles.brandTitle}>Saathi Network</Text>
           </View>
@@ -764,7 +765,7 @@ export default function SathiDashboard() {
             </View>
           </Modal>
         </ScrollView>
-      </SafeAreaView>
+    </View>
     );
   }
 
@@ -774,8 +775,8 @@ export default function SathiDashboard() {
     : 0;
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+    <View style={[styles.container, { paddingTop: Math.max(insets.top, Platform.OS === 'android' ? 40 : 20) }]}>
+      <ScrollView contentContainerStyle={[styles.scrollContent, { paddingBottom: 100 + insets.bottom }]} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
           <View>
@@ -964,6 +965,10 @@ export default function SathiDashboard() {
                   <TouchableOpacity
                     style={{ marginTop: scale(20), backgroundColor: '#FF6F00', paddingVertical: scale(12), borderRadius: scale(20), flexDirection: 'row', justifyContent: 'center', alignItems: 'center' }}
                     onPress={() => {
+                      if (dashboard?.activeVisit) {
+                        Alert.alert('Action Denied', 'You already have an active visit in progress. Please check out of your current visit before starting a new one.');
+                        return;
+                      }
                       setOtpRequestId(item.id);
                       setShowOtpModal(true);
                     }}
@@ -1234,7 +1239,7 @@ export default function SathiDashboard() {
         </View>
       </Modal>
 
-    </SafeAreaView>
+    </View>
   );
 }
 

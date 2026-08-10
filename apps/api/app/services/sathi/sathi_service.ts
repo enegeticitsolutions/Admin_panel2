@@ -985,6 +985,14 @@ export const verifySathiVisitOtp = async (volunteerId: string, requestId: string
     throw new ApiError(403, 'You are not the assigned Sathi for this visit.');
   }
 
+  const activeCheckin = await prisma.volunteerVisitLog.findFirst({
+    where: { volunteerId, status: 'in_progress' }
+  });
+
+  if (activeCheckin) {
+    throw new ApiError(400, 'You already have an active visit in progress. Please check out of your current visit before starting a new one.');
+  }
+
   if (request.status !== 'ACCEPTED') {
     throw new ApiError(400, 'This visit is not in an accepted state.');
   }
