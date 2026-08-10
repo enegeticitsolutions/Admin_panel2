@@ -11,7 +11,7 @@
     "icon": "./assets/images/icon.png",
     "scheme": "sathinetwork",
     "userInterfaceStyle": "automatic",
-    "primaryColor": "#FE6700",
+    "primaryColor": "#ffffff",
     "ios": {
       "supportsTablet": true,
       "config": {
