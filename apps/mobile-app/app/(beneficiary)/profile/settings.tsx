@@ -8,6 +8,8 @@ import { useNavigationStack } from '@/contexts/NavigationStackContext';
 import { useAndroidBackHandler } from '@/hooks/useAndroidBackHandler';
 import { LEGAL_CONFIG } from '@/constants/legal';
 
+import Constants from 'expo-constants';
+
 export default function SettingsScreen() {
     const { width } = useWindowDimensions();
     const contentWidth = Math.min(Math.max(width - 24, 0), 440);
@@ -16,6 +18,9 @@ export default function SettingsScreen() {
     const { push, replace, pop } = useNavigationStack();
     useAndroidBackHandler();
     const safeBack = useSafeBack();
+
+    const appVersion = Constants.expoConfig?.version || '1.0.0';
+    const buildNumber = Constants.expoConfig?.ios?.buildNumber || Constants.expoConfig?.android?.versionCode?.toString() || '1.0.0';
 
     const openPrivacyPolicy = () => {
         Linking.openURL(LEGAL_CONFIG.PRIVACY_POLICY_URL).catch(err => console.log('Error opening privacy link:', err));
@@ -56,12 +61,12 @@ export default function SettingsScreen() {
                     <View style={styles.aboutRows}>
                         <View style={styles.infoRow}>
                             <Text style={styles.infoLabel}>Version</Text>
-                            <Text style={styles.infoValue}>1.0.0</Text>
+                            <Text style={styles.infoValue}>{appVersion}</Text>
                         </View>
 
                         <View style={styles.infoRow}>
                             <Text style={styles.infoLabel}>Build</Text>
-                            <Text style={styles.infoValue}>2024.03.23</Text>
+                            <Text style={styles.infoValue}>{buildNumber}</Text>
                         </View>
                     </View>
                 </View>
