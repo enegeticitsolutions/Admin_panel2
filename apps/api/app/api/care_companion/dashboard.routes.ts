@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { authenticate } from '../shared/deps';
 import prisma from '../../core/database';
 import { autoUpdateMissedVisits } from '../../services/care_companion/visit_service';
+import { celebrationService } from '../../services/care_companion/celebration_service';
 
 const router = Router();
 
@@ -92,39 +93,8 @@ router.get('/', authenticate, async (req: Request, res: Response) => {
       };
     }
 
-    // 4. Retrieve Celebrations (Birthdays/Anniversaries of assigned beneficiaries)
-    const assignedBeneficiaries = await prisma.beneficiary.findMany({
-      where: {
-        OR: [
-          { primaryCcId: ccId },
-          { secondaryCcId: ccId },
-        ],
-        isActive: true,
-      }
-    });
-
-    // Generate dynamic celebration alerts for assigned beneficiaries
-    const celebrations = assignedBeneficiaries.map((b, index) => {
-      // If no dob, generate a simulated anniversary or birthday based on ID characters
-      const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-      const day = (b.name.charCodeAt(0) % 28) + 1;
-      const month = monthNames[b.name.charCodeAt(1) % 12];
-      
-      return {
-        id: b.id,
-        name: b.name,
-        type: index % 2 === 0 ? 'Birthday' : 'Anniversary',
-        date: `${month} ${day}, 2026`,
-      };
-    });
-
-    // Fallback default list if no beneficiaries assigned yet (keeps UI beautiful)
-    if (celebrations.length === 0) {
-      celebrations.push(
-        { id: 'c1', name: 'Sameer Tandon', type: 'Birthday', date: 'Mar 10, 2026' },
-        { id: 'c2', name: 'Eleanor Davis', type: 'Anniversary', date: 'Mar 11, 2026' }
-      );
-    }
+    // 4. Retrieve Celebrations (Birthdays of assigned primary/secondary beneficiaries)
+    const celebrations = await celebrationService.getUpcomingBirthdaysForCompanion(ccId);
 
     res.json({
       success: true,
@@ -139,7 +109,7 @@ router.get('/', authenticate, async (req: Request, res: Response) => {
           hoursToday: Math.round(todaysHoursSum * 10) / 10,
         },
         nextVisit,
-        celebrations: celebrations.slice(0, 3), // Show top 3
+        celebrations: celebrations.slice(0, 5), // Show top upcoming birthdays
       },
     });
   } catch (error: any) {
