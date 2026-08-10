@@ -113,3 +113,8 @@ The MaiHoonNa platform consists of 5 integrated applications sharing a centraliz
 
 2. **Coupon Validation**:
    - Ensure the request body sent to `/subscriber/coupons/validate` always contains: `{ code: string, packageId: string, amount: number }`.
+
+3. **App Store & Play Store Legal & UI Compliance**:
+   - Privacy Policy and Terms of Service links point to live production URLs: `https://maihoonna.in/#privacy` and `https://maihoonna.in/#terms` (configured in `apps/mobile-app/app/(beneficiary)/profile/settings.tsx`).
+   - Unreleased menu placeholder buttons in `apps/mobile-app/app/(beneficiary)/more.tsx` are commented out so Apple & Google human reviewers encounter zero dead links or unhandled buttons.
+
