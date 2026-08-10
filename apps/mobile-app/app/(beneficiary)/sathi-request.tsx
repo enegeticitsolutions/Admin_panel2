@@ -21,8 +21,10 @@ import { format } from 'date-fns';
 import { API_URL } from '@/constants/api';
 import { useSafeBack } from '@/hooks/useSafeBack';
 import { sanitizeImageUri } from '@/utils/sanitizeImageUri';
+import { useRouter } from 'expo-router';
 
 export default function SathiRequestScreen() {
+  const router = useRouter();
   const { width } = useWindowDimensions();
   const MAX_CONTENT_WIDTH = 440;
   const responsiveStyle = { width: '100%' as const, maxWidth: MAX_CONTENT_WIDTH, alignSelf: 'center' as const };
@@ -34,7 +36,9 @@ export default function SathiRequestScreen() {
   const [remainingUnits, setRemainingUnits] = useState(0);
   const [submitting, setSubmitting] = useState(false);
 
-  const [volunteers, setVolunteers] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState<'CONNECT' | 'AVAILABLE'>('AVAILABLE');
+  const [pendingVolunteers, setPendingVolunteers] = useState<any[]>([]);
+  const [connectedVolunteers, setConnectedVolunteers] = useState<any[]>([]);
   const [myRequests, setMyRequests] = useState<any[]>([]);
   const [selectedVolunteer, setSelectedVolunteer] = useState<any | null>(null);
 
@@ -114,7 +118,8 @@ export default function SathiRequestScreen() {
           });
           const volData = await volRes.json();
           if (volData.success) {
-            setVolunteers(volData.data);
+            setPendingVolunteers(volData.data.pending || []);
+            setConnectedVolunteers(volData.data.connected || []);
           }
 
           // Fetch my requests
@@ -132,6 +137,37 @@ export default function SathiRequestScreen() {
     } catch (err) {
       console.error('[SathiEligibility] Error checking eligibility:', err);
       setEligible(false);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleConnectStatus = async (volunteerId: string, status: 'CONNECTED' | 'REJECTED') => {
+    try {
+      setLoading(true);
+      const token = await AsyncStorage.getItem('userToken');
+      const userStr = await AsyncStorage.getItem('userData');
+      if (!token || !userStr) return;
+      const user = JSON.parse(userStr);
+
+      const res = await fetch(`${API_URL}/beneficiary/sathi-requests/${user.id}/sathi/volunteers/${volunteerId}/status`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ status })
+      });
+
+      const data = await res.json();
+      if (res.ok || data.success) {
+        checkEligibility();
+        showAlert('Success', status === 'CONNECTED' ? 'Volunteer connected successfully!' : 'Volunteer assignment rejected.');
+      } else {
+        showAlert('Error', data.message || 'Failed to update status.');
+      }
+    } catch (e: any) {
+      showAlert('Error', e.message || 'Something went wrong.');
     } finally {
       setLoading(false);
     }
@@ -764,17 +800,49 @@ export default function SathiRequestScreen() {
           );
         })()}
 
-        <Text style={styles.sectionTitle}>Available Volunteers</Text>
+        {/* Custom Tab Bar */}
+        <View style={styles.tabContainer}>
+          <TouchableOpacity 
+            style={[styles.tabBtn, activeTab === 'AVAILABLE' && styles.tabBtnActive]} 
+            onPress={() => setActiveTab('AVAILABLE')}
+          >
+            <Text style={[styles.tabBtnText, activeTab === 'AVAILABLE' && styles.tabBtnTextActive]}>Available Volunteers</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.tabBtn, activeTab === 'CONNECT' && styles.tabBtnActive]} 
+            onPress={() => setActiveTab('CONNECT')}
+          >
+            <Text style={[styles.tabBtnText, activeTab === 'CONNECT' && styles.tabBtnTextActive]}>Connect Volunteer</Text>
+          </TouchableOpacity>
+        </View>
 
-        {volunteers.length === 0 ? (
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>No volunteers assigned to you yet.</Text>
-          </View>
-        ) : (
-          volunteers.map((v) => (
-            <View key={v.id} style={styles.volunteerCard}>
-              <View style={styles.volHeader}>
-                <Image source={{ uri: sanitizeImageUri(v.photo) }} style={styles.volPhoto} />
+        {/* List Rendering based on Active Tab */}
+        {(() => {
+          const displayList = activeTab === 'CONNECT' ? pendingVolunteers : connectedVolunteers;
+          
+          if (displayList.length === 0) {
+            return (
+              <View style={styles.emptyContainer}>
+                <Text style={styles.emptyText}>
+                  {activeTab === 'CONNECT' ? 'No volunteers to connect with.' : 'No available volunteers yet.'}
+                </Text>
+              </View>
+            );
+          }
+          
+          return displayList.map((v) => {
+            const isConnectTab = activeTab === 'CONNECT';
+            const CardWrapper = (isConnectTab ? View : TouchableOpacity) as React.ElementType;
+            const cardProps = isConnectTab ? { style: styles.volunteerCard } : { 
+              style: styles.volunteerCard, 
+              onPress: () => router.push(`/(beneficiary)/sathi-details/${v.id}?status=CONNECTED`),
+              activeOpacity: 0.95
+            };
+
+            return (
+              <CardWrapper key={v.id} {...cardProps}>
+                <View style={styles.volHeader}>
+                  <Image source={{ uri: sanitizeImageUri(v.photo) }} style={styles.volPhoto} />
                 <View style={styles.volInfo}>
                   <Text style={styles.volName}>{v.name}</Text>
                   
@@ -788,7 +856,7 @@ export default function SathiRequestScreen() {
                       <FontAwesome name="star" size={14} color="#F59E0B" />
                       <Text style={styles.ratingText}>{v.rating}</Text>
                     </TouchableOpacity>
-                    <Text style={styles.visitsText}>{v.hours} visits</Text>
+                    <Text style={styles.visitsText}>{v.visits} visits</Text>
                   </View>
                 </View>
               </View>
@@ -835,19 +903,37 @@ export default function SathiRequestScreen() {
                 </View>
               )}
 
-              <View style={styles.actionRow}>
-                <TouchableOpacity style={styles.reqBtn} onPress={() => setSelectedVolunteer(v)}>
-                  <Feather name="user-plus" size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
-                  <Text style={styles.reqBtnText}>Request Visit</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.feedBtn} onPress={() => { setFeedbackTarget(v); setShowFeedbackModal(true); setFeedbackRating(5); setFeedbackText(''); }}>
-                  <Feather name="message-circle" size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
-                  <Text style={styles.feedBtnText}>Feedback</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          ))
-        )}
+              {isConnectTab ? (
+                  <View style={styles.actionRowSmall}>
+                    <TouchableOpacity style={styles.smallViewBtn} onPress={() => router.push(`/(beneficiary)/sathi-details/${v.id}?status=PENDING`)}>
+                      <Feather name="eye" size={14} color="#4B5563" style={{ marginRight: 4 }} />
+                      <Text style={styles.smallViewBtnText}>View</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.smallConnectBtn} onPress={() => handleConnectStatus(v.id, 'CONNECTED')}>
+                      <Feather name="user-check" size={14} color="#FFFFFF" style={{ marginRight: 4 }} />
+                      <Text style={styles.smallConnectBtnText}>Connect</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.smallRejectBtn} onPress={() => handleConnectStatus(v.id, 'REJECTED')}>
+                      <Feather name="x" size={14} color="#FFFFFF" style={{ marginRight: 4 }} />
+                      <Text style={styles.smallRejectBtnText}>Reject</Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <View style={styles.actionRow}>
+                    <TouchableOpacity style={styles.reqBtn} onPress={() => setSelectedVolunteer(v)}>
+                      <Feather name="user-plus" size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
+                      <Text style={styles.reqBtnText}>Request Visit</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.feedBtn} onPress={() => { setFeedbackTarget(v); setShowFeedbackModal(true); setFeedbackRating(5); setFeedbackText(''); }}>
+                      <Feather name="message-circle" size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
+                      <Text style={styles.feedBtnText}>Feedback</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </CardWrapper>
+            );
+          })
+        })()}
 
         <View style={{ height: 40 }} />
       </ScrollView>
@@ -1337,6 +1423,83 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '600',
     fontSize: 15,
+  },
+  actionRowSmall: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 16,
+    justifyContent: 'space-between',
+  },
+  smallViewBtn: {
+    flex: 1,
+    backgroundColor: '#F3F4F6', // Gray
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
+  },
+  smallViewBtnText: {
+    color: '#4B5563',
+    fontWeight: '600',
+    fontSize: 13,
+  },
+  smallConnectBtn: {
+    flex: 1,
+    backgroundColor: '#2563EB', // Blue
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
+  },
+  smallConnectBtnText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+    fontSize: 13,
+  },
+  smallRejectBtn: {
+    flex: 1,
+    backgroundColor: '#EA580C', // Orange
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
+  },
+  smallRejectBtnText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+    fontSize: 13,
+  },
+  tabContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#FFE3D1',
+    borderRadius: 12,
+    padding: 4,
+    marginBottom: 20,
+  },
+  tabBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    alignItems: 'center',
+    borderRadius: 8,
+  },
+  tabBtnActive: {
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  tabBtnText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#9A3412',
+  },
+  tabBtnTextActive: {
+    color: '#EA580C',
   },
   availabilityBox: {
     flexDirection: 'row',
