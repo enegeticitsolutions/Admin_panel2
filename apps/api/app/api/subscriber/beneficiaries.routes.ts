@@ -26,6 +26,7 @@ const router = Router();
 // Beneficiaries
 router.post('/', authenticate, validate(createBeneficiarySchema), beneficiaryController.createBeneficiary);
 router.get('/subscriber/:subscriberId', authenticate, beneficiaryController.getSubscriberBeneficiaries);
+router.get('/sathi-eligible', authenticate, beneficiaryController.getSathiEligibleBeneficiaries);
 router.get('/:beneficiaryId/profile', authenticate, beneficiaryController.getBeneficiaryProfile);
 router.get('/:beneficiaryId/pending-details', authenticate, beneficiaryController.getBeneficiaryPendingDetails);
 router.put('/:beneficiaryId', authenticate, validate(updateBeneficiarySchema), beneficiaryController.updateBeneficiary);

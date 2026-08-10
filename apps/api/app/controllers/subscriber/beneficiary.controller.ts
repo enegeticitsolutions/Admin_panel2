@@ -36,6 +36,17 @@ export const getSubscriberBeneficiaries = async (req: Request, res: Response) =>
   }
 };
 
+export const getSathiEligibleBeneficiaries = async (req: Request, res: Response) => {
+  try {
+    const authReq = req as any;
+    const subscriberId = authReq.userId;
+    const list = await beneficiaryService.getSathiEligibleBeneficiaries(subscriberId);
+    res.json({ success: true, data: list });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 export const updateBeneficiary = async (req: Request, res: Response) => {
   try {
     const beneficiaryId = req.params.beneficiaryId as string;

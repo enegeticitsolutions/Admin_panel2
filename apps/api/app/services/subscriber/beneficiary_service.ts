@@ -1,6 +1,7 @@
 import prisma from '../../core/database';
 import { generateUUID, generateRandomPhone } from '../../utils/helpers';
 import { Prisma } from '@prisma/client';
+import { getBeneficiarySathiEligibility } from '../beneficiary/beneficiary_sathi_service';
 
 // Map free-text frequencies from the mobile UI to valid DB enum values
 const frequencyMap: Record<string, string> = {
@@ -128,6 +129,20 @@ export const getBeneficiary = async (beneficiaryId: string) => {
 
 export const getSubscriberBeneficiaries = async (subscriberId: string) => {
   return prisma.beneficiary.findMany({ where: { subscriberId } });
+};
+
+export const getSathiEligibleBeneficiaries = async (subscriberId: string) => {
+  const beneficiaries = await prisma.beneficiary.findMany({ where: { subscriberId } });
+  
+  const eligibleBeneficiaries = [];
+  for (const b of beneficiaries) {
+    const eligibility = await getBeneficiarySathiEligibility(b.id);
+    if (eligibility.eligible) {
+      eligibleBeneficiaries.push(b);
+    }
+  }
+  
+  return eligibleBeneficiaries;
 };
 
 export const updateBeneficiary = async (beneficiaryId: string, updates: any) => {
