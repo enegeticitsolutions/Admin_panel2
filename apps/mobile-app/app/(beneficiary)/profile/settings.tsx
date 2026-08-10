@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Platform, useWindowDimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Platform, useWindowDimensions, Linking } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { useSafeBack } from '@/hooks/useSafeBack';
@@ -15,6 +15,14 @@ export default function SettingsScreen() {
     const { push, replace, pop } = useNavigationStack();
     useAndroidBackHandler();
     const safeBack = useSafeBack();
+
+    const openPrivacyPolicy = () => {
+        Linking.openURL('https://maihoonna.in/#privacy').catch(err => console.log('Error opening privacy link:', err));
+    };
+
+    const openTermsOfService = () => {
+        Linking.openURL('https://maihoonna.in/#terms').catch(err => console.log('Error opening terms link:', err));
+    };
 
     return (
         <SafeAreaView style={styles.safeArea}>
@@ -51,19 +59,19 @@ export default function SettingsScreen() {
                 </View>
 
                 <View style={[styles.linksCard, responsiveContentStyle]}>
-                    <TouchableOpacity style={styles.linkRow} activeOpacity={0.7}>
+                    <TouchableOpacity style={styles.linkRow} activeOpacity={0.7} onPress={openPrivacyPolicy}>
                         <Text style={styles.linkText}>Privacy Policy</Text>
                     </TouchableOpacity>
 
                     <View style={styles.divider} />
 
-                    <TouchableOpacity style={styles.linkRow} activeOpacity={0.7}>
+                    <TouchableOpacity style={styles.linkRow} activeOpacity={0.7} onPress={openTermsOfService}>
                         <Text style={styles.linkText}>Terms of Service</Text>
                     </TouchableOpacity>
 
                     <View style={styles.divider} />
 
-                    <TouchableOpacity style={styles.linkRow} activeOpacity={0.7}>
+                    <TouchableOpacity style={styles.linkRow} activeOpacity={0.7} onPress={openPrivacyPolicy}>
                         <Text style={styles.linkText}>Help & Support</Text>
                     </TouchableOpacity>
                 </View>
@@ -131,7 +139,7 @@ const styles = StyleSheet.create({
     },
     infoRow: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
+        justify: 'space-between',
         alignItems: 'center',
     },
     infoLabel: {
