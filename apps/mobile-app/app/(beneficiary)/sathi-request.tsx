@@ -777,38 +777,71 @@ export default function SathiRequestScreen() {
                 <Image source={{ uri: sanitizeImageUri(v.photo) }} style={styles.volPhoto} />
                 <View style={styles.volInfo}>
                   <Text style={styles.volName}>{v.name}</Text>
+                  
+                  <View style={styles.locationRow}>
+                    <Feather name="map-pin" size={14} color="#6B7280" />
+                    <Text style={styles.locationText}>{v.location}</Text>
+                  </View>
+                  
                   <View style={styles.volStatsRow}>
                     <TouchableOpacity style={styles.ratingBadge} onPress={() => handleViewReviews(v)}>
-                      {Array.from({ length: Math.floor(parseFloat(v.rating)) }).map((_, i) => (
-                        <FontAwesome key={`star-${i}`} name="star" size={12} color="#FBBF24" style={{marginRight: 2}} />
-                      ))}
-                      {parseFloat(v.rating) % 1 !== 0 && (
-                        <FontAwesome name="star-half-o" size={12} color="#FBBF24" style={{marginRight: 2}} />
-                      )}
-                      <Text style={styles.ratingText}>{v.rating} ({v.reviewCount || 0} reviews)</Text>
+                      <FontAwesome name="star" size={14} color="#F59E0B" />
+                      <Text style={styles.ratingText}>{v.rating}</Text>
                     </TouchableOpacity>
-                    <View style={styles.distanceBadge}>
-                      <Feather name="map-pin" size={10} color="#6B7280" />
-                      <Text style={styles.distanceText}>{v.distance}</Text>
-                    </View>
+                    <Text style={styles.visitsText}>{v.hours} visits</Text>
                   </View>
                 </View>
               </View>
               
-              <Text style={styles.volBio}>{v.bio}</Text>
-              
-              <View style={styles.volHoursContainer}>
-                <View style={styles.volHoursBadge}>
-                  <Feather name="clock" size={12} color="#4B5563" />
-                  <Text style={styles.volHoursText}>Hours: {v.hours}</Text>
+              {/* Availability Box */}
+              {v.availability && v.availability.length > 0 && (
+                <View style={styles.availabilityBox}>
+                  <Feather name="calendar" size={20} color="#16A34A" />
+                  <View style={styles.availabilityTextCol}>
+                    <Text style={styles.availabilityLabel}>Available</Text>
+                    <Text style={styles.availabilityText}>{v.availability.join(', ')}</Text>
+                  </View>
                 </View>
-              </View>
+              )}
+
+              {/* Languages */}
+              {v.languages && v.languages.length > 0 && (
+                <View style={styles.languagesContainer}>
+                  <View style={styles.sectionHeader}>
+                    <Feather name="type" size={16} color="#6B7280" />
+                    <Text style={styles.sectionTitleText}>Languages:</Text>
+                  </View>
+                  <View style={styles.pillsRow}>
+                    {v.languages.map((lang: string, index: number) => (
+                      <View key={index} style={styles.languagePill}>
+                        <Text style={styles.languagePillText}>{lang}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              )}
+
+              {/* Interests */}
+              {v.interests && v.interests.length > 0 && (
+                <View style={styles.interestsContainer}>
+                  <Text style={[styles.sectionTitleText, { marginLeft: 0 }]}>Interests:</Text>
+                  <View style={styles.pillsRow}>
+                    {v.interests.map((interest: string, index: number) => (
+                      <View key={index} style={styles.interestPill}>
+                        <Text style={styles.interestPillText}>{interest}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              )}
 
               <View style={styles.actionRow}>
                 <TouchableOpacity style={styles.reqBtn} onPress={() => setSelectedVolunteer(v)}>
+                  <Feather name="user-plus" size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
                   <Text style={styles.reqBtnText}>Request Visit</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.feedBtn} onPress={() => { setFeedbackTarget(v); setShowFeedbackModal(true); setFeedbackRating(5); setFeedbackText(''); }}>
+                  <Feather name="message-circle" size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
                   <Text style={styles.feedBtnText}>Feedback</Text>
                 </TouchableOpacity>
               </View>
@@ -1195,24 +1228,33 @@ const styles = StyleSheet.create({
   },
   volHeader: {
     flexDirection: 'row',
-    marginBottom: 12,
+    marginBottom: 16,
   },
   volPhoto: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    marginRight: 12,
+    width: 64,
+    height: 64,
+    borderRadius: 16,
+    marginRight: 16,
   },
   volInfo: {
     flex: 1,
     justifyContent: 'center',
   },
   volName: {
-    fontSize: 18,
-    fontWeight: '500',
-    lineHeight: 27,
-    color: '#000000',
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#111827',
     marginBottom: 4,
+  },
+  locationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  locationText: {
+    fontSize: 14,
+    color: '#4B5563',
+    marginLeft: 4,
   },
   volStatsRow: {
     flexDirection: 'row',
@@ -1221,25 +1263,21 @@ const styles = StyleSheet.create({
   ratingBadge: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 16,
     marginRight: 12,
   },
   ratingText: {
-    fontSize: 12,
-    fontWeight: '400',
-    lineHeight: 16,
-    color: '#4A5565',
-    marginLeft: 4,
-  },
-  distanceBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  distanceText: {
     fontSize: 14,
-    fontWeight: '400',
-    lineHeight: 20,
-    color: '#4A5565',
-    marginLeft: 4,
+    fontWeight: '500',
+    color: '#111827',
+    marginLeft: 6,
+  },
+  visitsText: {
+    fontSize: 14,
+    color: '#6B7280',
   },
   volBio: {
     fontSize: 14,
@@ -1270,34 +1308,100 @@ const styles = StyleSheet.create({
   actionRow: {
     flexDirection: 'row',
     gap: 12,
+    marginTop: 20,
   },
   reqBtn: {
     flex: 1,
-    backgroundColor: '#FE6700',
-    paddingVertical: 11,
-    borderRadius: 14,
+    backgroundColor: '#2563EB', // Blue matching Connect
+    paddingVertical: 12,
+    borderRadius: 24,
     alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
   },
   reqBtnText: {
     color: '#FFFFFF',
-    fontWeight: '500',
-    fontSize: 16,
-    lineHeight: 24,
+    fontWeight: '600',
+    fontSize: 15,
   },
   feedBtn: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1.18,
-    borderColor: '#D1D5DC',
-    paddingVertical: 11,
-    borderRadius: 14,
+    backgroundColor: '#EA580C', // Orange matching Chat
+    paddingVertical: 12,
+    borderRadius: 24,
     alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
   },
   feedBtnText: {
-    color: '#333333',
-    fontWeight: '500',
+    color: '#FFFFFF',
+    fontWeight: '600',
+    fontSize: 15,
+  },
+  availabilityBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F0FDF4',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+  },
+  availabilityTextCol: {
+    marginLeft: 12,
+  },
+  availabilityLabel: {
+    color: '#16A34A',
+    fontSize: 13,
+  },
+  availabilityText: {
+    color: '#16A34A',
     fontSize: 16,
-    lineHeight: 24,
+    fontWeight: '500',
+    marginTop: 2,
+  },
+  languagesContainer: {
+    marginBottom: 20,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  sectionTitleText: {
+    color: '#4B5563',
+    fontSize: 15,
+    marginLeft: 6,
+  },
+  pillsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  languagePill: {
+    backgroundColor: '#EFF6FF',
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  languagePillText: {
+    color: '#2563EB',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  interestsContainer: {
+    marginBottom: 16,
+  },
+  interestPill: {
+    backgroundColor: '#FAF5FF',
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: 20,
+    marginTop: 8,
+  },
+  interestPillText: {
+    color: '#9333EA',
+    fontSize: 14,
+    fontWeight: '500',
   },
   errorBanner: {
     flexDirection: 'row',

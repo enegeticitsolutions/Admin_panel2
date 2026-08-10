@@ -1853,6 +1853,8 @@ model Volunteer {
   latitude           Float?
   longitude          Float?
   interests          String[]            @default([])
+  availability       String[]            @default([])
+  languages          String[]            @default([])
   totalCreditHours   Float               @default(0)   // accumulated hours volunteered
   totalCreditPoints  Float               @default(0)   // credit points earned
   monthlyGoalHours   Float               @default(10)
