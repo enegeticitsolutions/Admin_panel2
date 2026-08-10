@@ -145,7 +145,10 @@ export const getLinkedVolunteers = async (beneficiaryId: string) => {
       distance: distanceStr, 
       location: v.city ? `${v.city}${v.state ? `, ${v.state}` : ''}` : (v.address || 'Nearby'),
       hours: v.totalCreditHours.toFixed(1),
-      bio: v.previousExperience || v.whyJoin || 'Volunteer passionate about community support.'
+      bio: v.previousExperience || v.whyJoin || 'Volunteer passionate about community support.',
+      availability: (v as any).availability || [],
+      languages: (v as any).languages || [],
+      interests: (v as any).interests || []
     };
   });
 };

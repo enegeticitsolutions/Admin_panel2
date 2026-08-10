@@ -28,6 +28,8 @@ export const volunteerProfileUpdateSchema = Joi.object({
   latitude: Joi.number().optional().allow(null),
   longitude: Joi.number().optional().allow(null),
   interests: Joi.array().items(Joi.string()).optional(),
+  availability: Joi.array().items(Joi.string()).optional(),
+  languages: Joi.array().items(Joi.string()).optional(),
   profilePhoto: Joi.string().optional().allow(null, ''),
 });
 
