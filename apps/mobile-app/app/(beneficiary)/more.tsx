@@ -76,18 +76,21 @@ export default function MoreOptionsScreen() {
             iconBg: '#ECFDF5',
             onPress: () => router.push('/(beneficiary)/medical-records'),
         },
+        /*
         {
             icon: <FontAwesome5 name="stethoscope" size={16} color="#EF4444" />,
             label: 'Appointments',
             iconBg: '#FEF2F2',
             onPress: () => { },
         },
+        */
         {
             icon: <Feather name="package" size={18} color="#F97316" />,
             label: 'Package Utilization',
             iconBg: '#FFF3EB',
             onPress: () => router.push('/package-utilization'),
         },
+        /*
         {
             icon: <Feather name="shopping-cart" size={18} color="#F59E0B" />,
             label: 'Pharmacy',
@@ -106,6 +109,7 @@ export default function MoreOptionsScreen() {
             iconBg: '#ECFEFF',
             onPress: () => { },
         },
+        */
         {
             icon: <AntDesign name="heart" size={16} color="#EC4899" />,
             label: 'Saathi Network',
