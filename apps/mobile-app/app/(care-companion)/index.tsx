@@ -8,6 +8,7 @@ import { API_URL } from '@/constants/api';
 
 import { useFonts, Poppins_400Regular, Poppins_500Medium, Poppins_600SemiBold, Poppins_700Bold } from '@expo-google-fonts/poppins';
 import { CompanionBottomNav } from '../../components/care-companion/CompanionBottomNav';
+import { UpcomingCelebrationsCard } from '../../components/care-companion/UpcomingCelebrationsCard';
 import NotificationBell from '@/components/shared/NotificationBell';
 import { useExitOnBack } from '@/hooks/useExitOnBack';
 import { useNavigationStack } from '@/contexts/NavigationStackContext';
@@ -280,29 +281,8 @@ export default function DashboardScreen() {
                         </View>
                     </View>
 
-                    {/* 5. DYNAMIC CELEBRATIONS ARRAY MAPPING */}
-                    <View style={styles.card}>
-                        <View style={styles.celebrationHeader}>
-                            <MaterialCommunityIcons name="cake-variant-outline" size={24} color={DEEP_ORANGE} />
-                            <Text style={styles.celebrationTitle}>Upcoming Celebrations</Text>
-                        </View>
-
-                        {/* Loops through whatever the backend sends! */}
-                        {dashboardData.celebrations.map((celebration: any, index: number) => {
-                            const isLast = index === dashboardData.celebrations.length - 1;
-                            return (
-                                <View key={celebration.id} style={[styles.celebrationRow, isLast && { marginBottom: 0 }]}>
-                                    <View style={styles.celebrationInfo}>
-                                        <Text style={styles.celebrationName}>{celebration.name}</Text>
-                                        <Text style={styles.celebrationType}>{celebration.type}</Text>
-                                    </View>
-                                    <View style={styles.dateBadge}>
-                                        <Text style={styles.dateBadgeText}>{celebration.date}</Text>
-                                    </View>
-                                </View>
-                            );
-                        })}
-                    </View>
+                    {/* 5. UPCOMING CELEBRATIONS CARD */}
+                    <UpcomingCelebrationsCard celebrations={dashboardData?.celebrations} />
 
                     <View style={{ height: 100 }} />
                 </View>
@@ -412,14 +392,4 @@ const styles = StyleSheet.create({
         shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.02, shadowRadius: 3, elevation: 1,
     },
     actionText: { fontFamily: 'Poppins_500Medium', color: '#374151', fontSize: 11.5, marginTop: 4, textAlign: 'center' },
-
-    // --- Upcoming Celebrations ---
-    celebrationHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
-    celebrationTitle: { fontFamily: 'Poppins_600SemiBold', fontSize: 16, color: '#111827', marginLeft: 8 },
-    celebrationRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-    celebrationInfo: { flex: 1 },
-    celebrationName: { fontFamily: 'Poppins_600SemiBold', fontSize: 15, color: '#111827' },
-    celebrationType: { fontFamily: 'Poppins_400Regular', fontSize: 13, color: '#6B7280' },
-    dateBadge: { borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 16, paddingHorizontal: 12, paddingVertical: 4 },
-    dateBadgeText: { fontFamily: 'Poppins_500Medium', fontSize: 12, color: '#374151' },
 });
