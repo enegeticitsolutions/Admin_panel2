@@ -3,6 +3,7 @@ import rateLimit from 'express-rate-limit';
 import { validate, authenticate } from '../shared/deps';
 import { sendOtpSchema, verifyOtpSchema, checkLocationSchema, registerPasswordSchema, loginPasswordSchema } from '../../schemas/auth';
 import * as authService from '../../services/auth/auth_service';
+import { sendEmailVerificationOtp, verifyEmailOtp } from '../../services/auth/email_verification_service';
 import { asyncHandler } from '../../utils/asyncHandler';
 import { ApiResponse } from '../../utils/ApiResponse';
 
@@ -57,6 +58,32 @@ router.post('/login-password', loginLimiter as unknown as RequestHandler, valida
 router.post('/change-password', authenticate, asyncHandler(async (req: Request, res: Response) => {
   const result = await authService.changePassword((req as any).userId, req.body);
   res.json(new ApiResponse(200, result, 'Password changed successfully'));
+}));
+
+// POST /api/auth/send-email-otp
+router.post('/send-email-otp', asyncHandler(async (req: Request, res: Response) => {
+  const { email } = req.body;
+  const result = await sendEmailVerificationOtp(email);
+  res.json(new ApiResponse(200, result, result.message));
+}));
+
+// POST /api/auth/verify-email-otp
+router.post('/verify-email-otp', asyncHandler(async (req: Request, res: Response) => {
+  const { email, otp } = req.body;
+  const authHeader = req.headers.authorization;
+  let userId: string | undefined;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    try {
+      const token = authHeader.split(' ')[1];
+      const jwt = require('jsonwebtoken');
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
+      userId = decoded.userId || decoded.id;
+    } catch (e) {
+      // Ignored if unauthenticated
+    }
+  }
+  const result = await verifyEmailOtp(email, otp, userId);
+  res.json(new ApiResponse(200, result, result.message));
 }));
 
 export default router;

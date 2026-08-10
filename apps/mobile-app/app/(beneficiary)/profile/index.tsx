@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Image, Platform, TextInput, Modal, useWindowDimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Image, Platform, TextInput, Modal, useWindowDimensions, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Feather, Ionicons, MaterialCommunityIcons, FontAwesome5, AntDesign } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -15,6 +15,7 @@ interface ContactInfo {
     phone: string;
     email: string;
     address: string;
+    isEmailVerified?: boolean;
 }
 
 interface ProfileData {
@@ -40,16 +41,17 @@ export default function ProfileScreen() {
     const logoutWithConfirm = useLogoutWithConfirm();
     const [loading, setLoading] = useState(true);
     const [profile, setProfile] = useState<ProfileData>({
-        name: 'Margaret Williams',
-        age: 71,
-        gender: 'Female',
+        name: 'Beneficiary',
+        age: 70,
+        gender: 'Not specified',
         bloodGroup: 'A+',
-        allergiesCount: 2,
-        conditionsCount: 2,
+        allergiesCount: 0,
+        conditionsCount: 0,
         contact: {
-            phone: '+1 (555) 987-6543',
-            email: 'margaret.williams@email.com',
-            address: '123 Maple Street, San Francisco, CA 94102'
+            phone: 'Not provided',
+            email: 'Not provided',
+            address: 'Not provided',
+            isEmailVerified: false,
         }
     });
 
@@ -61,6 +63,15 @@ export default function ProfileScreen() {
     const [editAddress, setEditAddress] = useState('');
     const [editLocation, setEditLocation] = useState({});
     const [saving, setSaving] = useState(false);
+
+    // Email Verification Modal States
+    const [emailVerifyModalVisible, setEmailVerifyModalVisible] = useState(false);
+    const [verifyEmailInput, setVerifyEmailInput] = useState('');
+    const [otpInput, setOtpInput] = useState('');
+    const [otpSent, setOtpSent] = useState(false);
+    const [sendingOtp, setSendingOtp] = useState(false);
+    const [verifyingOtp, setVerifyingOtp] = useState(false);
+    const [emailVerifyStatus, setEmailVerifyStatus] = useState({ message: '', isError: false });
 
     useEffect(() => {
         fetchProfile();
@@ -99,19 +110,22 @@ export default function ProfileScreen() {
             const result = await response.json();
             if (result.success && result.data) {
                 const b = result.data;
-                const formattedGender = b.gender ? b.gender.charAt(0).toUpperCase() + b.gender.slice(1) : 'Female';
+                const formattedGender = b.gender ? b.gender.charAt(0).toUpperCase() + b.gender.slice(1) : 'Not specified';
+                const fetchedEmail = b.user?.email || b.email;
+                const isEmailPlaceholder = !fetchedEmail || fetchedEmail.includes('margaret.williams') || fetchedEmail.includes('example.com');
 
                 setProfile({
-                    name: b.name || b.user?.name || 'Margaret Williams',
-                    age: b.age || 71,
+                    name: b.name || b.user?.name || 'Beneficiary',
+                    age: b.age || 70,
                     gender: formattedGender,
                     bloodGroup: mapFromEnum(b.bloodGroup),
                     allergiesCount: b.allergies ? b.allergies.length : 0,
                     conditionsCount: b.conditions ? b.conditions.length : 0,
                     contact: {
-                        phone: b.user?.phone || b.phone || '+1 (555) 987-6543',
-                        email: b.user?.email || b.email || 'margaret.williams@email.com',
-                        address: b.address || '123 Maple Street, San Francisco, CA 94102'
+                        phone: b.user?.phone || b.phone || 'Not provided',
+                        email: isEmailPlaceholder ? 'Not provided' : fetchedEmail,
+                        address: b.address || 'Not provided',
+                        isEmailVerified: b.user?.isVerified || false,
                     }
                 });
             }
@@ -124,9 +138,9 @@ export default function ProfileScreen() {
 
     const handleOpenEdit = () => {
         setEditName(profile.name);
-        setEditPhone(profile.contact.phone);
-        setEditEmail(profile.contact.email);
-        setEditAddress(profile.contact.address);
+        setEditPhone(profile.contact.phone === 'Not provided' ? '' : profile.contact.phone);
+        setEditEmail(profile.contact.email === 'Not provided' ? '' : profile.contact.email);
+        setEditAddress(profile.contact.address === 'Not provided' ? '' : profile.contact.address);
         setEditModalVisible(true);
     };
 
@@ -145,14 +159,12 @@ export default function ProfileScreen() {
                     body: JSON.stringify({
                         name: editName,
                         phone: editPhone,
-                        email: editEmail,
                         address: editAddress
                     })
                 });
 
                 const result = await response.json();
                 if (result.success) {
-                    // Update local storage name
                     const userDataStr = await AsyncStorage.getItem('userData');
                     if (userDataStr) {
                         const userData = JSON.parse(userDataStr);
@@ -166,9 +178,9 @@ export default function ProfileScreen() {
                 ...prev,
                 name: editName,
                 contact: {
-                    phone: editPhone,
-                    email: editEmail,
-                    address: editAddress
+                    ...prev.contact,
+                    phone: editPhone || 'Not provided',
+                    address: editAddress || 'Not provided'
                 }
             }));
             setEditModalVisible(false);
@@ -176,6 +188,99 @@ export default function ProfileScreen() {
             console.error('Save Profile Error:', e);
         } finally {
             setSaving(false);
+        }
+    };
+
+    // Open Email Verify Modal
+    const handleOpenEmailVerifyModal = () => {
+        const currentEmail = profile.contact.email === 'Not provided' ? '' : profile.contact.email;
+        setVerifyEmailInput(currentEmail);
+        setOtpInput('');
+        setOtpSent(false);
+        setEmailVerifyStatus({ message: '', isError: false });
+        setEmailVerifyModalVisible(true);
+    };
+
+    // Send Email OTP Handler
+    const handleSendEmailOtp = async () => {
+        if (!verifyEmailInput || !verifyEmailInput.includes('@')) {
+            setEmailVerifyStatus({ message: 'Please enter a valid email address', isError: true });
+            return;
+        }
+
+        setSendingOtp(true);
+        setEmailVerifyStatus({ message: '', isError: false });
+
+        try {
+            const token = await AsyncStorage.getItem('userToken');
+            const res = await fetch(`${API_URL}/auth/send-email-otp`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { Authorization: `Bearer ${token}` } : {})
+                },
+                body: JSON.stringify({ email: verifyEmailInput.trim() })
+            });
+
+            const json = await res.json();
+            if (!res.ok || !json.success) {
+                throw new Error(json.message || 'Failed to send OTP code');
+            }
+
+            setOtpSent(true);
+            setEmailVerifyStatus({ message: json.message || 'Verification code sent to your email!', isError: false });
+        } catch (err: any) {
+            setEmailVerifyStatus({ message: err.message || 'Failed to send verification code', isError: true });
+        } finally {
+            setSendingOtp(false);
+        }
+    };
+
+    // Verify OTP Handler
+    const handleVerifyEmailOtp = async () => {
+        if (!otpInput || otpInput.trim().length < 4) {
+            setEmailVerifyStatus({ message: 'Please enter the verification code sent to your email', isError: true });
+            return;
+        }
+
+        setVerifyingOtp(true);
+        setEmailVerifyStatus({ message: '', isError: false });
+
+        try {
+            const token = await AsyncStorage.getItem('userToken');
+            const res = await fetch(`${API_URL}/auth/verify-email-otp`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { Authorization: `Bearer ${token}` } : {})
+                },
+                body: JSON.stringify({
+                    email: verifyEmailInput.trim(),
+                    otp: otpInput.trim()
+                })
+            });
+
+            const json = await res.json();
+            if (!res.ok || !json.success) {
+                throw new Error(json.message || 'Invalid verification code');
+            }
+
+            // Success! Update local profile state
+            setProfile(prev => ({
+                ...prev,
+                contact: {
+                    ...prev.contact,
+                    email: verifyEmailInput.trim(),
+                    isEmailVerified: true
+                }
+            }));
+
+            Alert.alert('Email Verified', 'Your email address has been verified successfully!');
+            setEmailVerifyModalVisible(false);
+        } catch (err: any) {
+            setEmailVerifyStatus({ message: err.message || 'Failed to verify code', isError: true });
+        } finally {
+            setVerifyingOtp(false);
         }
     };
 
@@ -192,15 +297,13 @@ export default function ProfileScreen() {
         <View style={{ flex: 1, backgroundColor: '#FFF0E6' }}>
             <SafeAreaView style={{ flex: 0, backgroundColor: '#FE6700' }} edges={['top']} />
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-                {/* Gradient Header Banner (Figma Match) */}
+                {/* Header Banner */}
                 <View style={styles.gradientHeader}>
-                    {/* Top Action Row */}
                     <View style={[styles.topRow, responsiveContentStyle]}>
                         <TouchableOpacity onPress={() => safeBack()} style={styles.headerBtn} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
                             <Feather name="arrow-left" size={22} color="#FFFFFF" />
                         </TouchableOpacity>
                         <Text style={styles.headerTitle}>Profile</Text>
-                        {/* Preserved developer feature */}
                         <TouchableOpacity onPress={handleOpenEdit} style={styles.headerBtn} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
                             <Feather name="edit-2" size={18} color="#FFFFFF" />
                         </TouchableOpacity>
@@ -218,47 +321,47 @@ export default function ProfileScreen() {
                                 <Feather name="edit-2" size={14} color="#FE6700" />
                             </TouchableOpacity>
                         </View>
-                        <Text style={styles.profileName}>{profile.name}</Text>
-                        <Text style={styles.profileAge}>{profile.age} years old • {profile.gender}</Text>
+
+                        <Text style={styles.beneficiaryName}>{profile.name}</Text>
+                        <Text style={styles.subDetailText}>
+                            {profile.age} years old • {profile.gender}
+                        </Text>
                     </View>
                 </View>
 
-                {/* Overlapping Stats Deck */}
-                <View style={[styles.statsDeck, responsiveContentStyle]}>
-                    {/* Stat Card 1: Blood Group */}
-                    <View style={styles.statCard}>
-                        <View style={[styles.statIconWrap, { backgroundColor: '#FEF2F2' }]}>
-                            <AntDesign name="heart" size={18} color="#EF4444" />
+                {/* Main Body Section */}
+                <View style={[styles.bodyContainer, responsiveContentStyle]}>
+                    {/* Stat Cards Row */}
+                    <View style={styles.statCardsRow}>
+                        <View style={styles.statCard}>
+                            <View style={[styles.statIconWrap, { backgroundColor: '#FEF2F2' }]}>
+                                <Ionicons name="heart" size={18} color="#EF4444" />
+                            </View>
+                            <Text style={styles.statLabel}>Blood Type</Text>
+                            <Text style={styles.statValue}>{profile.bloodGroup}</Text>
                         </View>
-                        <Text style={styles.statLabel}>Blood Type</Text>
-                        <Text style={styles.statValue}>{profile.bloodGroup}</Text>
+
+                        <View style={styles.statCard}>
+                            <View style={[styles.statIconWrap, { backgroundColor: '#FFF7ED' }]}>
+                                <MaterialCommunityIcons name="alert-circle" size={20} color="#F97316" />
+                            </View>
+                            <Text style={styles.statLabel}>Allergies</Text>
+                            <Text style={styles.statValue}>{profile.allergiesCount}</Text>
+                        </View>
+
+                        <View style={styles.statCard}>
+                            <View style={[styles.statIconWrap, { backgroundColor: '#F3E8FF' }]}>
+                                <MaterialCommunityIcons name="heart-pulse" size={20} color="#A855F7" />
+                            </View>
+                            <Text style={styles.statLabel}>Conditions</Text>
+                            <Text style={styles.statValue}>{profile.conditionsCount}</Text>
+                        </View>
                     </View>
 
-                    {/* Stat Card 2: Allergies */}
-                    <View style={styles.statCard}>
-                        <View style={[styles.statIconWrap, { backgroundColor: '#FFF7ED' }]}>
-                            <Feather name="alert-circle" size={18} color="#F97316" />
-                        </View>
-                        <Text style={styles.statLabel}>Allergies</Text>
-                        <Text style={styles.statValue}>{profile.allergiesCount}</Text>
-                    </View>
-
-                    {/* Stat Card 3: Conditions */}
-                    <View style={styles.statCard}>
-                        <View style={[styles.statIconWrap, { backgroundColor: '#FDF2F8' }]}>
-                            <Ionicons name="heart-outline" size={20} color="#A855F7" />
-                        </View>
-                        <Text style={styles.statLabel}>Conditions</Text>
-                        <Text style={styles.statValue}>{profile.conditionsCount}</Text>
-                    </View>
-                </View>
-
-                <View style={[styles.innerContent, responsiveContentStyle]}>
                     {/* Contact Information Panel */}
                     <View style={styles.panel}>
                         <View style={styles.panelHeaderRow}>
                             <Text style={styles.panelTitle}>Contact Information</Text>
-                            {/* Preserved developer feature */}
                             <TouchableOpacity onPress={handleOpenEdit}>
                                 <Text style={styles.editLink}>Edit</Text>
                             </TouchableOpacity>
@@ -274,8 +377,25 @@ export default function ProfileScreen() {
 
                         <View style={styles.contactRow}>
                             <Feather name="mail" size={18} color="#6B7280" style={styles.contactIcon} />
-                            <View style={styles.contactTextCol}>
-                                <Text style={styles.contactLabel}>Email</Text>
+                            <View style={[styles.contactTextCol, { flex: 1 }]}>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                                    <Text style={styles.contactLabel}>Email</Text>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                                        {profile.contact.isEmailVerified && (
+                                            <View style={styles.verifiedBadge}>
+                                                <Ionicons name="checkmark-circle" size={14} color="#16A34A" />
+                                                <Text style={styles.verifiedBadgeText}>Verified</Text>
+                                            </View>
+                                        )}
+                                        <TouchableOpacity onPress={handleOpenEmailVerifyModal} activeOpacity={0.7}>
+                                            <Text style={styles.verifyActionText}>
+                                                {profile.contact.email && profile.contact.email !== 'Not provided'
+                                                    ? 'Change Email'
+                                                    : 'Verify Email'}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    </View>
+                                </View>
                                 <Text style={styles.contactValue}>{profile.contact.email}</Text>
                             </View>
                         </View>
@@ -289,9 +409,8 @@ export default function ProfileScreen() {
                         </View>
                     </View>
 
-                    {/* Sub-Pages Navigation panel */}
+                    {/* Sub-Pages Navigation Panel */}
                     <View style={styles.panel}>
-                        {/* Health Information */}
                         <TouchableOpacity
                             style={styles.navRow}
                             onPress={() => push('/(beneficiary)/profile/health-info')}
@@ -309,7 +428,6 @@ export default function ProfileScreen() {
 
                         <View style={styles.navDivider} />
 
-                        {/* Emergency Contacts */}
                         <TouchableOpacity
                             style={styles.navRow}
                             onPress={() => push('/(beneficiary)/profile/emergency-contacts')}
@@ -320,61 +438,37 @@ export default function ProfileScreen() {
                             </View>
                             <View style={styles.navTextCol}>
                                 <Text style={styles.navTitle}>Emergency Contacts</Text>
-                                <Text style={styles.navDesc}>2 contacts</Text>
+                                <Text style={styles.navDesc}>Family, doctor, emergency contacts</Text>
                             </View>
                             <Feather name="chevron-right" size={18} color="#9CA3AF" />
                         </TouchableOpacity>
 
                         <View style={styles.navDivider} />
 
-                        {/* Notifications */}
-                        <TouchableOpacity
-                            style={styles.navRow}
-                            onPress={() => push('/(beneficiary)/profile/notifications')}
-                            activeOpacity={0.6}
-                        >
-                            <View style={[styles.navIconWrap, { backgroundColor: '#EFF6FF' }]}>
-                                <Ionicons name="notifications-outline" size={20} color="#3B82F6" />
-                            </View>
-                            <View style={styles.navTextCol}>
-                                <Text style={styles.navTitle}>Notifications</Text>
-                                <Text style={styles.navDesc}>Manage your preferences</Text>
-                            </View>
-                            <Feather name="chevron-right" size={18} color="#9CA3AF" />
-                        </TouchableOpacity>
-
-                        <View style={styles.navDivider} />
-
-                        {/* Settings */}
-                        {/* Settings */}
                         <TouchableOpacity
                             style={styles.navRow}
                             onPress={() => push('/(beneficiary)/profile/settings')}
                             activeOpacity={0.6}
                         >
                             <View style={[styles.navIconWrap, { backgroundColor: '#F3F4F6' }]}>
-                                <Feather name="settings" size={18} color="#6B7280" />
+                                <Feather name="settings" size={20} color="#4B5563" />
                             </View>
                             <View style={styles.navTextCol}>
                                 <Text style={styles.navTitle}>Settings</Text>
-                                <Text style={styles.navDesc}>Accessibility & preferences</Text>
+                                <Text style={styles.navDesc}>About app, privacy, terms</Text>
                             </View>
                             <Feather name="chevron-right" size={18} color="#9CA3AF" />
                         </TouchableOpacity>
                     </View>
 
-                    {/* Logout Trigger */}
-                    <TouchableOpacity
-                        style={styles.logoutCard}
-                        onPress={logoutWithConfirm}
-                        activeOpacity={0.8}
-                    >
-                        <Feather name="log-out" size={18} color="#DC2626" style={{ marginRight: 10 }} />
+                    {/* Logout Button */}
+                    <TouchableOpacity style={styles.logoutBtn} onPress={logoutWithConfirm} activeOpacity={0.75}>
+                        <Feather name="log-out" size={18} color="#DC2626" />
                         <Text style={styles.logoutText}>Logout</Text>
                     </TouchableOpacity>
-                </View>
 
-                <View style={{ height: Platform.OS === 'ios' ? 140 : 100 }} />
+                    <View style={{ height: 60 }} />
+                </View>
             </ScrollView>
 
             {/* Quick Contact Editor Modal */}
@@ -394,7 +488,7 @@ export default function ProfileScreen() {
                                 style={styles.textInput}
                                 value={editName}
                                 onChangeText={setEditName}
-                                placeholder="Margaret Williams"
+                                placeholder="Beneficiary Name"
                             />
 
                             <Text style={styles.inputLabel}>Phone Number</Text>
@@ -403,17 +497,15 @@ export default function ProfileScreen() {
                                 value={editPhone}
                                 onChangeText={setEditPhone}
                                 keyboardType="phone-pad"
-                                placeholder="+1 (555) 987-6543"
+                                placeholder="Phone number"
                             />
 
                             <Text style={styles.inputLabel}>Email Address</Text>
                             <TextInput
-                                style={styles.textInput}
-                                value={editEmail}
-                                onChangeText={setEditEmail}
-                                keyboardType="email-address"
-                                placeholder="margaret.williams@email.com"
-                                autoCapitalize="none"
+                                style={[styles.textInput, styles.disabledInput]}
+                                value={profile.contact.email}
+                                editable={false}
+                                placeholder="Email Address"
                             />
 
                             <View style={{ marginBottom: 15 }}>
@@ -446,297 +538,416 @@ export default function ProfileScreen() {
                     </View>
                 </View>
             </Modal>
+
+            {/* Email Verification Modal */}
+            <Modal visible={emailVerifyModalVisible} animationType="fade" transparent={true}>
+                <View style={styles.modalBackdrop}>
+                    <View style={[styles.modalCard, responsiveContentStyle]}>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>Verify Email Address</Text>
+                            <TouchableOpacity onPress={() => setEmailVerifyModalVisible(false)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                                <Feather name="x" size={22} color="#4B5563" />
+                            </TouchableOpacity>
+                        </View>
+
+                        <Text style={{ fontFamily: 'Poppins-Regular', fontSize: 13, color: '#4B5563', marginBottom: 15 }}>
+                            We will send a 6-digit verification code to your email address to confirm ownership.
+                        </Text>
+
+                        <Text style={styles.inputLabel}>Email Address</Text>
+                        <TextInput
+                            style={styles.textInput}
+                            value={verifyEmailInput}
+                            onChangeText={setVerifyEmailInput}
+                            placeholder="Enter your email address"
+                            keyboardType="email-address"
+                            autoCapitalize="none"
+                            editable={!otpSent}
+                        />
+
+                        {emailVerifyStatus.message ? (
+                            <Text style={[styles.statusText, emailVerifyStatus.isError ? styles.errorStatus : styles.successStatus]}>
+                                {emailVerifyStatus.message}
+                            </Text>
+                        ) : null}
+
+                        {!otpSent ? (
+                            <TouchableOpacity
+                                style={[styles.saveBtn, sendingOtp && { opacity: 0.7 }]}
+                                onPress={handleSendEmailOtp}
+                                disabled={sendingOtp}
+                                activeOpacity={0.8}
+                            >
+                                {sendingOtp ? (
+                                    <ActivityIndicator size="small" color="#FFFFFF" />
+                                ) : (
+                                    <Text style={styles.saveBtnText}>Send Verification Code</Text>
+                                )}
+                            </TouchableOpacity>
+                        ) : (
+                            <>
+                                <Text style={[styles.inputLabel, { marginTop: 10 }]}>Enter 6-Digit Verification Code</Text>
+                                <TextInput
+                                    style={[styles.textInput, styles.otpInputStyle]}
+                                    value={otpInput}
+                                    onChangeText={setOtpInput}
+                                    placeholder="• • • • • •"
+                                    keyboardType="number-pad"
+                                    maxLength={6}
+                                    autoFocus
+                                />
+
+                                <TouchableOpacity
+                                    style={[styles.saveBtn, verifyingOtp && { opacity: 0.7 }]}
+                                    onPress={handleVerifyEmailOtp}
+                                    disabled={verifyingOtp}
+                                    activeOpacity={0.8}
+                                >
+                                    {verifyingOtp ? (
+                                        <ActivityIndicator size="small" color="#FFFFFF" />
+                                    ) : (
+                                        <Text style={styles.saveBtnText}>Verify & Save Email</Text>
+                                    )}
+                                </TouchableOpacity>
+
+                                <TouchableOpacity
+                                    style={{ marginTop: 12, alignItems: 'center' }}
+                                    onPress={handleSendEmailOtp}
+                                    disabled={sendingOtp}
+                                >
+                                    <Text style={{ fontFamily: 'Poppins-Medium', fontSize: 13, color: '#FE6700' }}>
+                                        Resend Code
+                                    </Text>
+                                </TouchableOpacity>
+                            </>
+                        )}
+                    </View>
+                </View>
+            </Modal>
         </View>
     );
 }
 
 const styles = StyleSheet.create({
-    safeArea: {
-        flex: 1,
-        backgroundColor: '#FE6700', // Matches the header visually
-    },
-    scrollContent: {
-        flexGrow: 1,
-        backgroundColor: '#FFF0E6', // Figma Peach background for the main body
-    },
-    loadingWrap: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: '#FFF0E6',
-    },
-    loadingText: {
-        marginTop: 12,
-        color: '#4B5563',
-        fontSize: 15,
-        fontFamily: 'Poppins-Medium',
-    },
+    loadingWrap: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FFF0E6' },
+    loadingText: { marginTop: 12, fontFamily: 'Poppins-Regular', fontSize: 14, color: '#4B5563' },
+    scrollContent: { flexGrow: 1, backgroundColor: '#FFF0E6' },
+
     gradientHeader: {
-        backgroundColor: '#FE6700', // Figma Orange
-        paddingHorizontal: 0,
-        paddingTop: Platform.OS === 'ios' ? 10 : 20,
-        paddingBottom: 60, // Extra padding to allow stats cards to overlap
-        borderBottomLeftRadius: 40,
-        borderBottomRightRadius: 40,
+        backgroundColor: '#FE6700',
+        paddingTop: Platform.OS === 'ios' ? 12 : 16,
+        paddingBottom: 24,
+        borderBottomLeftRadius: 28,
+        borderBottomRightRadius: 28,
     },
     topRow: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 20,
+        justifyContent: 'space-between',
+        paddingHorizontal: 0,
+        marginBottom: 16,
     },
     headerBtn: {
         width: 36,
         height: 36,
+        borderRadius: 18,
+        backgroundColor: 'rgba(255, 255, 255, 0.2)',
         justifyContent: 'center',
         alignItems: 'center',
     },
     headerTitle: {
+        fontFamily: 'Poppins-SemiBold',
         fontSize: 18,
         color: '#FFFFFF',
-        fontFamily: 'Poppins-Medium',
     },
+
     avatarContainer: {
         alignItems: 'center',
     },
     avatarFrame: {
         position: 'relative',
-        marginBottom: 16,
+        marginBottom: 12,
     },
     largeAvatar: {
-        width: 88,
-        height: 88,
-        borderRadius: 44,
+        width: 90,
+        height: 90,
+        borderRadius: 45,
         borderWidth: 3,
         borderColor: '#FFFFFF',
     },
     pencilBadge: {
         position: 'absolute',
-        bottom: 0,
-        right: 0,
+        bottom: 2,
+        right: 2,
         backgroundColor: '#FFFFFF',
         width: 28,
         height: 28,
         borderRadius: 14,
         justifyContent: 'center',
         alignItems: 'center',
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
         elevation: 3,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 3,
     },
-    profileName: {
+    beneficiaryName: {
+        fontFamily: 'Poppins-Bold',
         fontSize: 22,
         color: '#FFFFFF',
-        fontFamily: 'Poppins-Medium',
-        marginBottom: 2,
-    },
-    profileAge: {
-        fontSize: 14,
-        color: 'rgba(255, 255, 255, 0.9)',
-        fontFamily: 'Poppins-Regular',
-    },
-    statsDeck: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        paddingHorizontal: 20,
-        marginTop: -35, // This causes the overlap seen in Figma
-        marginBottom: 20,
-    },
-    statCard: {
-        backgroundColor: '#FFFFFF',
-        width: '31%', // Slight adjustment for even spacing
-        borderRadius: 16,
-        paddingVertical: 16,
-        paddingHorizontal: 8,
-        alignItems: 'center',
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.04,
-        shadowRadius: 10,
-        elevation: 4,
-        borderWidth: 1,
-        borderColor: '#F3F4F6',
-    },
-    statIconWrap: {
-        width: 40,
-        height: 40,
-        borderRadius: 12,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: 10,
-    },
-    statLabel: {
-        fontSize: 12,
-        color: '#6B7280',
-        fontFamily: 'Poppins-Regular',
         marginBottom: 4,
     },
-    statValue: {
-        fontSize: 15,
-        color: '#111827',
-        fontFamily: 'Poppins-Medium',
+    subDetailText: {
+        fontFamily: 'Poppins-Regular',
+        fontSize: 14,
+        color: 'rgba(255, 255, 255, 0.9)',
     },
-    innerContent: {
+
+    bodyContainer: {
         paddingHorizontal: 0,
+        marginTop: 18,
     },
-    panel: {
+    statCardsRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginBottom: 16,
+    },
+    statCard: {
+        flex: 1,
         backgroundColor: '#FFFFFF',
         borderRadius: 16,
-        padding: 20,
-        marginBottom: 20,
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.03,
-        shadowRadius: 8,
+        paddingVertical: 14,
+        paddingHorizontal: 8,
+        alignItems: 'center',
+        marginHorizontal: 4,
         elevation: 2,
-        borderWidth: 1,
-        borderColor: '#F3F4F6',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 4,
+    },
+    statIconWrap: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 6,
+    },
+    statLabel: {
+        fontFamily: 'Poppins-Regular',
+        fontSize: 11,
+        color: '#6B7280',
+        marginBottom: 2,
+    },
+    statValue: {
+        fontFamily: 'Poppins-Bold',
+        fontSize: 16,
+        color: '#111827',
+    },
+
+    panel: {
+        backgroundColor: '#FFFFFF',
+        borderRadius: 18,
+        padding: 18,
+        marginBottom: 16,
+        elevation: 2,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 4,
     },
     panelHeaderRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 20,
+        marginBottom: 14,
     },
     panelTitle: {
+        fontFamily: 'Poppins-SemiBold',
         fontSize: 16,
         color: '#111827',
-        fontFamily: 'Poppins-Medium',
     },
     editLink: {
+        fontFamily: 'Poppins-Medium',
         fontSize: 14,
         color: '#FE6700',
-        fontFamily: 'Poppins-Medium',
     },
+
     contactRow: {
         flexDirection: 'row',
-        alignItems: 'flex-start',
-        marginBottom: 20,
+        alignItems: 'center',
+        marginBottom: 14,
     },
     contactIcon: {
-        marginRight: 16,
-        marginTop: 2,
+        marginRight: 14,
     },
     contactTextCol: {
         flex: 1,
     },
     contactLabel: {
-        fontSize: 12,
-        color: '#9CA3AF',
         fontFamily: 'Poppins-Regular',
-        marginBottom: 2,
+        fontSize: 12,
+        color: '#6B7280',
     },
     contactValue: {
-        fontSize: 15,
-        color: '#374151',
-        fontFamily: 'Poppins-Regular',
-        lineHeight: 22,
+        fontFamily: 'Poppins-Medium',
+        fontSize: 14,
+        color: '#111827',
+        marginTop: 2,
     },
+    verifyActionText: {
+        fontFamily: 'Poppins-SemiBold',
+        fontSize: 12,
+        color: '#FE6700',
+        textDecorationLine: 'underline',
+    },
+    verifiedBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#DCFCE7',
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        borderRadius: 10,
+    },
+    verifiedBadgeText: {
+        fontFamily: 'Poppins-Medium',
+        fontSize: 11,
+        color: '#16A34A',
+        marginLeft: 4,
+    },
+
     navRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingVertical: 12,
+        paddingVertical: 10,
     },
     navIconWrap: {
-        width: 40,
-        height: 40,
-        borderRadius: 12,
+        width: 38,
+        height: 38,
+        borderRadius: 19,
         justifyContent: 'center',
         alignItems: 'center',
-        marginRight: 16,
+        marginRight: 14,
     },
     navTextCol: {
         flex: 1,
     },
     navTitle: {
-        fontSize: 16,
-        color: '#111827',
         fontFamily: 'Poppins-Medium',
-        marginBottom: 2,
+        fontSize: 15,
+        color: '#111827',
     },
     navDesc: {
-        fontSize: 13,
-        color: '#6B7280',
         fontFamily: 'Poppins-Regular',
+        fontSize: 12,
+        color: '#6B7280',
+        marginTop: 2,
     },
     navDivider: {
         height: 1,
         backgroundColor: '#F3F4F6',
         marginVertical: 4,
     },
-    logoutCard: {
-        backgroundColor: '#FFFFFF',
-        borderRadius: 16,
-        paddingVertical: 16,
+
+    logoutBtn: {
         flexDirection: 'row',
-        justifyContent: 'center',
         alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#FEF2F2',
+        borderRadius: 14,
+        paddingVertical: 14,
+        marginTop: 8,
         borderWidth: 1,
         borderColor: '#FEE2E2',
     },
     logoutText: {
-        color: '#DC2626', // Deep red
-        fontSize: 16,
-        fontFamily: 'Poppins-Medium',
+        fontFamily: 'Poppins-SemiBold',
+        fontSize: 15,
+        color: '#DC2626',
+        marginLeft: 8,
     },
+
+    // Modal Styles
     modalBackdrop: {
         flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.4)',
-        justifyContent: 'flex-end',
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 16,
     },
     modalCard: {
         backgroundColor: '#FFFFFF',
-        borderTopLeftRadius: 24,
-        borderTopRightRadius: 24,
-        padding: 24,
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: -4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 12,
-        elevation: 8,
+        borderRadius: 20,
+        padding: 22,
+        elevation: 5,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 10,
     },
     modalHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 20,
+        marginBottom: 16,
     },
     modalTitle: {
-        fontSize: 18,
+        fontFamily: 'Poppins-SemiBold',
+        fontSize: 17,
         color: '#111827',
-        fontFamily: 'Poppins-Medium',
     },
     inputLabel: {
-        fontSize: 14,
-        color: '#4B5563',
         fontFamily: 'Poppins-Medium',
-        marginBottom: 8,
-        marginTop: 16,
+        fontSize: 13,
+        color: '#374151',
+        marginBottom: 6,
     },
     textInput: {
         borderWidth: 1,
-        borderColor: '#E5E7EB',
-        borderRadius: 12,
-        paddingHorizontal: 16,
-        paddingVertical: 14,
-        fontSize: 15,
+        borderColor: '#D1D5DB',
+        borderRadius: 10,
+        paddingHorizontal: 14,
+        paddingVertical: 10,
         fontFamily: 'Poppins-Regular',
-        backgroundColor: '#F9FAFB',
+        fontSize: 14,
         color: '#111827',
+        marginBottom: 16,
+    },
+    disabledInput: {
+        backgroundColor: '#F3F4F6',
+        color: '#6B7280',
+        borderColor: '#E5E7EB',
+    },
+    otpInputStyle: {
+        textAlign: 'center',
+        fontSize: 22,
+        letterSpacing: 6,
+        fontFamily: 'Poppins-Bold',
+        color: '#FE6700',
+    },
+    statusText: {
+        fontFamily: 'Poppins-Medium',
+        fontSize: 13,
+        marginBottom: 14,
+        textAlign: 'center',
+    },
+    errorStatus: {
+        color: '#EF4444',
+    },
+    successStatus: {
+        color: '#16A34A',
     },
     saveBtn: {
         backgroundColor: '#FE6700',
         borderRadius: 12,
-        paddingVertical: 16,
+        paddingVertical: 14,
         alignItems: 'center',
-        marginTop: 24,
-        marginBottom: Platform.OS === 'ios' ? 20 : 0, // Avoid bottom bar on iOS
+        marginTop: 6,
     },
     saveBtnText: {
+        fontFamily: 'Poppins-SemiBold',
+        fontSize: 15,
         color: '#FFFFFF',
-        fontSize: 16,
-        fontFamily: 'Poppins-Medium',
     },
 });

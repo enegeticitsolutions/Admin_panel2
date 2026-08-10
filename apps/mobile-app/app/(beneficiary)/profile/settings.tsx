@@ -1,11 +1,12 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Platform, useWindowDimensions, Linking } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Platform, useWindowDimensions, Linking, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { useSafeBack } from '@/hooks/useSafeBack';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigationStack } from '@/contexts/NavigationStackContext';
 import { useAndroidBackHandler } from '@/hooks/useAndroidBackHandler';
+import { LEGAL_CONFIG } from '@/constants/legal';
 
 export default function SettingsScreen() {
     const { width } = useWindowDimensions();
@@ -17,11 +18,28 @@ export default function SettingsScreen() {
     const safeBack = useSafeBack();
 
     const openPrivacyPolicy = () => {
-        Linking.openURL('https://maihoonna.in/#privacy').catch(err => console.log('Error opening privacy link:', err));
+        Linking.openURL(LEGAL_CONFIG.PRIVACY_POLICY_URL).catch(err => console.log('Error opening privacy link:', err));
     };
 
     const openTermsOfService = () => {
-        Linking.openURL('https://maihoonna.in/#terms').catch(err => console.log('Error opening terms link:', err));
+        Linking.openURL(LEGAL_CONFIG.TERMS_OF_SERVICE_URL).catch(err => console.log('Error opening terms link:', err));
+    };
+
+    const openHelpSupport = async () => {
+        const mailUrl = `mailto:${LEGAL_CONFIG.SUPPORT_EMAIL}?subject=MaiHoonNa%20App%20Support`;
+        const webUrl = LEGAL_CONFIG.WEBSITE_URL;
+        try {
+            const canOpen = await Linking.canOpenURL(mailUrl);
+            if (canOpen) {
+                await Linking.openURL(mailUrl);
+            } else {
+                await Linking.openURL(webUrl);
+            }
+        } catch (err) {
+            Linking.openURL(webUrl).catch(() => {
+                Alert.alert('Help & Support', `For support, please email us at ${LEGAL_CONFIG.SUPPORT_EMAIL}`);
+            });
+        }
     };
 
     return (
@@ -71,7 +89,7 @@ export default function SettingsScreen() {
 
                     <View style={styles.divider} />
 
-                    <TouchableOpacity style={styles.linkRow} activeOpacity={0.7} onPress={openPrivacyPolicy}>
+                    <TouchableOpacity style={styles.linkRow} activeOpacity={0.7} onPress={openHelpSupport}>
                         <Text style={styles.linkText}>Help & Support</Text>
                     </TouchableOpacity>
                 </View>
@@ -139,7 +157,7 @@ const styles = StyleSheet.create({
     },
     infoRow: {
         flexDirection: 'row',
-        justify: 'space-between',
+        justifyContent: 'space-between',
         alignItems: 'center',
     },
     infoLabel: {
