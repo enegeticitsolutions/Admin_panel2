@@ -17,6 +17,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { registerForPushNotifications } from '@/services/notifications';
 import { NavigationStackProvider, useNavigationStack } from '@/contexts/NavigationStackContext';
+import { CustomAlertProvider } from '@/contexts/CustomAlertContext';
 import * as Notifications from 'expo-notifications';
 import { triggerEmergencyAlert } from '@/services/emergencyTrigger';
 
@@ -227,12 +228,14 @@ export default function RootLayout() {
     <PersistQueryClientProvider client={queryClient} persistOptions={{ persister: asyncStoragePersister }}>
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
         <SafeAreaProvider>
-          <AuthProvider>
-            <NavigationStackProvider>
-              <RootNavigator />
-            </NavigationStackProvider>
-          </AuthProvider>
-          <StatusBar style="auto" />
+          <CustomAlertProvider>
+            <AuthProvider>
+              <NavigationStackProvider>
+                <RootNavigator />
+              </NavigationStackProvider>
+            </AuthProvider>
+            <StatusBar style="auto" />
+          </CustomAlertProvider>
         </SafeAreaProvider>
       </ThemeProvider>
     </PersistQueryClientProvider>
