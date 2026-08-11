@@ -99,3 +99,24 @@ All endpoints are located in `apps/api/app/api/subscriber/subscriptions.routes.t
 - **No schema pollution:** No separate `Addon` table needed; extended `Benefit` and existing `SubscriptionBenefitBalance`.
 - **Payment reuse:** Uses existing `createOrder` and `verifyPaymentSignature` methods from `razorpay_service.ts`.
 - **Audit trail:** All credit additions are tracked in `BenefitTransaction` with `ALLOCATED` type.
+
+---
+
+## 6. Push & In-App Notifications
+
+Upon successful completion of an add-on purchase (`POST /subscriber/subscriptions/addon/purchase`), dual notifications are dispatched asynchronously via `apps/api/app/services/notification_service.ts`:
+
+1. **Subscriber Notification** (The Buyer):
+   - **Recipient:** Purchasing Subscriber (`userId`)
+   - **Title:** `Add-on Purchased! 🎉`
+   - **Body:** `You successfully added 10 visits of General physician for Sourav.`
+   - **Type:** `payment_success`
+   - **Channel:** Both Expo Push (FCM / APNs) and In-App DB Notification (`notifications` table)
+
+2. **Beneficiary Notification** (The Recipient):
+   - **Recipient:** Linked Beneficiary (`beneficiary.userId`), if registered with a user account
+   - **Title:** `New Benefit Added! 🎁`
+   - **Body:** `10 visits of General physician has been added to your care package!`
+   - **Type:** `system`
+   - **Channel:** Both Expo Push (FCM / APNs) and In-App DB Notification (`notifications` table)
+

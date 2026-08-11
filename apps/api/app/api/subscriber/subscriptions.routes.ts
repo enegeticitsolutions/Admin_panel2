@@ -5,6 +5,7 @@ import { validateCoupon } from '../../services/coupon_service';
 import prisma from '../../core/database';
 import { createOrder, verifyPaymentSignature } from '../../services/razorpay_service';
 import { config } from '../../core/config';
+import { sendAddonPurchaseNotifications } from '../../services/notification_service';
 
 const router = Router();
 
@@ -414,6 +415,30 @@ router.get('/packages', async (req: Request, res: Response) => {
   }
 });
 
+function formatAddonUnitText(count: number, rawLabel?: string | null): string {
+  if (!rawLabel) return count === 1 ? '1 unit' : `${count} units`;
+  let clean = rawLabel.trim().replace(/^per\s+/i, '');
+  const lower = clean.toLowerCase();
+
+  if (lower === 'visit') clean = count === 1 ? 'visit' : 'visits';
+  else if (lower === 'hour' || lower === 'hr' || lower === 'hours' || lower === 'hrs') clean = count === 1 ? 'hour' : 'hours';
+  else if (lower === 'session') clean = count === 1 ? 'session' : 'sessions';
+  else if (lower === 'test') clean = count === 1 ? 'test' : 'tests';
+  else if (lower === 'trip') clean = count === 1 ? 'trip' : 'trips';
+  else if (lower === 'consult' || lower === 'consultation') clean = count === 1 ? 'consult' : 'consults';
+  else if (lower === 'order') clean = count === 1 ? 'order' : 'orders';
+  else if (lower === 'request') clean = count === 1 ? 'request' : 'requests';
+  else if (lower === 'day') clean = count === 1 ? 'day' : 'days';
+  else if (lower === 'month') clean = count === 1 ? 'month' : 'months';
+  else {
+    if (count !== 1 && !lower.endsWith('s')) {
+      clean = clean + 's';
+    }
+  }
+
+  return `${count} ${clean}`;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Helper: Calculate add-on pricing (same GST_RATE as main checkout)
 // ─────────────────────────────────────────────────────────────────────────────
@@ -429,9 +454,10 @@ async function calculateAddonPricing(benefitId: string, subscriptionId: string, 
   if (!benefit.isActive) throw new Error('This benefit is not currently active');
   if (!benefit.addonPrice) throw new Error('Add-on price is not configured for this benefit');
 
-  // 2. Verify subscription ownership
+  // 2. Verify subscription ownership and load beneficiary info for notification
   const subscription = await prisma.subscription.findFirst({
-    where: { id: subscriptionId, subscriberId: userId, isActive: true }
+    where: { id: subscriptionId, subscriberId: userId, isActive: true },
+    include: { beneficiary: { select: { id: true, name: true, userId: true } } }
   });
   if (!subscription) throw new Error('Active subscription not found or access denied');
 
@@ -648,6 +674,17 @@ router.post('/addon/purchase', authenticate, async (req: AuthRequest, res: Respo
       }
 
       return balance;
+    });
+
+    // 4. Dispatch Push Notifications & In-App DB Notifications (via Central Service)
+    sendAddonPurchaseNotifications({
+      subscriberId: userId,
+      beneficiaryUserId: p.subscription.beneficiary?.userId,
+      beneficiaryName: p.subscription.beneficiary?.name || 'care plan',
+      benefitName: p.benefit.name,
+      unitsText: formatAddonUnitText(p.includedUnits, p.benefit.unitLabel),
+      subscriptionId,
+      benefitId,
     });
 
     return res.json({
