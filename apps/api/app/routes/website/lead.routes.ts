@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import prisma from '../../core/database';
 import { createTransporter, isEmailConfigured, formatISTTimestamp } from './utils/mailer';
+import { ZohoCrmService } from '../../services/crm/zoho_crm_service';
 
 const router = Router();
 
@@ -97,6 +98,20 @@ router.post('/submit-form', async (req: Request, res: Response) => {
         console.error('⚠️ User confirmation email failed:', e.message)
       );
     }
+
+    // 4. Send Lead to Zoho CRM
+    const nameParts = name.trim().split(' ');
+    const firstName = nameParts.length > 1 ? nameParts[0] : '';
+    const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : name;
+
+    await ZohoCrmService.createLead({
+      firstName,
+      lastName,
+      email,
+      phone,
+      company: 'MaiHoonna Website Waitlist',
+      description: `Waitlist Signup | Pincode: ${pinCode}`
+    });
 
     return res.status(200).json({
       success: true,

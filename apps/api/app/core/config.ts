@@ -24,4 +24,10 @@ export const config = {
     checkIntervalMs: parseInt(process.env.NOTIFICATION_CHECK_INTERVAL_MS || '3600000', 10), // 1 hour
     maxCelebrationsDashboard: parseInt(process.env.MAX_CELEBRATIONS_DASHBOARD || '5', 10),
   },
+  zohoCrm: {
+    xnQsjsdp: process.env.ZOHO_CRM_XNQSJSDP || '',
+    xmIwtLD: process.env.ZOHO_CRM_XMIWTLD || '',
+    actionType: process.env.ZOHO_CRM_ACTION_TYPE || 'TGVhZHM=',
+    returnURL: process.env.ZOHO_CRM_RETURN_URL || 'https://maihoonna.com/thank-you',
+  },
 };
