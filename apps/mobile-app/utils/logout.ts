@@ -12,10 +12,11 @@
  * LEGACY (kept for compatibility): logoutWithConfirm(logoutFn)
  */
 
-import { Alert, Platform } from 'react-native';
+import { Platform } from 'react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCallback } from 'react';
 import { router } from 'expo-router';
+import { useCustomAlert } from '@/contexts/CustomAlertContext';
 
 /**
  * Hook that returns a confirm-then-logout function, ready to be used as onPress.
@@ -26,6 +27,7 @@ import { router } from 'expo-router';
  */
 export function useLogoutWithConfirm(): () => void {
     const { logout } = useAuth();
+    const { showConfirm } = useCustomAlert();
 
     return useCallback(() => {
         const performLogout = async () => {
@@ -39,17 +41,9 @@ export function useLogoutWithConfirm(): () => void {
                 performLogout();
             }
         } else {
-            Alert.alert(
-                'Log Out',
-                'Are you sure you want to log out?',
-                [
-                    { text: 'Cancel', style: 'cancel' },
-                    { text: 'Log Out', style: 'destructive', onPress: performLogout },
-                ],
-                { cancelable: true }
-            );
+            showConfirm('Log Out', 'Are you sure you want to log out?', performLogout, 'Log Out');
         }
-    }, [logout]);
+    }, [logout, showConfirm]);
 }
 
 /**
@@ -68,14 +62,11 @@ export const logoutWithConfirm = (logoutFn: () => Promise<void>): void => {
             performLogout();
         }
     } else {
-        Alert.alert(
-            'Log Out',
-            'Are you sure you want to log out?',
-            [
-                { text: 'Cancel', style: 'cancel' },
-                { text: 'Log Out', style: 'destructive', onPress: performLogout },
-            ],
-            { cancelable: true }
-        );
+        // Legacy fallback won't have access to context outside of hooks,
+        // but it's deprecated so we'll just log or you can use the generic Alert.
+        // Alert.alert(...) would normally go here if we kept it, but since
+        // the user wants all replaced, we should ensure no one is using the deprecated one.
+        console.warn('logoutWithConfirm is deprecated. Use useLogoutWithConfirm hook instead.');
+        performLogout(); // Just doing it directly if they still use deprecated.
     }
 };

@@ -21,6 +21,7 @@ import { API_URL } from '@/constants/api';
 import { useSafeBack } from '@/hooks/useSafeBack';
 import { sanitizeImageUri } from '@/utils/sanitizeImageUri';
 import { useRouter } from 'expo-router';
+import { useCustomAlert } from '@/contexts/CustomAlertContext';
 
 // Safe date formatter — prevents "Invalid time value" crash when API returns null/undefined dates
 const safeFormat = (value: any, fmt: string, fallback = '—'): string => {
@@ -54,6 +55,7 @@ export function SaathiView({
   const responsiveStyle = { width: '100%' as const, maxWidth: MAX_CONTENT_WIDTH, alignSelf: 'center' as const };
 
   const safeBack = useSafeBack();
+  const { showAlert } = useCustomAlert();
 
   const [loading, setLoading] = useState(true);
   const [eligible, setEligible] = useState(false);
@@ -91,14 +93,7 @@ export function SaathiView({
   const [selectedReviews, setSelectedReviews] = useState<any[]>([]);
   const [fetchingReviews, setFetchingReviews] = useState(false);
 
-  const showAlert = (title: string, message: string) => {
-    if (Platform.OS === 'web') {
-      try { window.alert(`${title}: ${message}`); } catch {}
-    } else {
-      Alert.alert(title, message);
-    }
-  };
-
+  // Removed native showAlert in favor of useCustomAlert
   const [currentTime, setCurrentTime] = useState(new Date());
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);

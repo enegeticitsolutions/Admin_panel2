@@ -154,7 +154,7 @@ export default function SubscriberSaathiScreen() {
 
       {/* Render the shared Saathi component for the selected beneficiary */}
       {selectedBeneficiaryId && (
-        <View style={{ flex: 1, zIndex: -1 }}>
+        <View style={{ flex: 1 }}>
           <SaathiView 
             beneficiaryId={selectedBeneficiaryId} 
             beneficiaryName={selectedName}
