@@ -9,6 +9,7 @@ import AuthPage from "./pages/AuthPage";
 import AccountPage from "./pages/AccountPage";
 import CheckoutPage from "./pages/CheckoutPage";
 import PlansPage from "./pages/PlansPage";
+import SiteGatekeeper from "./components/SiteGatekeeper";
 import { fetchSubscriptionPackages } from "./services/api";
 
 /**
@@ -88,69 +89,72 @@ const App = () => {
   const openForm = () => setIsModalOpen(true);
   const closeForm = () => setIsModalOpen(false);
 
-  // Full-page Views for Auth, Account, and Checkout
-  if (activePage === "auth") {
-    return <AuthPage onAuthSuccess={handleAuthSuccess} onGoBack={() => setActivePage("home")} />;
-  }
+  const renderAppContent = () => {
+    if (activePage === "auth") {
+      return <AuthPage onAuthSuccess={handleAuthSuccess} onGoBack={() => setActivePage("home")} />;
+    }
 
-  if (activePage === "account") {
+    if (activePage === "account") {
+      return (
+        <AccountPage
+          user={user}
+          token={token}
+          onLogout={handleLogout}
+          onNavigateToPlans={() => setActivePage("plans")}
+          onGoHome={() => setActivePage("home")}
+        />
+      );
+    }
+
+    if (activePage === "checkout") {
+      return (
+        <CheckoutPage
+          selectedPackage={selectedPackageForCheckout}
+          token={token}
+          user={user}
+          onSuccess={() => setActivePage("account")}
+          onGoBack={() => setActivePage("plans")}
+        />
+      );
+    }
+
     return (
-      <AccountPage
-        user={user}
-        token={token}
-        onLogout={handleLogout}
-        onNavigateToPlans={() => setActivePage("plans")}
-        onGoHome={() => setActivePage("home")}
-      />
-    );
-  }
+      <div className="site-shell">
+        <noscript>
+          <div className="noscript">
+            MaiHoonNa - India's first connected senior care ecosystem. Please enable JavaScript to use the full site experience.
+          </div>
+        </noscript>
 
-  if (activePage === "checkout") {
-    return (
-      <CheckoutPage
-        selectedPackage={selectedPackageForCheckout}
-        token={token}
-        user={user}
-        onSuccess={() => setActivePage("account")}
-        onGoBack={() => setActivePage("plans")}
-      />
-    );
-  }
-
-  return (
-    <div className="site-shell">
-      <noscript>
-        <div className="noscript">
-          MaiHoonNa - India's first connected senior care ecosystem. Please enable JavaScript to use the full site experience.
-        </div>
-      </noscript>
-
-      <Header
-        activePage={activePage}
-        setActivePage={setActivePage}
-        user={user}
-        openForm={openForm}
-      />
-
-      {activePage === "home" ? (
-        <HomePage openForm={openForm} />
-      ) : activePage === "services" ? (
-        <ServicesPage setActivePage={setActivePage} openForm={openForm} />
-      ) : activePage === "saathi" ? (
-        <SaathiPage />
-      ) : (
-        <PlansPage
-          livePackages={livePackages}
-          onSelectPackage={handleSelectPackageForBuy}
+        <Header
+          activePage={activePage}
+          setActivePage={setActivePage}
+          user={user}
           openForm={openForm}
         />
-      )}
 
-      <Footer setActivePage={setActivePage} />
+        {activePage === "home" ? (
+          <HomePage openForm={openForm} />
+        ) : activePage === "services" ? (
+          <ServicesPage setActivePage={setActivePage} openForm={openForm} />
+        ) : activePage === "saathi" ? (
+          <SaathiPage />
+        ) : (
+          <PlansPage
+            livePackages={livePackages}
+            onSelectPackage={handleSelectPackageForBuy}
+            openForm={openForm}
+          />
+        )}
 
-      <WaitlistModal isOpen={isModalOpen} onClose={closeForm} />
-    </div>
-  );
+        <Footer setActivePage={setActivePage} />
+
+        <WaitlistModal isOpen={isModalOpen} onClose={closeForm} />
+      </div>
+    );
+  };
+
+  return <SiteGatekeeper>{renderAppContent()}</SiteGatekeeper>;
 };
 
 export default App;
