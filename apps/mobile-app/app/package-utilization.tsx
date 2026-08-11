@@ -28,6 +28,30 @@ type SummaryData = {
   hasExhausted: boolean;
 };
 
+const formatUnitLabelText = (count: number, rawLabel?: string): string => {
+  if (!rawLabel) return count === 1 ? '1 unit' : `${count} units`;
+  let clean = rawLabel.trim().replace(/^per\s+/i, '');
+  const lower = clean.toLowerCase();
+
+  if (lower === 'visit') clean = count === 1 ? 'visit' : 'visits';
+  else if (lower === 'hour' || lower === 'hr' || lower === 'hours' || lower === 'hrs') clean = count === 1 ? 'hour' : 'hours';
+  else if (lower === 'session') clean = count === 1 ? 'session' : 'sessions';
+  else if (lower === 'test') clean = count === 1 ? 'test' : 'tests';
+  else if (lower === 'trip') clean = count === 1 ? 'trip' : 'trips';
+  else if (lower === 'consult' || lower === 'consultation') clean = count === 1 ? 'consult' : 'consults';
+  else if (lower === 'order') clean = count === 1 ? 'order' : 'orders';
+  else if (lower === 'request') clean = count === 1 ? 'request' : 'requests';
+  else if (lower === 'day') clean = count === 1 ? 'day' : 'days';
+  else if (lower === 'month') clean = count === 1 ? 'month' : 'months';
+  else {
+    if (count !== 1 && !lower.endsWith('s')) {
+      clean = clean + 's';
+    }
+  }
+
+  return `${count} ${clean}`;
+};
+
 export default function PackageUtilizationScreen() {
   const router = useRouter();
     const safeBack = useSafeBack();
@@ -445,7 +469,7 @@ export default function PackageUtilizationScreen() {
                     <Text style={styles.addonCardType}>{addon.benefitType?.iconCode} {addon.benefitType?.name}</Text>
                     <Text style={styles.addonCardName}>{addon.name}</Text>
                     {addon.description ? <Text style={styles.addonCardDesc} numberOfLines={1}>{addon.description}</Text> : null}
-                    <Text style={styles.addonCardUnits}>+{addon.addonIncludedUnits ?? 1} {addon.unitLabel || 'units'}</Text>
+                    <Text style={styles.addonCardUnits}>+{formatUnitLabelText(addon.addonIncludedUnits ?? 1, addon.unitLabel)}</Text>
                   </View>
                   <View style={styles.addonCardRight}>
                     {addon.addonDiscountPrice && addon.addonDiscountPrice < addon.addonPrice ? (
@@ -526,7 +550,7 @@ export default function PackageUtilizationScreen() {
               <ScrollView showsVerticalScrollIndicator={false}>
                 <Text style={styles.modalSubTitle}>{addonPreview.benefitName}</Text>
                 <Text style={{ fontSize: 13, color: '#6B7280', marginBottom: 16 }}>
-                  {addonPreview.benefitTypeName} · +{addonPreview.includedUnits} {addonPreview.unitLabel || 'units'}
+                  {addonPreview.benefitTypeName} · +{formatUnitLabelText(addonPreview.includedUnits, addonPreview.unitLabel)}
                 </Text>
 
                 {/* Pricing Breakdown */}
@@ -551,7 +575,7 @@ export default function PackageUtilizationScreen() {
                 </View>
 
                 <Text style={{ fontSize: 12, color: '#9CA3AF', marginBottom: 20, textAlign: 'center' }}>
-                  +{addonPreview.includedUnits} {addonPreview.unitLabel || 'units'} will be instantly credited to {detailData?.beneficiaryName || 'beneficiary'}'s package.
+                  +{formatUnitLabelText(addonPreview.includedUnits, addonPreview.unitLabel)} will be instantly credited to {detailData?.beneficiaryName || 'beneficiary'}'s package.
                 </Text>
 
                 <TouchableOpacity
