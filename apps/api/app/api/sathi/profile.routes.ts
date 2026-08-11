@@ -11,6 +11,11 @@ router.get('/profile', authenticate, async (req: AuthRequest, res: Response) => 
   res.json(new ApiResponse(200, volunteer));
 });
 
+router.get('/profile/reviews', authenticate, async (req: AuthRequest, res: Response) => {
+  const reviews = await sathiService.getVolunteerReviews(req.userId!);
+  res.json(new ApiResponse(200, reviews));
+});
+
 router.patch('/profile', authenticate, validate(volunteerProfileUpdateSchema), async (req: AuthRequest, res: Response) => {
   const updated = await sathiService.updateVolunteerProfile(req.userId!, req.body);
   res.json(new ApiResponse(200, updated, 'Profile updated successfully'));

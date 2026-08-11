@@ -35,6 +35,9 @@ export default function SathiProfile() {
   const [uploading, setUploading] = useState(false);
   const [profile, setProfile] = useState<any>(null);
   const [logoutModalVisible, setLogoutModalVisible] = useState(false);
+  const [reviewsModalVisible, setReviewsModalVisible] = useState(false);
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [fetchingReviews, setFetchingReviews] = useState(false);
 
   useEffect(() => {
     fetchProfile();
@@ -61,6 +64,31 @@ export default function SathiProfile() {
       Alert.alert('Error', 'Could not load profile. Please try again.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchReviews = async () => {
+    try {
+      setFetchingReviews(true);
+      setReviewsModalVisible(true);
+      const token = await AsyncStorage.getItem('userToken');
+      if (!token) return;
+
+      const response = await fetch(`${API_URL}/sathi/profile/reviews`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) throw new Error('Reviews fetch error');
+      const data = await response.json();
+      setReviews(data.data || []);
+    } catch (error) {
+      console.log('Error fetching reviews:', error);
+      Alert.alert('Error', 'Could not load reviews.');
+    } finally {
+      setFetchingReviews(false);
     }
   };
 
@@ -186,7 +214,7 @@ export default function SathiProfile() {
             <Text style={styles.profileName}>{profile?.name}</Text>
             <Text style={styles.profileAge}>{profile?.age ? `${profile.age} years old` : ''}</Text>
             
-            <View style={styles.statsRow}>
+            <TouchableOpacity style={styles.statsRow} onPress={fetchReviews}>
               <View style={styles.ratingBadge}>
                 <Ionicons name="star" size={12} color="#F59E0B" />
                 <Text style={styles.ratingText}>{profile?.rating || 'New'}</Text>
@@ -194,7 +222,8 @@ export default function SathiProfile() {
               <Text style={styles.visitsText}>
                 {profile?.totalVisits || 0} visits completed
               </Text>
-            </View>
+              <Ionicons name="chevron-forward" size={14} color="#6B7280" style={{ marginLeft: 4 }} />
+            </TouchableOpacity>
             
             <View style={styles.locationRow}>
               <Ionicons name="location-outline" size={14} color="#6B7280" />
@@ -313,6 +342,54 @@ export default function SathiProfile() {
                 <Text style={styles.modalLogoutBtnText}>Log out</Text>
               </TouchableOpacity>
             </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Reviews Modal */}
+      <Modal visible={reviewsModalVisible} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { maxHeight: '80%' }]}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: '100%', marginBottom: 16 }}>
+              <Text style={styles.modalTitle}>My Reviews</Text>
+              <TouchableOpacity onPress={() => setReviewsModalVisible(false)}>
+                <Ionicons name="close" size={24} color="#111827" />
+              </TouchableOpacity>
+            </View>
+            
+            {fetchingReviews ? (
+              <ActivityIndicator size="large" color={DEEP_ORANGE} style={{ marginVertical: 40 }} />
+            ) : reviews.length === 0 ? (
+              <Text style={{ textAlign: 'center', color: '#6B7280', marginVertical: 40 }}>No reviews yet.</Text>
+            ) : (
+              <ScrollView style={{ width: '100%' }} showsVerticalScrollIndicator={false}>
+                {reviews.map((rev, index) => (
+                  <View key={index} style={{ marginBottom: 16, borderBottomWidth: 1, borderBottomColor: '#F3F4F6', paddingBottom: 16 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                      {rev.beneficiary?.subscriber?.profilePhoto ? (
+                        <Image source={{ uri: sanitizeImageUri(rev.beneficiary.subscriber.profilePhoto) }} style={{ width: 32, height: 32, borderRadius: 16, marginRight: 8 }} />
+                      ) : (
+                        <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: '#E5E7EB', marginRight: 8, justifyContent: 'center', alignItems: 'center' }}>
+                          <Ionicons name="person" size={16} color="#9CA3AF" />
+                        </View>
+                      )}
+                      <View>
+                        <Text style={{ fontSize: 14, fontWeight: '600', color: '#111827' }}>
+                          {rev.beneficiary?.subscriber?.name || 'User'}
+                        </Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                          <Ionicons name="star" size={12} color="#F59E0B" />
+                          <Text style={{ fontSize: 12, color: '#4B5563', marginLeft: 4 }}>{rev.rating}</Text>
+                        </View>
+                      </View>
+                    </View>
+                    {rev.reviewText ? (
+                      <Text style={{ fontSize: 14, color: '#4B5563', lineHeight: 20 }}>"{rev.reviewText}"</Text>
+                    ) : null}
+                  </View>
+                ))}
+              </ScrollView>
+            )}
           </View>
         </View>
       </Modal>
