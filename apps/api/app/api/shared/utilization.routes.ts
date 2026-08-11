@@ -266,7 +266,13 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
         };
       });
 
-      return res.json({ success: true, data: [...normalSummaries, ...unlinkedSummaries] });
+      return res.json({ 
+        success: true, 
+        data: [
+          ...normalSummaries.filter(s => s.activePackage !== null), 
+          ...unlinkedSummaries
+        ] 
+      });
     }
 
     return res.status(400).json({ success: false, message: 'Invalid request parameters' });
