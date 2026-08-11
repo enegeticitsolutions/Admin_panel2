@@ -414,4 +414,256 @@ router.get('/packages', async (req: Request, res: Response) => {
   }
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Helper: Calculate add-on pricing (same GST_RATE as main checkout)
+// ─────────────────────────────────────────────────────────────────────────────
+async function calculateAddonPricing(benefitId: string, subscriptionId: string, userId: string) {
+  // 1. Fetch the benefit and assert it is an active add-on
+  const benefit = await prisma.benefit.findUnique({
+    where: { id: benefitId },
+    include: { benefitType: { select: { name: true } } }
+  });
+
+  if (!benefit) throw new Error('Benefit not found');
+  if (!benefit.isAddon) throw new Error('This benefit is not available as an add-on');
+  if (!benefit.isActive) throw new Error('This benefit is not currently active');
+  if (!benefit.addonPrice) throw new Error('Add-on price is not configured for this benefit');
+
+  // 2. Verify subscription ownership
+  const subscription = await prisma.subscription.findFirst({
+    where: { id: subscriptionId, subscriberId: userId, isActive: true }
+  });
+  if (!subscription) throw new Error('Active subscription not found or access denied');
+
+  // 3. Calculate pricing — use discount price if set, otherwise full price
+  const basePrice = benefit.addonDiscountPrice ?? benefit.addonPrice;
+  const tax = parseFloat((basePrice * GST_RATE).toFixed(2));
+  const total = parseFloat((basePrice + tax).toFixed(2));
+  const includedUnits = benefit.addonIncludedUnits ?? 1;
+
+  return {
+    benefit,
+    subscription,
+    basePrice,
+    originalPrice: benefit.addonPrice,
+    hasDiscount: !!(benefit.addonDiscountPrice && benefit.addonDiscountPrice < benefit.addonPrice),
+    tax,
+    total,
+    includedUnits
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GET /subscriber/subscriptions/addons/available
+// Returns all active benefits marked as add-ons
+// ─────────────────────────────────────────────────────────────────────────────
+router.get('/addons/available', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const addons = await prisma.benefit.findMany({
+      where: { isAddon: true, isActive: true },
+      include: { benefitType: { select: { id: true, name: true, iconCode: true } } },
+      orderBy: [{ benefitType: { displayOrder: 'asc' } }, { displayOrder: 'asc' }]
+    });
+
+    return res.json({ success: true, data: addons });
+  } catch (error: any) {
+    console.error('[Addon Available Error]:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /subscriber/subscriptions/addon/preview
+// Returns pricing breakdown for an add-on before payment.
+// Body: { subscriptionId, benefitId }
+// ─────────────────────────────────────────────────────────────────────────────
+router.post('/addon/preview', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.userId!;
+    const { subscriptionId, benefitId } = req.body;
+
+    if (!subscriptionId || !benefitId) {
+      return res.status(400).json({ success: false, message: 'subscriptionId and benefitId are required' });
+    }
+
+    const p = await calculateAddonPricing(benefitId, subscriptionId, userId);
+
+    return res.json({
+      success: true,
+      data: {
+        benefitId: p.benefit.id,
+        benefitName: p.benefit.name,
+        benefitTypeName: p.benefit.benefitType?.name,
+        unitLabel: p.benefit.unitLabel,
+        includedUnits: p.includedUnits,
+        originalPrice: p.originalPrice,
+        basePrice: p.basePrice,
+        hasDiscount: p.hasDiscount,
+        gstRate: GST_RATE,
+        tax: p.tax,
+        total: p.total,
+      }
+    });
+  } catch (error: any) {
+    console.error('[Addon Preview Error]:', error);
+    res.status(400).json({ success: false, message: error.message });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /subscriber/subscriptions/addon/create-order
+// Creates a Razorpay order for an add-on purchase.
+// Body: { subscriptionId, benefitId }
+// ─────────────────────────────────────────────────────────────────────────────
+router.post('/addon/create-order', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.userId!;
+    const { subscriptionId, benefitId } = req.body;
+
+    if (!subscriptionId || !benefitId) {
+      return res.status(400).json({ success: false, message: 'subscriptionId and benefitId are required' });
+    }
+
+    const p = await calculateAddonPricing(benefitId, subscriptionId, userId);
+
+    const shortUserId = userId.substring(0, 8);
+    const receiptId = `rcpt_ao_${shortUserId}_${Date.now()}`.substring(0, 40);
+
+    const order = await createOrder(p.total, receiptId);
+
+    return res.json({
+      success: true,
+      data: {
+        order_id: order.id,
+        amount: order.amount,
+        currency: order.currency,
+        receipt: order.receipt,
+        // Pass back for the purchase step
+        benefitName: p.benefit.name,
+        total: p.total,
+      }
+    });
+  } catch (error: any) {
+    console.error('[Addon Create Order Error]:', error);
+    res.status(400).json({ success: false, message: error.message });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /subscriber/subscriptions/addon/purchase
+// Verifies payment and credits the benefit units to the subscription.
+// Body: { subscriptionId, benefitId, razorpay_payment_id, razorpay_order_id, razorpay_signature }
+// ─────────────────────────────────────────────────────────────────────────────
+router.post('/addon/purchase', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.userId!;
+    const { subscriptionId, benefitId, razorpay_payment_id, razorpay_order_id, razorpay_signature } = req.body;
+
+    if (!subscriptionId || !benefitId) {
+      return res.status(400).json({ success: false, message: 'subscriptionId and benefitId are required' });
+    }
+
+    // 1. Verify payment signature (same pattern as /purchase)
+    if (razorpay_payment_id && razorpay_order_id && razorpay_signature) {
+      if (razorpay_signature === 'DEV_MOCK_SIGNATURE' && config.nodeEnv === 'development') {
+        console.log('⚠️ DEV MODE: Bypassing Razorpay Signature Verification for addon purchase.');
+      } else {
+        const isValid = verifyPaymentSignature(razorpay_order_id, razorpay_payment_id, razorpay_signature);
+        if (!isValid) {
+          return res.status(400).json({ success: false, message: 'Invalid payment signature. Payment verification failed.' });
+        }
+      }
+    }
+
+    // 2. Validate pricing again server-side (never trust client)
+    const p = await calculateAddonPricing(benefitId, subscriptionId, userId);
+
+    // 3. Credit units in a transaction
+    const updatedBalance = await prisma.$transaction(async (tx) => {
+      // Upsert the SubscriptionBenefitBalance (create if this benefit wasn't in the original package)
+      const existingBalance = await tx.subscriptionBenefitBalance.findFirst({
+        where: { subscriptionId, benefitId }
+      });
+
+      let balance;
+      if (existingBalance) {
+        // Top up existing balance
+        balance = await tx.subscriptionBenefitBalance.update({
+          where: { id: existingBalance.id },
+          data: {
+            totalUnits: existingBalance.totalUnits + p.includedUnits,
+            availableUnits: existingBalance.availableUnits + p.includedUnits,
+          }
+        });
+
+        // Write audit transaction
+        await tx.benefitTransaction.create({
+          data: {
+            balanceId: balance.id,
+            transactionType: 'ALLOCATED',
+            units: p.includedUnits,
+            totalBefore: existingBalance.totalUnits,
+            totalAfter: balance.totalUnits,
+            reservedBefore: existingBalance.reservedUnits,
+            reservedAfter: existingBalance.reservedUnits,
+            usedBefore: existingBalance.usedUnits,
+            usedAfter: existingBalance.usedUnits,
+            availableBefore: existingBalance.availableUnits,
+            availableAfter: balance.availableUnits,
+            reason: `Add-on purchase: ${p.benefit.name} × ${p.includedUnits} units | ${razorpay_payment_id || 'DEV'}`,
+          }
+        });
+      } else {
+        // Create a fresh balance row for this benefit (wasn't in the original package)
+        balance = await tx.subscriptionBenefitBalance.create({
+          data: {
+            subscriptionId,
+            benefitId,
+            snapshotBenefitName: p.benefit.name,
+            snapshotUnitLabel: p.benefit.unitLabel,
+            totalUnits: p.includedUnits,
+            availableUnits: p.includedUnits,
+            usedUnits: 0,
+            reservedUnits: 0,
+            unit: p.benefit.unitLabel,
+          }
+        });
+
+        await tx.benefitTransaction.create({
+          data: {
+            balanceId: balance.id,
+            transactionType: 'ALLOCATED',
+            units: p.includedUnits,
+            totalBefore: 0,
+            totalAfter: p.includedUnits,
+            reservedBefore: 0,
+            reservedAfter: 0,
+            usedBefore: 0,
+            usedAfter: 0,
+            availableBefore: 0,
+            availableAfter: p.includedUnits,
+            reason: `Add-on purchase (new benefit): ${p.benefit.name} × ${p.includedUnits} units | ${razorpay_payment_id || 'DEV'}`,
+          }
+        });
+      }
+
+      return balance;
+    });
+
+    return res.json({
+      success: true,
+      message: `${p.benefit.name} add-on successfully activated! ${p.includedUnits} ${p.benefit.unitLabel || 'units'} added.`,
+      data: {
+        benefitName: p.benefit.name,
+        unitsAdded: p.includedUnits,
+        newTotal: updatedBalance.totalUnits,
+        newAvailable: updatedBalance.availableUnits,
+      }
+    });
+  } catch (error: any) {
+    console.error('[Addon Purchase Error]:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 export default router;

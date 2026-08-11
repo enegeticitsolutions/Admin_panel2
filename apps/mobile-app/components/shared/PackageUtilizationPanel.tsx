@@ -35,6 +35,7 @@ export interface LogEntry {
 export interface DetailedUtilization {
   type: 'detail';
   beneficiaryId: string;
+  beneficiaryName?: string;
   subscription: {
     id: string;
     packageName: string;

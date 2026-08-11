@@ -50,9 +50,14 @@ router.post('/', async (req, res) => {
     description,
     isChargeable,
     unitCost,
+    cost,
     unitLabel,
     defaultUnits,
     displayOrder,
+    isAddon,
+    addonPrice,
+    addonDiscountPrice,
+    addonIncludedUnits,
   } = req.body;
   if (!benefitTypeId || !name) {
     return res
@@ -68,9 +73,14 @@ router.post('/', async (req, res) => {
         description,
         isChargeable: isChargeable ?? false,
         unitCost: unitCost ?? null,
+        cost: cost ?? null,
         unitLabel,
         defaultUnits: defaultUnits ?? 1,
         displayOrder: displayOrder ?? 0,
+        isAddon: isAddon ?? false,
+        addonPrice: addonPrice ?? null,
+        addonDiscountPrice: addonDiscountPrice ?? null,
+        addonIncludedUnits: addonIncludedUnits ?? 1,
       },
       include: { benefitType: { select: { id: true, name: true } } },
     });
@@ -91,10 +101,15 @@ router.patch('/:id', async (req, res) => {
     description,
     isChargeable,
     unitCost,
+    cost,
     unitLabel,
     defaultUnits,
     displayOrder,
     isActive,
+    isAddon,
+    addonPrice,
+    addonDiscountPrice,
+    addonIncludedUnits,
   } = req.body;
   try {
     const dataToUpdate = {};
@@ -104,10 +119,15 @@ router.patch('/:id', async (req, res) => {
     if (description !== undefined) dataToUpdate.description = description;
     if (isChargeable !== undefined) dataToUpdate.isChargeable = isChargeable;
     if (unitCost !== undefined) dataToUpdate.unitCost = unitCost;
+    if (cost !== undefined) dataToUpdate.cost = cost;
     if (unitLabel !== undefined) dataToUpdate.unitLabel = unitLabel;
     if (defaultUnits !== undefined) dataToUpdate.defaultUnits = defaultUnits;
     if (displayOrder !== undefined) dataToUpdate.displayOrder = displayOrder;
     if (isActive !== undefined) dataToUpdate.isActive = isActive;
+    if (isAddon !== undefined) dataToUpdate.isAddon = isAddon;
+    if (addonPrice !== undefined) dataToUpdate.addonPrice = addonPrice;
+    if (addonDiscountPrice !== undefined) dataToUpdate.addonDiscountPrice = addonDiscountPrice;
+    if (addonIncludedUnits !== undefined) dataToUpdate.addonIncludedUnits = addonIncludedUnits;
 
     const benefit = await prisma.benefit.update({
       where: { id },
