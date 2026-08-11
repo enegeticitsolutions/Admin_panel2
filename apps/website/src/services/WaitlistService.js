@@ -46,7 +46,7 @@ export class WaitlistService {
       email: formData.email.trim(),
     };
 
-    const response = await fetch(`${this.apiBaseUrl}/submit-form`, {
+    const response = await fetch(`${this.apiBaseUrl}/api/website/submit-form`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
