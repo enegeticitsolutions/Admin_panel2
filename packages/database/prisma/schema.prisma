@@ -562,11 +562,19 @@ model Benefit {
   description            String?
   isChargeable           Boolean                      @default(false)
   unitCost               Float?
+  cost                   Float?                       // Internal cost vs unit price
   currency               String                       @default("INR")
   unitLabel              String?
   defaultUnits           Int                          @default(1)
   isActive               Boolean                      @default(true)
   displayOrder           Int                          @default(0)
+  
+  // Add-on configuration
+  isAddon                Boolean                      @default(false)
+  addonPrice             Float?
+  addonDiscountPrice     Float?
+  addonIncludedUnits     Int                          @default(1)
+
   createdAt              DateTime                     @default(now())
   updatedAt              DateTime                     @updatedAt
   benefitType            BenefitType                  @relation(fields: [benefitTypeId], references: [id])

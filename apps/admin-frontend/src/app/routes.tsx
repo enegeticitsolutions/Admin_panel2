@@ -30,6 +30,7 @@ import EditTeamPage from './pages/EditTeamPage';
 import StaffOnboardingPage from './pages/StaffOnboardingPage';
 import BenefitTypesPage from './pages/BenefitTypesPage';
 import BenefitsPage from './pages/BenefitsPage';
+import AddonsPage from './pages/AddonsPage';
 import RegionsPage from './pages/RegionsPage';
 import ConfigurationPage from './pages/ConfigurationPage';
 
@@ -188,6 +189,10 @@ export const router = createBrowserRouter([
       {
         path: 'benefits',
         Component: BenefitsPage,
+      },
+      {
+        path: 'addons',
+        Component: AddonsPage,
       },
       {
         path: 'vitals',

@@ -22,6 +22,7 @@ interface Benefit {
   description?: string;
   isChargeable: boolean;
   unitCost?: number;
+  cost?: number;
   unitLabel?: string;
   defaultUnits: number;
   isActive: boolean;
@@ -38,7 +39,8 @@ const BLANK_FORM = {
   unitLabel: 'per visit',
   defaultUnits: 1,
   isChargeable: false,
-  unitCost: undefined as number | undefined
+  unitCost: undefined as number | undefined,
+  cost: undefined as number | undefined
 };
 
 const generateBenefitCode = (typeObj?: BenefitType, count: number = 101) => {
@@ -115,7 +117,8 @@ export default function BenefitsPage() {
       unitLabel: 'per visit',
       defaultUnits: 1,
       isChargeable: false,
-      unitCost: undefined
+      unitCost: undefined,
+      cost: undefined
     });
     setShowForm(true);
   };
@@ -134,7 +137,8 @@ export default function BenefitsPage() {
       unitLabel: b.unitLabel ?? 'per visit',
       defaultUnits: b.defaultUnits,
       isChargeable: b.isChargeable,
-      unitCost: b.unitCost
+      unitCost: b.unitCost,
+      cost: b.cost
     });
     setShowForm(true);
   };
@@ -145,7 +149,7 @@ export default function BenefitsPage() {
     if (!form.name.trim() || !form.benefitTypeId) return toast.error('Name and type are required');
     setSaving(true);
     try {
-      const payload = { ...form, unitCost: form.isChargeable ? form.unitCost : undefined };
+      const payload = { ...form, unitCost: form.isChargeable ? form.unitCost : undefined, cost: form.isChargeable ? form.cost : undefined };
       if (editing) {
         await benefitApi.update(editing.id, payload);
         toast.success('Benefit updated');
@@ -256,10 +260,17 @@ export default function BenefitsPage() {
               <span className="text-sm font-medium">Chargeable benefit</span>
             </div>
             {form.isChargeable && (
-              <div className="space-y-1">
-                <Label>Unit Price (₹)</Label>
-                <Input type="number" value={form.unitCost ?? ''} onChange={e => setForm(f => ({ ...f, unitCost: Number(e.target.value) }))} placeholder="e.g. 800" />
-                <p className="text-[11px] text-muted-foreground">Updating price updates pricing unit without forcing benefit version changes.</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label>Cost (₹)</Label>
+                  <Input type="number" value={form.cost ?? ''} onChange={e => setForm(f => ({ ...f, cost: Number(e.target.value) }))} placeholder="Internal cost" />
+                  <p className="text-[11px] text-muted-foreground">Internal cost of the benefit.</p>
+                </div>
+                <div className="space-y-1">
+                  <Label>Unit Price (₹)</Label>
+                  <Input type="number" value={form.unitCost ?? ''} onChange={e => setForm(f => ({ ...f, unitCost: Number(e.target.value) }))} placeholder="e.g. 800" />
+                  <p className="text-[11px] text-muted-foreground">Price charged to the subscriber.</p>
+                </div>
               </div>
             )}
             <div className="flex gap-2 pt-1">

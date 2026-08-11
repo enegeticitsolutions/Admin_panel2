@@ -390,6 +390,7 @@ async function buildDetailedUtilization(beneficiary: any) {
   return {
     type: 'detail',
     beneficiaryId: beneficiary.id,
+    beneficiaryName: beneficiary.name,
     subscription: activeSub ? {
       id: activeSub.id,
       packageName: activeSub.package?.name,

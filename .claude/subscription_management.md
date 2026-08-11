@@ -30,3 +30,8 @@ A fully documented reference file has been added to support recurring billing (A
   - Uses `razorpay.subscriptions.create()` instead of `razorpay.orders.create()`.
   - Requires setting up a `Plan` in Razorpay beforehand (or on-the-fly).
   - Relies on Razorpay Webhooks (e.g., `subscription.charged`) to automatically renew the subscription in the database each month.
+
+## 4. Add-ons & In-Package Top-up
+For detailed architecture on Add-ons Management in Admin Panel and In-Package Benefit Top-ups for Subscribers via Razorpay, see:
+- **Documentation:** `.claude/addons_and_in_package_topup.md`
+

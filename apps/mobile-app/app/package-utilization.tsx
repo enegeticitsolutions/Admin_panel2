@@ -7,6 +7,16 @@ import { API_URL } from '@/constants/api';
 import PackageUtilizationPanel, { DetailedUtilization } from '@/components/shared/PackageUtilizationPanel';
 import { useSafeBack } from '@/hooks/useSafeBack';
 import { SafeAreaView } from 'react-native-safe-area-context';
+// @ts-ignore
+import RazorpayCheckout from 'react-native-razorpay';
+import Constants from 'expo-constants';
+
+const getRazorpayKey = (): string => {
+  const fromExtra: string = (Constants.expoConfig?.extra?.razorpayKeyId as string) || '';
+  const fromEnv: string = (process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID as string) || '';
+  const clean = (s: string) => s.replace(/^["']|["']$/g, '').trim();
+  return clean(fromExtra) || clean(fromEnv);
+};
 
 type SummaryData = {
   type: 'summary';
@@ -44,6 +54,14 @@ export default function PackageUtilizationScreen() {
   const [preferredTiming, setPreferredTiming] = useState('Morning');
   const [additionalNote, setAdditionalNote] = useState('');
   const [submittingRequest, setSubmittingRequest] = useState(false);
+
+  // ── Add-on state ───────────────────────────────────────────────────────────
+  const [availableAddons, setAvailableAddons] = useState<any[]>([]);
+  const [selectedAddon, setSelectedAddon] = useState<any | null>(null);
+  const [addonPreview, setAddonPreview] = useState<any | null>(null);
+  const [showAddonModal, setShowAddonModal] = useState(false);
+  const [addonLoading, setAddonLoading] = useState(false);
+  const [addonProcessing, setAddonProcessing] = useState(false);
 
   const promptExhaustedMessage = (benefitName?: string) => {
     const msg = `Benefit ${benefitName ? `"${benefitName}" ` : ''}is exhausted. Please connect with support team to renew or upgrade your package.`;
@@ -161,9 +179,162 @@ export default function PackageUtilizationScreen() {
     }
   };
 
+  const fetchAddons = async () => {
+    try {
+      const token = await AsyncStorage.getItem('userToken');
+      if (!token) return;
+      const res = await fetch(`${API_URL}/subscriber/subscriptions/addons/available`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.success) setAvailableAddons(data.data || []);
+    } catch (e) {
+      // silently ignore — addons are optional
+    }
+  };
+
+  const handleSelectAddon = async (addon: any) => {
+    if (!detailData?.subscription?.id) {
+      Alert.alert('Error', 'No active subscription found.');
+      return;
+    }
+    setSelectedAddon(addon);
+    setAddonLoading(true);
+    setShowAddonModal(true);
+    try {
+      const token = await AsyncStorage.getItem('userToken');
+      const res = await fetch(`${API_URL}/subscriber/subscriptions/addon/preview`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ subscriptionId: detailData.subscription.id, benefitId: addon.id })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setAddonPreview(data.data);
+      } else {
+        throw new Error(data.message);
+      }
+    } catch (e: any) {
+      Alert.alert('Error', e.message || 'Failed to load add-on pricing');
+      setShowAddonModal(false);
+    } finally {
+      setAddonLoading(false);
+    }
+  };
+
+  const handleAddonPayment = async () => {
+    if (!selectedAddon || !addonPreview || !detailData?.subscription?.id) return;
+    setAddonProcessing(true);
+    try {
+      const token = await AsyncStorage.getItem('userToken');
+      const userDataStr = await AsyncStorage.getItem('userData');
+      const user = userDataStr ? JSON.parse(userDataStr) : {};
+      const razorpayKey = getRazorpayKey();
+
+      // 1. Create Razorpay order
+      const orderRes = await fetch(`${API_URL}/subscriber/subscriptions/addon/create-order`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ subscriptionId: detailData.subscription.id, benefitId: selectedAddon.id })
+      });
+      const orderData = await orderRes.json();
+      if (!orderData.success) throw new Error(orderData.message);
+
+      const options = {
+        description: `Add-on: ${addonPreview.benefitName}`,
+        image: 'https://maihoonna.com/logo.png',
+        currency: orderData.data.currency,
+        key: razorpayKey,
+        amount: orderData.data.amount,
+        name: 'Mai-Hoonaa',
+        order_id: orderData.data.order_id,
+        prefill: {
+          email: user.email || '',
+          contact: user.phone || '',
+          name: user.name || ''
+        },
+        theme: { color: '#FF5B0A' }
+      };
+
+      let paymentDetails: any;
+      if (Platform.OS === 'web') {
+        paymentDetails = {
+          razorpay_payment_id: 'pay_test_' + Date.now(),
+          razorpay_order_id: orderData.data.order_id,
+          razorpay_signature: 'DEV_MOCK_SIGNATURE'
+        };
+        Alert.alert('Web Mode', 'Simulating payment on web.');
+      } else {
+        try {
+          if (!RazorpayCheckout) {
+            paymentDetails = {
+              razorpay_payment_id: 'pay_test_' + Date.now(),
+              razorpay_order_id: orderData.data.order_id,
+              razorpay_signature: 'DEV_MOCK_SIGNATURE'
+            };
+            Alert.alert('Test Mode 🧪', 'Razorpay not available in Expo Go. Simulating payment.');
+          } else {
+            const response = await RazorpayCheckout.open(options);
+            paymentDetails = {
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_signature: response.razorpay_signature
+            };
+          }
+        } catch (payErr: any) {
+          const msg = payErr?.message || payErr?.description || '';
+          if (msg.includes('cancel') || payErr?.code === 0) {
+            setAddonProcessing(false);
+            return;
+          }
+          if (msg.includes('Native module cannot be null') || msg.includes('null')) {
+            paymentDetails = {
+              razorpay_payment_id: 'pay_test_' + Date.now(),
+              razorpay_order_id: orderData.data.order_id,
+              razorpay_signature: 'DEV_MOCK_SIGNATURE'
+            };
+          } else {
+            throw new Error(msg || 'Payment failed');
+          }
+        }
+      }
+
+      // 2. Confirm purchase on backend
+      const purchaseRes = await fetch(`${API_URL}/subscriber/subscriptions/addon/purchase`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({
+          subscriptionId: detailData.subscription.id,
+          benefitId: selectedAddon.id,
+          ...paymentDetails
+        })
+      });
+      const purchaseData = await purchaseRes.json();
+      if (!purchaseData.success) throw new Error(purchaseData.message);
+
+      setShowAddonModal(false);
+      setSelectedAddon(null);
+      setAddonPreview(null);
+      Alert.alert('✅ Add-on Activated!', purchaseData.message);
+      // Refresh utilization so updated units appear
+      await fetchUtilization();
+    } catch (e: any) {
+      Alert.alert('Error', e.message || 'Payment failed. Please try again.');
+    } finally {
+      setAddonProcessing(false);
+    }
+  };
+
   useEffect(() => {
     fetchUtilization();
   }, [beneficiaryId]);
+
+  // Fetch add-ons once when we land on a detail view (subscriber only)
+  useEffect(() => {
+    if (beneficiaryId && userRole === 'subscriber') {
+      fetchAddons();
+    }
+  }, [beneficiaryId, userRole]);
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -254,6 +425,45 @@ export default function PackageUtilizationScreen() {
               onSelectBenefit={handleSelectBenefit}
             />
           )}
+
+          {/* ── Available Add-ons (subscriber detail view only) ── */}
+          {detailData && userRole === 'subscriber' && availableAddons.length > 0 && (
+            <View style={styles.addonSection}>
+              <View style={styles.addonSectionHeader}>
+                <Ionicons name="add-circle-outline" size={20} color="#FF5B0A" style={{ marginRight: 6 }} />
+                <Text style={styles.addonSectionTitle}>Available Add-ons</Text>
+              </View>
+              <Text style={styles.addonSectionSubtitle}>Top up benefits instantly. Paid units are credited immediately.</Text>
+              {availableAddons.map((addon) => (
+                <TouchableOpacity
+                  key={addon.id}
+                  style={styles.addonCard}
+                  activeOpacity={0.8}
+                  onPress={() => handleSelectAddon(addon)}
+                >
+                  <View style={styles.addonCardLeft}>
+                    <Text style={styles.addonCardType}>{addon.benefitType?.iconCode} {addon.benefitType?.name}</Text>
+                    <Text style={styles.addonCardName}>{addon.name}</Text>
+                    {addon.description ? <Text style={styles.addonCardDesc} numberOfLines={1}>{addon.description}</Text> : null}
+                    <Text style={styles.addonCardUnits}>+{addon.addonIncludedUnits ?? 1} {addon.unitLabel || 'units'}</Text>
+                  </View>
+                  <View style={styles.addonCardRight}>
+                    {addon.addonDiscountPrice && addon.addonDiscountPrice < addon.addonPrice ? (
+                      <>
+                        <Text style={styles.addonCardOriginalPrice}>₹{addon.addonPrice}</Text>
+                        <Text style={styles.addonCardPrice}>₹{addon.addonDiscountPrice}</Text>
+                      </>
+                    ) : (
+                      <Text style={styles.addonCardPrice}>₹{addon.addonPrice}</Text>
+                    )}
+                    <View style={styles.addonBuyBtn}>
+                      <Text style={styles.addonBuyBtnText}>Add</Text>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
         </ScrollView>
       )}
 
@@ -287,6 +497,82 @@ export default function PackageUtilizationScreen() {
           </TouchableOpacity>
         </View>
       )}
+
+      {/* ── Add-on Purchase Modal ── */}
+      <Modal
+        visible={showAddonModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => { if (!addonProcessing) { setShowAddonModal(false); setAddonPreview(null); setSelectedAddon(null); } }}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Add-on Details</Text>
+              <TouchableOpacity
+                onPress={() => { if (!addonProcessing) { setShowAddonModal(false); setAddonPreview(null); setSelectedAddon(null); } }}
+                style={{ padding: 4 }}
+              >
+                <Ionicons name="close" size={24} color="#374151" />
+              </TouchableOpacity>
+            </View>
+
+            {addonLoading ? (
+              <View style={{ paddingVertical: 40, alignItems: 'center' }}>
+                <ActivityIndicator size="large" color="#FF5B0A" />
+                <Text style={{ marginTop: 12, color: '#6B7280', fontSize: 14 }}>Calculating price...</Text>
+              </View>
+            ) : addonPreview ? (
+              <ScrollView showsVerticalScrollIndicator={false}>
+                <Text style={styles.modalSubTitle}>{addonPreview.benefitName}</Text>
+                <Text style={{ fontSize: 13, color: '#6B7280', marginBottom: 16 }}>
+                  {addonPreview.benefitTypeName} · +{addonPreview.includedUnits} {addonPreview.unitLabel || 'units'}
+                </Text>
+
+                {/* Pricing Breakdown */}
+                <View style={styles.addonPricingBox}>
+                  <View style={styles.addonPricingRow}>
+                    <Text style={styles.addonPricingLabel}>Base Price</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                      {addonPreview.hasDiscount && (
+                        <Text style={styles.addonPricingStrike}>₹{addonPreview.originalPrice}</Text>
+                      )}
+                      <Text style={styles.addonPricingValue}>₹{addonPreview.basePrice}</Text>
+                    </View>
+                  </View>
+                  <View style={styles.addonPricingRow}>
+                    <Text style={styles.addonPricingLabel}>GST (18%)</Text>
+                    <Text style={styles.addonPricingValue}>₹{addonPreview.tax}</Text>
+                  </View>
+                  <View style={[styles.addonPricingRow, { borderTopWidth: 1, borderTopColor: '#F3F4F6', marginTop: 8, paddingTop: 12 }]}>
+                    <Text style={[styles.addonPricingLabel, { fontWeight: '800', fontSize: 15, color: '#111827' }]}>Total</Text>
+                    <Text style={[styles.addonPricingValue, { fontWeight: '800', fontSize: 18, color: '#FF5B0A' }]}>₹{addonPreview.total}</Text>
+                  </View>
+                </View>
+
+                <Text style={{ fontSize: 12, color: '#9CA3AF', marginBottom: 20, textAlign: 'center' }}>
+                  +{addonPreview.includedUnits} {addonPreview.unitLabel || 'units'} will be instantly credited to {detailData?.beneficiaryName || 'beneficiary'}'s package.
+                </Text>
+
+                <TouchableOpacity
+                  style={[styles.requestServiceBtn, addonProcessing && { opacity: 0.7 }]}
+                  onPress={handleAddonPayment}
+                  disabled={addonProcessing}
+                >
+                  {addonProcessing ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" style={{ marginRight: 8 }} />
+                  ) : (
+                    <Ionicons name="card-outline" size={18} color="#FFFFFF" style={{ marginRight: 8 }} />
+                  )}
+                  <Text style={styles.requestServiceBtnText}>
+                    {addonProcessing ? 'PROCESSING...' : `PAY ₹${addonPreview.total}`}
+                  </Text>
+                </TouchableOpacity>
+              </ScrollView>
+            ) : null}
+          </View>
+        </View>
+      </Modal>
 
       {/* Request Modal */}
       <Modal
@@ -608,5 +894,126 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '800',
     textTransform: 'uppercase',
+  },
+  // ── Add-on styles ───────────────────────────────────────────────────────────
+  addonSection: {
+    marginTop: 24,
+    marginBottom: 16,
+  },
+  addonSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  addonSectionTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: '#111827',
+  },
+  addonSectionSubtitle: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginBottom: 14,
+    marginLeft: 2,
+  },
+  addonCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+    borderWidth: 1.5,
+    borderColor: '#FDE8D8',
+    ...Platform.select({
+      ios: { shadowColor: '#FF5B0A', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.07, shadowRadius: 6 },
+      android: { elevation: 2 },
+    }),
+  },
+  addonCardLeft: {
+    flex: 1,
+    paddingRight: 10,
+  },
+  addonCardType: {
+    fontSize: 11,
+    color: '#9CA3AF',
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  addonCardName: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 2,
+  },
+  addonCardDesc: {
+    fontSize: 11,
+    color: '#6B7280',
+    marginBottom: 4,
+  },
+  addonCardUnits: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#10B981',
+    backgroundColor: '#D1FAE5',
+    alignSelf: 'flex-start',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  addonCardRight: {
+    alignItems: 'flex-end',
+    gap: 6,
+  },
+  addonCardOriginalPrice: {
+    fontSize: 11,
+    color: '#9CA3AF',
+    textDecorationLine: 'line-through',
+  },
+  addonCardPrice: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#FF5B0A',
+  },
+  addonBuyBtn: {
+    backgroundColor: '#FF5B0A',
+    borderRadius: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+  },
+  addonBuyBtnText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  addonPricingBox: {
+    backgroundColor: '#FFF7F3',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#FDE8D8',
+  },
+  addonPricingRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  addonPricingLabel: {
+    fontSize: 13,
+    color: '#6B7280',
+    fontWeight: '500',
+  },
+  addonPricingValue: {
+    fontSize: 13,
+    color: '#374151',
+    fontWeight: '600',
+  },
+  addonPricingStrike: {
+    fontSize: 12,
+    color: '#9CA3AF',
+    textDecorationLine: 'line-through',
   },
 });

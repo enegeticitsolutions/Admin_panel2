@@ -99,6 +99,7 @@ const navigationSections: NavSection[] = [
       { path: '/subscriptions', label: 'Subscription Packages', icon: Package, roles: ['master_admin'] },
       { path: '/benefit-types', label: 'Benefit Types', icon: Settings, roles: ['master_admin'] },
       { path: '/benefits', label: 'Benefits Library', icon: FileText, roles: ['master_admin'] },
+      { path: '/addons', label: 'Add-ons Management', icon: FileText, roles: ['master_admin'] },
       { path: '/coupons', label: 'Coupons & Promos', icon: Tag, roles: ['master_admin'] },
       { path: '/vitals/alert-rules', label: 'Alert rules', icon: Settings, roles: ['master_admin'] },
       { path: '/admin-users', label: 'Admin Users', icon: Settings, roles: ['master_admin'] },
