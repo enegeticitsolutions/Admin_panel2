@@ -90,13 +90,7 @@ export async function verifyEmailOtp(
       data: { email: cleanEmail, isVerified: true },
     });
 
-    const ben = await prisma.beneficiary.findUnique({ where: { userId } });
-    if (ben) {
-      await prisma.beneficiary.update({
-        where: { id: ben.id },
-        data: { email: cleanEmail },
-      });
-    }
+
   }
 
   return {

@@ -67,19 +67,18 @@ router.post('/send-email-otp', asyncHandler(async (req: Request, res: Response) 
   res.json(new ApiResponse(200, result, result.message));
 }));
 
+import { decodeToken } from '../../core/security';
+
 // POST /api/auth/verify-email-otp
 router.post('/verify-email-otp', asyncHandler(async (req: Request, res: Response) => {
   const { email, otp } = req.body;
   const authHeader = req.headers.authorization;
   let userId: string | undefined;
   if (authHeader && authHeader.startsWith('Bearer ')) {
-    try {
-      const token = authHeader.split(' ')[1];
-      const jwt = require('jsonwebtoken');
-      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
-      userId = decoded.userId || decoded.id;
-    } catch (e) {
-      // Ignored if unauthenticated
+    const token = authHeader.split(' ')[1];
+    const decoded = decodeToken(token);
+    if (decoded) {
+      userId = decoded.sub; // token payload uses sub for ID
     }
   }
   const result = await verifyEmailOtp(email, otp, userId);
