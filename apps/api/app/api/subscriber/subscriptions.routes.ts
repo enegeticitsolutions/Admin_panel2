@@ -152,6 +152,68 @@ router.post('/create-order', authenticate, async (req: AuthRequest, res: Respons
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// POST /subscriber/subscriptions/:subscriptionId/link-beneficiary
+// Links an existing beneficiary to an unlinked care plan.
+// ─────────────────────────────────────────────────────────────────────────────
+router.post('/:subscriptionId/link-beneficiary', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.userId!;
+    const { subscriptionId } = req.params;
+    const { beneficiaryId } = req.body;
+
+    if (!beneficiaryId) {
+      return res.status(400).json({ success: false, message: 'beneficiaryId is required' });
+    }
+
+    // 1. Verify subscription ownership and ensure it's unlinked
+    const subscription = await prisma.subscription.findUnique({
+      where: { id: subscriptionId }
+    });
+
+    if (!subscription) {
+      return res.status(404).json({ success: false, message: 'Subscription not found' });
+    }
+    if (subscription.subscriberId !== userId) {
+      return res.status(403).json({ success: false, message: 'Forbidden' });
+    }
+    if (subscription.beneficiaryId) {
+      return res.status(400).json({ success: false, message: 'Subscription is already linked to a beneficiary' });
+    }
+
+    // 2. Verify beneficiary ownership
+    const beneficiary = await prisma.beneficiary.findUnique({
+      where: { id: beneficiaryId }
+    });
+
+    if (!beneficiary) {
+      return res.status(404).json({ success: false, message: 'Beneficiary not found' });
+    }
+    if (beneficiary.subscriberId !== userId) {
+      return res.status(403).json({ success: false, message: 'Forbidden' });
+    }
+
+    // 3. Link them in a transaction (Update Subscription)
+    await prisma.$transaction(async (tx) => {
+      await tx.subscription.update({
+        where: { id: subscriptionId },
+        data: { beneficiaryId: beneficiaryId }
+      });
+      // Note: SubscriptionBenefitBalance does not have a beneficiaryId field, 
+      // and PackageHoursLog only gets created upon consuming hours.
+    });
+
+    res.json({
+      success: true,
+      message: 'Successfully linked beneficiary to care plan',
+    });
+
+  } catch (error: any) {
+    console.error('[Link Beneficiary Error]:', error);
+    res.status(500).json({ success: false, message: error.message || 'Failed to link beneficiary' });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // POST /subscriber/subscriptions/purchase
 // ─────────────────────────────────────────────────────────────────────────────
 router.post('/purchase', authenticate, async (req: AuthRequest, res: Response) => {

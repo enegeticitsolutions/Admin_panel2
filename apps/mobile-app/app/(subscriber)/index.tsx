@@ -42,6 +42,10 @@ export default function SubscriberDashboardScreen() {
     const benScaleAnim = useRef(new Animated.Value(1)).current;
     const { highlightBen } = useLocalSearchParams();
 
+    const [linkModalVisible, setLinkModalVisible] = useState(false);
+    const [selectedUnlinkedSubId, setSelectedUnlinkedSubId] = useState<string | null>(null);
+    const [isLinking, setIsLinking] = useState(false);
+
     useEffect(() => {
         if (highlightBen) {
             Animated.sequence([
@@ -335,7 +339,14 @@ export default function SubscriberDashboardScreen() {
                         </View>
                         <TouchableOpacity 
                             style={[styles.unlinkedBtn, { flexDirection: 'row', alignItems: 'center' }]}
-                            onPress={() => router.push({ pathname: '/(setup)/subscribe-form', params: { isLinkingFlow: 'true' } })}
+                            onPress={() => {
+                                if (beneficiaries.length > 0) {
+                                    setSelectedUnlinkedSubId(sub.id);
+                                    setLinkModalVisible(true);
+                                } else {
+                                    router.push({ pathname: '/(setup)/subscribe-form', params: { isLinkingFlow: 'true' } });
+                                }
+                            }}
                         >
                             <Feather name="user-plus" size={14} color="#FFFFFF" style={{ marginRight: 6 }} />
                             <Text style={styles.unlinkedBtnText}>Add Beneficiary</Text>
@@ -483,6 +494,78 @@ export default function SubscriberDashboardScreen() {
                 drawerAnim={drawerAnim}
                 userData={userData}
             />
+
+            {/* ── Modal for Linking Existing Beneficiary ── */}
+            <Modal visible={linkModalVisible} transparent animationType="slide" onRequestClose={() => setLinkModalVisible(false)}>
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>Who is this care plan for?</Text>
+                            <TouchableOpacity onPress={() => setLinkModalVisible(false)}>
+                                <Ionicons name="close" size={24} color="#111827" />
+                            </TouchableOpacity>
+                        </View>
+                        <Text style={styles.modalSubtitle}>Select an existing beneficiary to link to this plan.</Text>
+                        
+                        <ScrollView style={{ maxHeight: height * 0.4, width: '100%', marginBottom: scale(16) }} showsVerticalScrollIndicator={false}>
+                            {beneficiaries.map((b: any) => (
+                                <TouchableOpacity 
+                                    key={b.id} 
+                                    style={styles.modalBenCard}
+                                    disabled={isLinking}
+                                    onPress={async () => {
+                                        if (!selectedUnlinkedSubId) return;
+                                        setIsLinking(true);
+                                        try {
+                                            const storedToken = await AsyncStorage.getItem('userToken');
+                                            const res = await fetch(`${API_URL}/subscriber/subscriptions/${selectedUnlinkedSubId}/link-beneficiary`, {
+                                                method: 'POST',
+                                                headers: {
+                                                    'Authorization': `Bearer ${storedToken}`,
+                                                    'Content-Type': 'application/json'
+                                                },
+                                                body: JSON.stringify({ beneficiaryId: b.id })
+                                            });
+                                            const data = await res.json();
+                                            if (data.success) {
+                                                setLinkModalVisible(false);
+                                                refetch();
+                                            } else {
+                                                alert(data.message || 'Failed to link beneficiary');
+                                            }
+                                        } catch (error) {
+                                            console.error(error);
+                                            alert('An error occurred while linking');
+                                        } finally {
+                                            setIsLinking(false);
+                                        }
+                                    }}
+                                >
+                                    <View style={styles.modalBenIcon}>
+                                        <Ionicons name="person" size={20} color="#FE6700" />
+                                    </View>
+                                    <View>
+                                        <Text style={styles.modalBenName}>{b.name}</Text>
+                                        <Text style={styles.modalBenRel}>{b.relationship || 'Beneficiary'}</Text>
+                                    </View>
+                                </TouchableOpacity>
+                            ))}
+                        </ScrollView>
+
+                        <TouchableOpacity 
+                            style={styles.modalAddNewBtn}
+                            disabled={isLinking}
+                            onPress={() => {
+                                setLinkModalVisible(false);
+                                router.push({ pathname: '/(setup)/subscribe-form', params: { isLinkingFlow: 'true' } });
+                            }}
+                        >
+                            <Feather name="user-plus" size={18} color="#FE6700" style={{ marginRight: 8 }} />
+                            <Text style={styles.modalAddNewText}>Add New Beneficiary</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
 
         </SafeAreaView>
     );
@@ -779,4 +862,36 @@ const styles = StyleSheet.create({
         fontSize: scale(12),
         fontWeight: '700',
     },
+    /* ── Link Beneficiary Modal ── */
+    modalOverlay: {
+        flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end'
+    },
+    modalContent: {
+        backgroundColor: '#FFF', borderTopLeftRadius: scale(24), borderTopRightRadius: scale(24),
+        paddingHorizontal: scale(20), paddingVertical: scale(24),
+        ...Platform.select({
+            ios: { shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.1, shadowRadius: 10 },
+            android: { elevation: 10 },
+        }),
+    },
+    modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: scale(8) },
+    modalTitle: { fontSize: scale(18), fontWeight: '700', color: '#111827' },
+    modalSubtitle: { fontSize: scale(13), color: '#6B7280', marginBottom: scale(20) },
+    modalBenCard: {
+        flexDirection: 'row', alignItems: 'center', backgroundColor: '#F9FAFB', 
+        padding: scale(14), borderRadius: scale(12), marginBottom: scale(10),
+        borderWidth: 1, borderColor: '#F3F4F6'
+    },
+    modalBenIcon: {
+        width: scale(38), height: scale(38), borderRadius: scale(19), backgroundColor: '#FFE8CE',
+        justifyContent: 'center', alignItems: 'center', marginRight: scale(12)
+    },
+    modalBenName: { fontSize: scale(15), fontWeight: '600', color: '#111827' },
+    modalBenRel: { fontSize: scale(12), color: '#6B7280', marginTop: scale(2) },
+    modalAddNewBtn: {
+        flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+        paddingVertical: scale(14), borderRadius: scale(12),
+        borderWidth: 1, borderColor: '#FE6700', backgroundColor: '#FFF5ED'
+    },
+    modalAddNewText: { fontSize: scale(15), fontWeight: '600', color: '#FE6700' },
 });
