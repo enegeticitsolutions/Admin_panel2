@@ -99,12 +99,13 @@ export default function RegisterScreen() {
 
     const handleResendOtp = async () => {
         if (resendTimer > 0 || isLoading) return;
+        const cleanPhone = form.phone.replace(/\D/g, '').slice(-10);
         setIsLoading(true);
         try {
             const response = await fetch(`${API_URL}/auth/send-otp`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ phone: `91${form.phone}` }),
+                body: JSON.stringify({ phone: `+91${cleanPhone}` }),
             });
             const data = await response.json();
             if (data.success) {
@@ -121,11 +122,12 @@ export default function RegisterScreen() {
     };
 
     const handleRegister = async () => {
+        const cleanPhone = form.phone.replace(/\D/g, '').slice(-10);
         if (!form.name.trim()) {
             Alert.alert("Missing Name", "Please enter your full name.");
             return;
         }
-        if (form.phone.length !== 10) {
+        if (cleanPhone.length !== 10) {
             Alert.alert("Invalid Phone", "Please enter a valid 10-digit phone number.");
             return;
         }
@@ -151,7 +153,7 @@ export default function RegisterScreen() {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
-                        phone: `+91${form.phone}`,
+                        phone: `+91${cleanPhone}`,
                         name: form.name,
                         age: ageNum,
                         pincode: form.pincode,
@@ -183,13 +185,13 @@ export default function RegisterScreen() {
                 setIsLoading(false);
             }
         } else {
-            // Production mode (password disabled): Send OTP first
+            // Production mode (password disabled): Send OTP first via exact same /auth/send-otp endpoint as login
             setIsLoading(true);
             try {
                 const response = await fetch(`${API_URL}/auth/send-otp`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ phone: `91${form.phone}` }),
+                    body: JSON.stringify({ phone: `+91${cleanPhone}` }),
                 });
 
                 const data = await response.json();
@@ -211,6 +213,7 @@ export default function RegisterScreen() {
     };
 
     const handleVerifyAndRegister = async () => {
+        const cleanPhone = form.phone.replace(/\D/g, '').slice(-10);
         const enteredOtp = otp.join("");
         if (enteredOtp.length !== 6) {
             Alert.alert("Invalid Code", "Please fill in all 6 digits of the verification code.");
@@ -221,11 +224,11 @@ export default function RegisterScreen() {
 
         setIsLoading(true);
         try {
-            // 1. Verify OTP code
+            // 1. Verify OTP code via exact same /auth/verify-otp route as login
             const verifyRes = await fetch(`${API_URL}/auth/verify-otp`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ phone: `+91${form.phone}`, otp: enteredOtp }),
+                body: JSON.stringify({ phone: `+91${cleanPhone}`, otp: enteredOtp }),
             });
 
             const verifyData = await verifyRes.json();
@@ -241,7 +244,7 @@ export default function RegisterScreen() {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    phone: `+91${form.phone}`,
+                    phone: `+91${cleanPhone}`,
                     name: form.name,
                     age: ageNum,
                     pincode: form.pincode,
