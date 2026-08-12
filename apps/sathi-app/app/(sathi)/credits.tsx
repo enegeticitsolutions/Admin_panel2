@@ -58,6 +58,19 @@ export default function SathiCreditsScreen() {
   const [codeCopied, setCodeCopied] = useState(false);
   const [copiedVoucherCode, setCopiedVoucherCode] = useState<string | null>(null);
 
+  // Premium Confirm Modal state
+  const [confirmModalVisible, setConfirmModalVisible] = useState(false);
+  const [confirmModalData, setConfirmModalData] = useState<{ points: number; valueRs: number; type: 'GIFT_CARD' | 'UPI_TRANSFER'; details: any } | null>(null);
+
+  // Premium Alert Modal state
+  const [alertModalVisible, setAlertModalVisible] = useState(false);
+  const [alertModalData, setAlertModalData] = useState<{ title: string; message: string; isError?: boolean } | null>(null);
+
+  const showAlert = (title: string, message: string, isError = true) => {
+    setAlertModalData({ title, message, isError });
+    setAlertModalVisible(true);
+  };
+
   const handleCopyVoucher = (code: string) => {
     try {
       Clipboard.setString(code);
@@ -115,12 +128,12 @@ export default function SathiCreditsScreen() {
     if (redeemType === 'GIFT_CARD') {
       const parsedGiftPts = parseInt(giftPoints || '0', 10);
       if (isNaN(parsedGiftPts) || parsedGiftPts <= 0) {
-        Alert.alert('Invalid Amount', 'Please enter a valid number of credits to redeem.');
+        showAlert('Invalid Amount', 'Please enter a valid number of credits to redeem.');
         return;
       }
       pointsToRedeem = parsedGiftPts;
       if (!giftRecipient.trim()) {
-        Alert.alert('Required Field', 'Please enter your email or phone number to register this Gift Card.');
+        showAlert('Required Field', 'Please enter your email or phone number to register this Gift Card.');
         return;
       }
       const conversionRate = summary?.conversionRate || 10;
@@ -134,12 +147,12 @@ export default function SathiCreditsScreen() {
     } else if (redeemType === 'UPI_TRANSFER') {
       const parsedPoints = parseInt(upiPoints, 10);
       if (isNaN(parsedPoints) || parsedPoints <= 0) {
-        Alert.alert('Invalid Amount', 'Please enter a valid number of credits to transfer.');
+        showAlert('Invalid Amount', 'Please enter a valid number of credits to transfer.');
         return;
       }
       pointsToRedeem = parsedPoints;
       if (!upiId.trim() || !upiId.includes('@')) {
-        Alert.alert('Invalid UPI ID', 'Please enter a valid UPI ID (e.g. yourname@okhdfcbank or 9876543210@upi).');
+        showAlert('Invalid UPI ID', 'Please enter a valid UPI ID (e.g. yourname@okhdfcbank or 9876543210@upi).');
         return;
       }
       details = { upiId: upiId.trim() };
@@ -147,7 +160,7 @@ export default function SathiCreditsScreen() {
 
     const available = Number(summary?.availableCredits || 0);
     if (available < pointsToRedeem) {
-      Alert.alert(
+      showAlert(
         'Insufficient Credits',
         `You need ${pointsToRedeem} credits for this reward, but you only have ${formatPts(available)} credits available.`
       );
@@ -157,69 +170,70 @@ export default function SathiCreditsScreen() {
     const conversionRate = summary?.conversionRate || 10;
     const valueRs = pointsToRedeem * conversionRate;
 
-    Alert.alert(
-      'Confirm Redemption',
-      `Redeem ${pointsToRedeem} credits (Worth ₹${valueRs}) for ${redeemType === 'GIFT_CARD' ? 'MHN Gift Card' : 'Direct UPI Transfer'}?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Redeem Now',
-          style: 'default',
-          onPress: async () => {
-            try {
-              setRedeeming(true);
-              const token = await AsyncStorage.getItem('userToken');
-              if (!token) return;
+    setConfirmModalData({
+      points: pointsToRedeem,
+      valueRs,
+      type: redeemType,
+      details,
+    });
+    setConfirmModalVisible(true);
+  };
 
-              const res = await fetch(`${API_URL}/sathi/credits/redeem`, {
-                method: 'POST',
-                headers: {
-                  'Authorization': `Bearer ${token}`,
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                  points: pointsToRedeem,
-                  redeemType,
-                  details,
-                }),
-              });
+  const processRedemption = async () => {
+    if (!confirmModalData) return;
+    setConfirmModalVisible(false);
 
-              const resData = await res.json();
-              if (res.ok || resData.success) {
-                const generatedCode = resData.coupon?.code;
-                if (generatedCode) {
-                  setSuccessModalData({
-                    code: generatedCode,
-                    points: pointsToRedeem,
-                    valueRs: valueRs,
-                    type: 'GIFT_CARD',
-                  });
-                  setCodeCopied(false);
-                  setSuccessModalVisible(true);
-                } else {
-                  setSuccessModalData({
-                    points: pointsToRedeem,
-                    valueRs: valueRs,
-                    type: redeemType,
-                    message: resData.message || 'The transaction has been added to your reward history.',
-                  });
-                  setCodeCopied(false);
-                  setSuccessModalVisible(true);
-                }
-                setGiftRecipient('');
-                setUpiId('');
-              } else {
-                Alert.alert('Redemption Failed', resData.message || 'Could not process redemption.');
-              }
-            } catch (err) {
-              Alert.alert('Error', 'Network error while communicating with the server.');
-            } finally {
-              setRedeeming(false);
-            }
-          },
+    try {
+      setRedeeming(true);
+      const token = await AsyncStorage.getItem('userToken');
+      if (!token) return;
+
+      const res = await fetch(`${API_URL}/sathi/credits/redeem`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
         },
-      ]
-    );
+        body: JSON.stringify({
+          points: confirmModalData.points,
+          redeemType: confirmModalData.type,
+          details: confirmModalData.details,
+        }),
+      });
+
+      const resData = await res.json();
+      if (res.ok || resData.success) {
+        const generatedCode = resData.coupon?.code;
+        if (generatedCode) {
+          setSuccessModalData({
+            code: generatedCode,
+            points: confirmModalData.points,
+            valueRs: confirmModalData.valueRs,
+            type: 'GIFT_CARD',
+          });
+          setCodeCopied(false);
+          setSuccessModalVisible(true);
+        } else {
+          setSuccessModalData({
+            points: confirmModalData.points,
+            valueRs: confirmModalData.valueRs,
+            type: confirmModalData.type,
+            message: resData.message || 'The transaction has been added to your reward history.',
+          });
+          setCodeCopied(false);
+          setSuccessModalVisible(true);
+        }
+        setGiftRecipient('');
+        setUpiId('');
+      } else {
+        showAlert('Redemption Failed', resData.message || 'Could not process redemption.');
+      }
+    } catch (err) {
+      showAlert('Error', 'Network error while communicating with the server.');
+    } finally {
+      setRedeeming(false);
+      setConfirmModalData(null);
+    }
   };
 
   if (loading) {
@@ -707,6 +721,80 @@ export default function SathiCreditsScreen() {
                 activeOpacity={0.8}
               >
                 <Text style={styles.modalDoneBtnText}>Done & View in History</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Premium Confirm Modal */}
+      <Modal
+        visible={confirmModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setConfirmModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <View style={[styles.modalIconContainer, { backgroundColor: '#FFF7ED' }]}>
+              <MaterialCommunityIcons name="alert-circle-outline" size={32} color={DEEP_ORANGE} />
+            </View>
+
+            <Text style={styles.modalTitle}>Confirm Redemption</Text>
+
+            <Text style={styles.modalSubtitle}>
+              Redeem <Text style={{ fontWeight: '700', color: '#111827' }}>{confirmModalData?.points} credits</Text>
+              {' '}(Worth <Text style={{ fontWeight: '700', color: '#059669' }}>₹{confirmModalData?.valueRs}</Text>) for{' '}
+              {confirmModalData?.type === 'GIFT_CARD' ? 'MHN Gift Card' : 'Direct UPI Transfer'}?
+            </Text>
+
+            <View style={{ flexDirection: 'row', gap: 12, marginTop: 10 }}>
+              <TouchableOpacity
+                style={[styles.modalDoneBtn, { flex: 1, backgroundColor: '#F3F4F6' }]}
+                onPress={() => setConfirmModalVisible(false)}
+              >
+                <Text style={[styles.modalDoneBtnText, { color: '#4B5563' }]}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalCopyBtn, { flex: 1, backgroundColor: DEEP_ORANGE }]}
+                onPress={processRedemption}
+              >
+                <Text style={[styles.modalCopyBtnText, { color: '#FFFFFF' }]}>Redeem Now</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Premium Alert Modal */}
+      <Modal
+        visible={alertModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setAlertModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <View style={[styles.modalIconContainer, { backgroundColor: alertModalData?.isError ? '#FEF2F2' : '#EFF6FF' }]}>
+              <MaterialCommunityIcons 
+                name={alertModalData?.isError ? "alert-circle-outline" : "information-outline"} 
+                size={32} 
+                color={alertModalData?.isError ? "#EF4444" : "#3B82F6"} 
+              />
+            </View>
+
+            <Text style={styles.modalTitle}>{alertModalData?.title}</Text>
+
+            <Text style={styles.modalSubtitle}>
+              {alertModalData?.message}
+            </Text>
+
+            <View style={{ width: '100%', marginTop: 10 }}>
+              <TouchableOpacity
+                style={[styles.modalDoneBtn, { backgroundColor: alertModalData?.isError ? '#FEF2F2' : '#EFF6FF' }]}
+                onPress={() => setAlertModalVisible(false)}
+              >
+                <Text style={[styles.modalDoneBtnText, { color: alertModalData?.isError ? '#EF4444' : '#3B82F6', fontWeight: '700' }]}>OK</Text>
               </TouchableOpacity>
             </View>
           </View>
