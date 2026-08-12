@@ -19,8 +19,6 @@ import { useAndroidBackHandler } from '@/hooks/useAndroidBackHandler';
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import { SafeAreaView } from 'react-native-safe-area-context';
 import HeaderSpacer from '@/components/HeaderSpacer';
-// ⚠️ DEV ONLY — remove this import when done testing
-import { useState as useDevState } from 'react';
 import { API_URL } from '@/constants/api';
 
 
@@ -140,10 +138,6 @@ export default function BeneficiaryInfoScreen() {
         longitude: 0,
     });
 
-    // ⚠️ DEV ONLY — remove this block when done testing
-    const [devPassword, setDevPassword] = useState('');
-    const [devPwdVisible, setDevPwdVisible] = useState(false);
-    // end DEV ONLY
 
     const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
 
@@ -269,7 +263,7 @@ export default function BeneficiaryInfoScreen() {
             subscriberData: params.subscriberData,
             isVerificationFlow: params.isVerificationFlow,
             beneficiaryId: params.beneficiaryId,
-            beneficiaryData: JSON.stringify({ ...beneficiaryForm, photoUri: pickedPhotoUri, devPassword: devPassword || '654321' }),
+            beneficiaryData: JSON.stringify({ ...beneficiaryForm, photoUri: pickedPhotoUri }),
             pendingDetails: pendingData ? JSON.stringify(pendingData) : undefined,
             isLinkingFlow: params.isLinkingFlow || 'false'
         });
@@ -487,30 +481,6 @@ export default function BeneficiaryInfoScreen() {
                             )}
                         </View>
 
-                        {/* ⚠️ DEV ONLY — inline test password field — remove this block when done testing */}
-                        <View style={styles.inputGroup}>
-                            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
-                                <Text style={styles.label}>Test Password</Text>
-                                <View style={{ marginLeft: 6, backgroundColor: '#FEF3C7', borderRadius: 4, paddingHorizontal: 6, paddingVertical: 1 }}>
-                                    <Text style={{ fontSize: 9, fontWeight: '700', color: '#92400E', letterSpacing: 0.3 }}>DEV ONLY</Text>
-                                </View>
-                            </View>
-                            <View style={{ flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#F59E0B', borderRadius: 9, backgroundColor: '#FFFBEB', overflow: 'hidden' }}>
-                                <TextInput
-                                    style={[styles.input, { flex: 1, borderWidth: 0, backgroundColor: 'transparent', marginBottom: 0 }]}
-                                    placeholder="Set login password (optional)"
-                                    placeholderTextColor="#9CA3AF"
-                                    secureTextEntry={!devPwdVisible}
-                                    value={devPassword}
-                                    onChangeText={setDevPassword}
-                                />
-                                <TouchableOpacity onPress={() => setDevPwdVisible(v => !v)} style={{ paddingHorizontal: 12 }}>
-                                    <Ionicons name={devPwdVisible ? 'eye-off-outline' : 'eye-outline'} size={20} color="#92400E" />
-                                </TouchableOpacity>
-                            </View>
-                        </View>
-                        {/* end DEV ONLY */}
-
                         {/* Address Area */}
                         <AddressInputField
                             label=""
@@ -669,7 +639,6 @@ export default function BeneficiaryInfoScreen() {
                     onCancel={() => setDatePickerVisibility(false)}
                 />
 
-                {/* ⚠️ DEV ONLY — auto-set password after form next — remove when done testing */}
 
             </KeyboardAvoidingView>
 

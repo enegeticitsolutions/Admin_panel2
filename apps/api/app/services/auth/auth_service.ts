@@ -225,6 +225,49 @@ export const registerWithPassword = async (rawPhone: string, name: string, age: 
   };
 };
 
+/**
+ * Register With OTP  (Production / OTP-only flow)
+ *
+ * Called after phone OTP has already been verified.
+ * Creates a user WITHOUT a password — production users authenticate via OTP only.
+ */
+export const registerWithOtp = async (rawPhone: string, name: string, age: number) => {
+  const phone = rawPhone.replace(/\D/g, '').slice(-10);
+
+  // Prevent duplicate registration
+  const existingUser = await prisma.user.findUnique({ where: { phone } });
+  if (existingUser) {
+    throw new ApiError(400, 'A user with this phone number already exists.');
+  }
+
+  // Create user with NO password — OTP is the only auth method in production
+  const user = await prisma.user.create({
+    data: {
+      id: generateUUID(),
+      phone,
+      name,
+      age,
+      password: null,
+      role: 'prospect',
+    },
+  });
+
+  const token = createToken({ sub: user.id, role: user.role });
+
+  return {
+    success: true,
+    message: 'Registration successful',
+    user: {
+      id: user.id,
+      phone: user.phone,
+      name: user.name,
+      age: user.age,
+      role: user.role,
+    },
+    token,
+  };
+};
+
 export const loginWithPassword = async (rawPhone: string, passwordRaw: string) => {
   const phone = rawPhone.replace(/\D/g, '').slice(-10);
   const user = await prisma.user.findUnique({

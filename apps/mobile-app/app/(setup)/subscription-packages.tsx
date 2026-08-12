@@ -17,12 +17,15 @@ import { useSafeBack } from '@/hooks/useSafeBack';
 import { useNavigationStack } from '@/contexts/NavigationStackContext';
 import { useAndroidBackHandler } from '@/hooks/useAndroidBackHandler';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function SubscriptionPackagesScreen() {
     const router = useRouter();
     const { push } = useNavigationStack();
     const safeBack = useSafeBack();
     useAndroidBackHandler();
+    const { role } = useAuth();
+    const [menuOpen, setMenuOpen] = useState(false);
     const [packages, setPackages] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -321,7 +324,44 @@ export default function SubscriptionPackagesScreen() {
                         <Ionicons name="arrow-back" size={24} color="#111827" />
                     </TouchableOpacity>
                     <Text style={styles.headerTitle}>Subscription Packages</Text>
+
+                    {/* Hamburger menu — navigate without buying a package */}
+                    <TouchableOpacity
+                        style={styles.menuBtn}
+                        onPress={() => setMenuOpen(v => !v)}
+                    >
+                        <Ionicons name="menu" size={26} color="#111827" />
+                    </TouchableOpacity>
                 </View>
+
+                {/* Dropdown */}
+                {menuOpen && (
+                    <View style={styles.menuDropdown}>
+                        <TouchableOpacity
+                            style={styles.menuItem}
+                            onPress={() => { setMenuOpen(false); router.replace('/(subscriber)' as any); }}
+                        >
+                            <Ionicons name="home-outline" size={20} color="#111827" />
+                            <Text style={styles.menuItemText}>Dashboard</Text>
+                        </TouchableOpacity>
+                        <View style={styles.menuDivider} />
+                        <TouchableOpacity
+                            style={styles.menuItem}
+                            onPress={() => { setMenuOpen(false); router.push('/(subscriber)/profile' as any); }}
+                        >
+                            <Ionicons name="person-outline" size={20} color="#111827" />
+                            <Text style={styles.menuItemText}>My Profile</Text>
+                        </TouchableOpacity>
+                        <View style={styles.menuDivider} />
+                        <TouchableOpacity
+                            style={styles.menuItem}
+                            onPress={() => { setMenuOpen(false); router.push('/(subscriber)/explore' as any); }}
+                        >
+                            <Ionicons name="compass-outline" size={20} color="#111827" />
+                            <Text style={styles.menuItemText}>Explore</Text>
+                        </TouchableOpacity>
+                    </View>
+                )}
             </View>
 
             <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -724,12 +764,13 @@ const styles = StyleSheet.create({
     headerContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'center',
+        justifyContent: 'space-between',
         marginTop: 10,
-        marginBottom: 20
+        marginBottom: 4,
     },
-    backBtn: { position: 'absolute', left: 0, padding: 4 },
-    headerTitle: { fontSize: 16, fontWeight: '600', color: '#111827' },
+    backBtn: { padding: 4 },
+    headerTitle: { fontSize: 16, fontWeight: '600', color: '#111827', flex: 1, textAlign: 'center' },
+    menuBtn: { padding: 4 },
 
     headerArea: { marginBottom: 24 },
     mainTitle: { fontSize: 22, fontWeight: '400', color: '#111827', lineHeight: 30, marginBottom: 8 },
@@ -752,7 +793,39 @@ const styles = StyleSheet.create({
         paddingTop: 10,
         paddingBottom: 10,
         borderBottomWidth: 1,
-        borderBottomColor: '#F3F4F6'
+        borderBottomColor: '#F3F4F6',
+        zIndex: 10,
+    },
+    menuDropdown: {
+        backgroundColor: '#FFFFFF',
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: '#F3F4F6',
+        marginTop: 8,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 6,
+        overflow: 'hidden',
+    },
+    menuItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 20,
+        paddingVertical: 14,
+        gap: 14,
+    },
+    menuItemText: {
+        fontSize: 15,
+        fontWeight: '500',
+        color: '#111827',
+        fontFamily: 'Poppins-Medium',
+    },
+    menuDivider: {
+        height: 1,
+        backgroundColor: '#F3F4F6',
+        marginHorizontal: 16,
     },
 
     card: { backgroundColor: '#FFFFFF', borderRadius: 20, padding: 24, marginBottom: 24, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 },

@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, I
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
-import { useRouter, useFocusEffect, useLocalSearchParams, Redirect } from 'expo-router';
+import { useRouter, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 
 import { API_URL } from '@/constants/api';
@@ -30,11 +30,6 @@ const CARD_GAP = scale(12);
 export default function SubscriberDashboardScreen() {
     useExitOnBack();
     const router = useRouter();
-    const { role } = useAuth();
-
-    if (role === 'prospect') {
-        return <Redirect href="/(setup)/subscription-packages" />;
-    }
 
     const [userData, setUserData] = useState<any>(null);
     const [drawerOpen, setDrawerOpen] = useState(false);
