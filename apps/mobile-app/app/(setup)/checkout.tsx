@@ -210,8 +210,6 @@ export default function CheckoutScreen() {
     }, [fullPackage, serviceAvailable, isPackageAvailable, preValidatedRegionId]);
 
     // 🛑 UI STATE
-    const [activeTab, setActiveTab] = useState<'UPI' | 'CARDS' | 'NET_BANKING'>('UPI');
-    const [upiId, setUpiId] = useState('');
     const [promoCode, setPromoCode] = useState('');
 
     // Parse selectedAddons from navigation params
@@ -911,162 +909,92 @@ export default function CheckoutScreen() {
                             <View style={styles.securityBadge}>
                                 <Ionicons name="shield-checkmark-outline" size={20} color="#059669" style={styles.securityIcon} />
                                 <View style={styles.securityTextWrap}>
-                                    <Text style={styles.securityTextBold}>100% Secure Payment</Text>
-                                    <Text style={styles.securityText}>Your payment information is encrypted and secure</Text>
+                                    <Text style={styles.securityTextBold}>100% Secure Payment via Razorpay</Text>
+                                    <Text style={styles.securityText}>Supports UPI, GPay, Cards, NetBanking & Wallets</Text>
                                 </View>
                             </View>
 
-                            {/* PAYMENT TABS WRAPPER */}
-                            <View style={styles.tabsWrapper}>
-                                <TouchableOpacity style={[styles.tab, activeTab === 'UPI' ? styles.tabActive : styles.tabInactive]} onPress={() => setActiveTab('UPI')}>
-                                    <Ionicons name="phone-portrait-outline" size={16} color={activeTab === 'UPI' ? '#FFF' : '#4B5563'} />
-                                    <Text style={[styles.tabText, activeTab === 'UPI' && styles.tabTextActive]}>UPI</Text>
-                                </TouchableOpacity>
-
-                                <TouchableOpacity style={[styles.tab, activeTab === 'CARDS' ? styles.tabActive : styles.tabInactive]} onPress={() => setActiveTab('CARDS')}>
-                                    <Ionicons name="card-outline" size={16} color={activeTab === 'CARDS' ? '#FFF' : '#4B5563'} />
-                                    <Text style={[styles.tabText, activeTab === 'CARDS' && styles.tabTextActive]}>Cards</Text>
-                                </TouchableOpacity>
-
-                                <TouchableOpacity style={[styles.tab, activeTab === 'NET_BANKING' ? styles.tabActive : styles.tabInactive]} onPress={() => setActiveTab('NET_BANKING')}>
-                                    <MaterialCommunityIcons name="bank-outline" size={16} color={activeTab === 'NET_BANKING' ? '#FFF' : '#4B5563'} />
-                                    <Text style={[styles.tabText, activeTab === 'NET_BANKING' && styles.tabTextActive]}>Net Banking</Text>
-                                </TouchableOpacity>
-                            </View>
-
-                            {/* MASTER PAYMENT CARD (The big white box!) */}
+                            {/* MASTER PAYMENT CARD */}
                             <View style={styles.paymentCard}>
+                                {/* ─── PROMO / COUPON SECTION ─── */}
+                                <View style={styles.couponCard}>
+                                    <View style={styles.couponHeader}>
+                                        <Ionicons name="pricetag-outline" size={20} color="#FE6700" />
+                                        <Text style={styles.couponHeaderText}>Have a Promo Code?</Text>
+                                    </View>
 
-                                {activeTab === 'UPI' && (
-                                    <View>
-                                        {/* UPI Apps Grey Container */}
-                                        <View style={styles.upiAppsContainer}>
-                                            <View style={styles.upiHeader}>
-                                                <MaterialCommunityIcons name="qrcode-scan" size={20} color="#FE6700" />
-                                                <Text style={styles.upiHeaderText}>Pay using any UPI app</Text>
-                                            </View>
-                                            <View style={styles.upiAppsGrid}>
-                                                {UPI_APPS.map((app) => (
-                                                    <View key={app} style={styles.upiAppPill}>
-                                                        <Text style={styles.upiAppText}>{app}</Text>
-                                                    </View>
-                                                ))}
-                                            </View>
-                                        </View>
-
-                                        <Text style={styles.inputLabel}>Enter UPI ID</Text>
-                                        <TextInput
-                                            style={styles.input}
-                                            placeholder="yourname@paytm / yourname@okaxis"
-                                            placeholderTextColor="#9CA3AF"
-                                            value={upiId}
-                                            onChangeText={setUpiId}
-                                            autoCapitalize="none"
-                                        />
-                                        <Text style={styles.inputHelper}>Example: 9876543210@paytm</Text>
-
-                                        {/* QR Code Grey Box */}
-                                        <View style={styles.qrBox}>
-                                            <Ionicons name="qr-code-outline" size={48} color="#9CA3AF" style={styles.qrIcon} />
-                                            <Text style={styles.qrText}>Or scan QR code with any UPI app</Text>
-                                        </View>
-
-                                        {/* ─── PROMO / COUPON SECTION ─── */}
-                                        <View style={styles.couponCard}>
-                                            <View style={styles.couponHeader}>
-                                                <Ionicons name="pricetag-outline" size={20} color="#FE6700" />
-                                                <Text style={styles.couponHeaderText}>Have a Promo Code?</Text>
-                                            </View>
-
-                                            {!pricing.couponValid ? (
-                                                <>
-                                                    <View style={styles.promoInputRow}>
-                                                        <TextInput
-                                                            style={styles.promoInput}
-                                                            placeholder="Enter Code"
-                                                            placeholderTextColor="#9CA3AF"
-                                                            value={promoCode}
-                                                            onChangeText={(text) => { setPromoCode(text.toUpperCase()); setCouponError(''); }}
-                                                            autoCapitalize="characters"
-                                                            autoCorrect={false}
-                                                        />
-                                                        <TouchableOpacity
-                                                            style={[styles.applyBtnOutline, (!promoCode || isApplyingCoupon) && { opacity: 0.5 }]}
-                                                            onPress={handleApplyCoupon}
-                                                            disabled={!promoCode || isApplyingCoupon}
-                                                        >
-                                                            {isApplyingCoupon ? (
-                                                                <ActivityIndicator size="small" color="#FE6700" />
-                                                            ) : (
-                                                                <Text style={styles.applyBtnText}>Apply</Text>
-                                                            )}
-                                                        </TouchableOpacity>
-                                                    </View>
-
-                                                    {couponError ? (
-                                                        <View style={styles.couponErrorRow}>
-                                                            <Ionicons name="close-circle" size={16} color="#EF4444" />
-                                                            <Text style={styles.couponErrorText}>{couponError}</Text>
-                                                        </View>
+                                    {!pricing.couponValid ? (
+                                        <>
+                                            <View style={styles.promoInputRow}>
+                                                <TextInput
+                                                    style={styles.promoInput}
+                                                    placeholder="Enter Code"
+                                                    placeholderTextColor="#9CA3AF"
+                                                    value={promoCode}
+                                                    onChangeText={(text) => { setPromoCode(text.toUpperCase()); setCouponError(''); }}
+                                                    autoCapitalize="characters"
+                                                    autoCorrect={false}
+                                                />
+                                                <TouchableOpacity
+                                                    style={[styles.applyBtnOutline, (!promoCode || isApplyingCoupon) && { opacity: 0.5 }]}
+                                                    onPress={handleApplyCoupon}
+                                                    disabled={!promoCode || isApplyingCoupon}
+                                                >
+                                                    {isApplyingCoupon ? (
+                                                        <ActivityIndicator size="small" color="#FE6700" />
                                                     ) : (
-                                                        <Text style={styles.couponHint}>Enter a valid coupon code to get a discount on this order.</Text>
+                                                        <Text style={styles.applyBtnText}>Apply</Text>
                                                     )}
-                                                </>
-                                            ) : (
-                                                <View style={styles.couponAppliedBox}>
-                                                    <View style={styles.couponAppliedLeft}>
-                                                        <Ionicons name="checkmark-circle" size={24} color="#10B981" />
-                                                        <View style={{ marginLeft: 10 }}>
-                                                            <Text style={styles.couponAppliedCode}>{appliedCouponCode}</Text>
-                                                            <Text style={styles.couponAppliedSaving}>You saved ₹{pricing.discountApplied.toFixed(2)}!</Text>
-                                                        </View>
-                                                    </View>
-                                                    <TouchableOpacity onPress={handleRemoveCoupon} style={styles.removeBtn}>
-                                                        <Text style={styles.removeBtnText}>Remove</Text>
-                                                    </TouchableOpacity>
+                                                </TouchableOpacity>
+                                            </View>
+
+                                            {couponError ? (
+                                                <View style={styles.couponErrorRow}>
+                                                    <Ionicons name="close-circle" size={16} color="#EF4444" />
+                                                    <Text style={styles.couponErrorText}>{couponError}</Text>
                                                 </View>
-                                            )}
-                                        </View>
-
-                                        <View style={styles.divider} />
-
-                                        <TouchableOpacity
-                                            style={[styles.payButton, (isProcessing || !isLocationReady) && { opacity: 0.7 }]}
-                                            onPress={handlePay}
-                                            disabled={isProcessing || pricingLoading || !isLocationReady}
-                                        >
-                                            {isProcessing ? (
-                                                <ActivityIndicator color="#FFFFFF" />
                                             ) : (
-                                                <>
-                                                    <Feather name="lock" size={16} color="#FFF" style={styles.payBtnIcon} />
-                                                    <Text style={styles.payButtonText}>
-                                                        Pay ₹{pricingLoading ? '...' : pricing.total.toFixed(2)}
-                                                    </Text>
-                                                </>
+                                                <Text style={styles.couponHint}>Enter a valid coupon code to get a discount on this order.</Text>
                                             )}
-                                        </TouchableOpacity>
+                                        </>
+                                    ) : (
+                                        <View style={styles.couponAppliedBox}>
+                                            <View style={styles.couponAppliedLeft}>
+                                                <Ionicons name="checkmark-circle" size={24} color="#10B981" />
+                                                <View style={{ marginLeft: 10 }}>
+                                                    <Text style={styles.couponAppliedCode}>{appliedCouponCode}</Text>
+                                                    <Text style={styles.couponAppliedSaving}>You saved ₹{pricing.discountApplied.toFixed(2)}!</Text>
+                                                </View>
+                                            </View>
+                                            <TouchableOpacity onPress={handleRemoveCoupon} style={styles.removeBtn}>
+                                                <Text style={styles.removeBtnText}>Remove</Text>
+                                            </TouchableOpacity>
+                                        </View>
+                                    )}
+                                </View>
 
-                                        <Text style={styles.termsText}>
-                                            By completing this purchase, you agree to our Terms of Service and Privacy Policy
-                                        </Text>
-                                    </View>
-                                )}
+                                <View style={styles.divider} />
 
-                                {activeTab === 'CARDS' && (
-                                    <View style={styles.placeholderBox}>
-                                        <Ionicons name="card-outline" size={48} color="#D1D5DB" />
-                                        <Text style={styles.placeholderText}>Credit & Debit Card form will go here.</Text>
-                                    </View>
-                                )}
+                                <TouchableOpacity
+                                    style={[styles.payButton, (isProcessing || !isLocationReady) && { opacity: 0.7 }]}
+                                    onPress={handlePay}
+                                    disabled={isProcessing || pricingLoading || !isLocationReady}
+                                >
+                                    {isProcessing ? (
+                                        <ActivityIndicator color="#FFFFFF" />
+                                    ) : (
+                                        <>
+                                            <Feather name="lock" size={16} color="#FFF" style={styles.payBtnIcon} />
+                                            <Text style={styles.payButtonText}>
+                                                Pay ₹{pricingLoading ? '...' : pricing.total.toFixed(2)}
+                                            </Text>
+                                        </>
+                                    )}
+                                </TouchableOpacity>
 
-                                {activeTab === 'NET_BANKING' && (
-                                    <View style={styles.placeholderBox}>
-                                        <MaterialCommunityIcons name="bank-outline" size={48} color="#D1D5DB" />
-                                        <Text style={styles.placeholderText}>Net Banking options will go here.</Text>
-                                    </View>
-                                )}
-
+                                <Text style={styles.termsText}>
+                                    By completing this purchase, you agree to our Terms of Service and Privacy Policy
+                                </Text>
                             </View>
                         </>
                     )}
