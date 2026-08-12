@@ -190,7 +190,7 @@ export default function SathiDetailsScreen() {
           
           <View style={styles.availabilityPill}>
             <Text style={styles.availabilityPillText}>
-              {profile.availability?.length > 0 ? profile.availability.join(', ') : 'Weekday evenings'}
+              {profile.availability?.length > 0 ? profile.availability.join(', ') : 'Availability not selected'}
             </Text>
           </View>
         </View>
@@ -262,45 +262,8 @@ export default function SathiDetailsScreen() {
               </View>
             ))
           ) : (
-            // Mock reviews to match the UI precisely if none exist
-            <View>
-              <View style={styles.reviewItem}>
-                <View style={styles.reviewItemHeader}>
-                  <Text style={styles.reviewAuthor}>Savitri Devi</Text>
-                  <View style={styles.reviewStars}>
-                    {[...Array(5)].map((_, i) => (
-                      <FontAwesome key={i} name="star" size={12} color="#F59E0B" style={{ marginLeft: 2 }} />
-                    ))}
-                  </View>
-                </View>
-                <Text style={styles.reviewDate}>2 days ago</Text>
-                <Text style={styles.reviewText}>Priya is wonderful! She spends quality time and always brings positivity.</Text>
-              </View>
-              <View style={styles.reviewItem}>
-                <View style={styles.reviewItemHeader}>
-                  <Text style={styles.reviewAuthor}>Ramesh Kumar</Text>
-                  <View style={styles.reviewStars}>
-                    {[...Array(5)].map((_, i) => (
-                      <FontAwesome key={i} name="star" size={12} color="#F59E0B" style={{ marginLeft: 2 }} />
-                    ))}
-                  </View>
-                </View>
-                <Text style={styles.reviewDate}>1 week ago</Text>
-                <Text style={styles.reviewText}>Very caring and patient. My father enjoys her visits very much.</Text>
-              </View>
-              <View style={styles.reviewItem}>
-                <View style={styles.reviewItemHeader}>
-                  <Text style={styles.reviewAuthor}>Sunita Sharma</Text>
-                  <View style={styles.reviewStars}>
-                    {[...Array(4)].map((_, i) => (
-                      <FontAwesome key={i} name="star" size={12} color="#F59E0B" style={{ marginLeft: 2 }} />
-                    ))}
-                    <FontAwesome name="star" size={12} color="#E5E7EB" style={{ marginLeft: 2 }} />
-                  </View>
-                </View>
-                <Text style={styles.reviewDate}>2 weeks ago</Text>
-                <Text style={styles.reviewText}>Great companion, always on time and very respectful.</Text>
-              </View>
+            <View style={{ alignItems: 'center', paddingVertical: 32 }}>
+              <Text style={{ color: '#6B7280', fontSize: 14 }}>No reviews yet</Text>
             </View>
           )}
         </View>

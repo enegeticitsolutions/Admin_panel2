@@ -200,6 +200,10 @@ export const getVolunteerDetailedProfile = async (beneficiaryId: string, volunte
     distanceStr = `${dist.toFixed(1)} km`;
   }
 
+  const visitsCount = await prisma.volunteerVisitLog.count({
+    where: { volunteerId: v.id, status: 'completed' }
+  });
+
   return {
     id: v.id,
     name: v.name,
@@ -209,7 +213,7 @@ export const getVolunteerDetailedProfile = async (beneficiaryId: string, volunte
     distance: distanceStr, 
     location: v.city ? `${v.city}${v.state ? `, ${v.state}` : ''}` : (v.address || 'Nearby'),
     hours: v.totalCreditHours.toFixed(1),
-    visits: Math.floor(v.totalCreditHours),
+    visits: visitsCount,
     age: (v as any).age || 35,
     bio: v.previousExperience || v.whyJoin || 'Experienced care companion with a passion for providing companionship and emotional support to seniors.',
     availability: (v as any).availability || [],

@@ -149,7 +149,18 @@ export const getVolunteerProfile = async (id: string) => {
     throw new ApiError(404, 'Volunteer profile not found.');
   }
 
-  return volunteer;
+  const totalVisits = await prisma.volunteerVisitLog.count({
+    where: { volunteerId: id, status: 'completed' }
+  });
+
+  const ratingAggregate = await prisma.volunteerReview.aggregate({
+    _avg: { rating: true },
+    where: { volunteerId: id }
+  });
+
+  const rating = ratingAggregate._avg.rating ? Number(ratingAggregate._avg.rating.toFixed(1)) : 0;
+
+  return { ...volunteer, totalVisits, rating };
 };
 
 export const updateVolunteerProfile = async (id: string, data: any) => {
@@ -158,6 +169,23 @@ export const updateVolunteerProfile = async (id: string, data: any) => {
     data
   });
   return updated;
+};
+
+export const getVolunteerReviews = async (id: string) => {
+  const reviews = await prisma.volunteerReview.findMany({
+    where: { volunteerId: id },
+    include: {
+      beneficiary: {
+        select: {
+          subscriber: {
+            select: { name: true, profilePhoto: true }
+          }
+        }
+      }
+    },
+    orderBy: { createdAt: 'desc' }
+  });
+  return reviews;
 };
 
 export const getVolunteerDashboard = async (id: string) => {
