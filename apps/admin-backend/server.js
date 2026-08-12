@@ -8,8 +8,8 @@ const rateLimit = require('express-rate-limit');
 const app = express();
 const ApiError = require('./utils/ApiError');
 const PORT = process.env.PORT || 3001;
-const FRONTEND_URL = process.env.FRONTEND_URL ;
-const ALLOWED_ORIGINS = FRONTEND_URL.split(',').map((s) => s.trim());
+const FRONTEND_URL = process.env.FRONTEND_URL || '';
+const ALLOWED_ORIGINS = FRONTEND_URL.split(',').filter(Boolean).map((s) => s.trim());
 
 const { verifyToken, authorizeRoles } = require('./middleware/auth');
 const { verifyAccessToken } = require('./utils/jwt');

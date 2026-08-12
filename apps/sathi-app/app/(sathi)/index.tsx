@@ -42,6 +42,7 @@ export default function SathiDashboard() {
 
   const [loading, setLoading] = useState(true);
   const [dashboard, setDashboard] = useState<any>(null);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
@@ -507,11 +508,33 @@ export default function SathiDashboard() {
     }
   };
 
+  const fetchUnreadCount = async () => {
+    try {
+      const token = await AsyncStorage.getItem('userToken');
+      if (!token) return;
+
+      const response = await fetch(`${API_URL}/notifications/unread-count`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setUnreadCount(data.count || 0);
+      }
+    } catch (e) {
+      console.log('Error fetching unread count:', e);
+    }
+  };
+
   useFocusEffect(
     useCallback(() => {
       fetchDashboardData();
+      fetchUnreadCount();
       const pollTimer = setInterval(() => {
         fetchDashboardData();
+        fetchUnreadCount();
       }, 30000);
 
       return () => clearInterval(pollTimer);
@@ -788,8 +811,13 @@ export default function SathiDashboard() {
               </Text>
             </View>
           </View>
-          <TouchableOpacity style={styles.notificationBell}>
+          <TouchableOpacity style={styles.notificationBell} onPress={() => router.push('/(sathi)/notifications')}>
             <Ionicons name="notifications-outline" size={24} color="#111827" />
+            {unreadCount > 0 && (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+              </View>
+            )}
           </TouchableOpacity>
         </View>
 
@@ -2014,5 +2042,24 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '700',
     fontSize: scale(14),
+  },
+  badge: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    backgroundColor: '#EF4444',
+    borderRadius: 10,
+    minWidth: 18,
+    height: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#FFF',
+  },
+  badgeText: {
+    color: '#FFF',
+    fontSize: 10,
+    fontWeight: 'bold',
+    textAlign: 'center',
   },
 });

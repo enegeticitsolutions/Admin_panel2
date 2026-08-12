@@ -269,7 +269,6 @@ export function SaathiView({
           message: `Your visit request has been sent to ${volName}. You can track the status under 'My Requests'.`,
           volunteerName: volName,
         });
-        showAlert('Success', `Your visit request has been sent to ${volName}.`);
         // Reset form
         setDate(null);
         setTime(null);
@@ -876,10 +875,7 @@ export function SaathiView({
               {/* Languages */}
               {v.languages && v.languages.length > 0 && (
                 <View style={styles.languagesContainer}>
-                  <View style={styles.sectionHeader}>
-                    <Feather name="type" size={16} color="#6B7280" />
-                    <Text style={styles.sectionTitleText}>Languages:</Text>
-                  </View>
+                  <Text style={[styles.sectionTitleText, { marginLeft: 0 }]}>Languages:</Text>
                   <View style={styles.pillsRow}>
                     {v.languages.map((lang: string, index: number) => (
                       <View key={index} style={styles.languagePill}>
@@ -942,35 +938,70 @@ export function SaathiView({
       {/* Feedback Modal */}
       {showFeedbackModal && feedbackTarget && (
         <View style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Rate {feedbackTarget.name}</Text>
-            <View style={{ flexDirection: 'row', justifyContent: 'center', marginBottom: 16 }}>
+          <View style={[styles.modalCard, { paddingTop: 32, paddingBottom: 24, position: 'relative' }]}>
+            
+            {/* Close Button */}
+            <TouchableOpacity 
+              style={{ position: 'absolute', top: 16, right: 16, zIndex: 10, padding: 4 }}
+              onPress={() => setShowFeedbackModal(false)}
+            >
+              <Feather name="x" size={24} color="#9CA3AF" />
+            </TouchableOpacity>
+
+            {/* Avatar */}
+            <Image 
+              source={{ uri: sanitizeImageUri(feedbackTarget.photo) }} 
+              style={{ width: 80, height: 80, borderRadius: 40, marginBottom: 16, borderWidth: 3, borderColor: '#FFF0E6' }}
+            />
+            
+            <Text style={{ fontSize: 15, color: '#6B7280', fontWeight: '500', marginBottom: 4 }}>
+              How was your visit with
+            </Text>
+            <Text style={{ fontSize: 22, fontWeight: '800', color: '#111827', marginBottom: 24 }}>
+              {feedbackTarget.name}?
+            </Text>
+
+            <View style={{ flexDirection: 'row', justifyContent: 'center', marginBottom: 28 }}>
               {[1, 2, 3, 4, 5].map((star) => (
-                <TouchableOpacity key={star} onPress={() => setFeedbackRating(star)}>
+                <TouchableOpacity key={star} onPress={() => setFeedbackRating(star)} activeOpacity={0.7}>
                   <FontAwesome
                     name={star <= feedbackRating ? 'star' : 'star-o'}
-                    size={32}
-                    color="#FBBF24"
-                    style={{ marginHorizontal: 4 }}
+                    size={40}
+                    color={star <= feedbackRating ? '#F59E0B' : '#E5E7EB'}
+                    style={{ marginHorizontal: 8 }}
                   />
                 </TouchableOpacity>
               ))}
             </View>
+
             <TextInput
-              style={styles.textArea}
-              placeholder="Leave a review..."
+              style={[
+                styles.textArea, 
+                { 
+                  width: '100%', 
+                  minHeight: 110, 
+                  backgroundColor: '#F9FAFB',
+                  borderColor: '#E5E7EB',
+                  borderRadius: 16,
+                  padding: 16,
+                  fontSize: 15,
+                  marginBottom: 8
+                }
+              ]}
+              placeholder="Tell us what you liked (or didn't like)..."
               placeholderTextColor="#9CA3AF"
               multiline
-              numberOfLines={3}
+              numberOfLines={4}
               value={feedbackText}
               onChangeText={setFeedbackText}
             />
-            <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
-              <TouchableOpacity style={[styles.submitBtn, { flex: 1, backgroundColor: '#E5E7EB' }]} onPress={() => setShowFeedbackModal(false)}>
-                <Text style={[styles.submitBtnText, { color: '#374151' }]}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={[styles.submitBtn, { flex: 1 }]} onPress={handleSubmitFeedback}>
-                <Text style={styles.submitBtnText}>Submit</Text>
+
+            <View style={{ flexDirection: 'row', width: '100%', marginTop: 16 }}>
+              <TouchableOpacity 
+                style={[styles.submitBtn, { flex: 1, backgroundColor: '#FF6A00', marginTop: 0, borderRadius: 100 }]} 
+                onPress={handleSubmitFeedback}
+              >
+                <Text style={styles.submitBtnText}>Submit Review</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -1546,6 +1577,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 6,
     borderRadius: 20,
+    marginTop: 8,
   },
   languagePillText: {
     color: '#2563EB',

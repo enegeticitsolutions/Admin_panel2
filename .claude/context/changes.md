@@ -1,3 +1,27 @@
+## Session: UI Enhancements, Location Distances & Razorpay Setup (2026-08-12)
+
+### Mobile & Sathi App UI Enhancements
+- **Beneficiary UI (`apps/mobile-app`)**: 
+  - Removed "total voucher" text rendering issue.
+  - Improved Companion Rewards voucher UI by using a flexible but contained box length.
+  - Removed redundant duplicate "Success" alert notification upon visit request creation, since a custom modal already handles it.
+- **Sathi App UI (`apps/sathi-app`)**:
+  - Removed unnecessary "T" icon from the language selection UI.
+  - Adjusted spacing between the languages title and the selected languages (e.g., Punjabi, Hindi) to match the "Interests" section spacing.
+  - Created a dedicated Notifications Page (`notifications.tsx`) to display alerts (e.g., messages before a visit, new requests) and disabled the default Expo Router header for a cleaner look.
+
+### Live GPS Distance Calculation
+- **Backend API (`apps/api`)**:
+  - Replaced the hardcoded '1.2 km' fallback distance with real-time GPS distance calculation.
+  - Implemented the Haversine formula in `sathi_service.ts` (`calculateDistance`) to calculate the exact distance in kilometers between the volunteer's and beneficiary's latitude/longitude coordinates.
+  - Distance is now returned accurately in `upcomingVisits`, `visitRequests`, and `assignedBeneficiaries` dashboard payloads.
+
+### Razorpay Setup
+- **Installation (`apps/api`)**: Directed user to verify the installation of the `razorpay` SDK via npm.
+- **Environment config**: Guided configuration of `RAZORPAY_KEY_ID` and `RAZORPAY_KEY_SECRET` in `apps/api/.env` to resolve 500 crashes during order creation.
+
+---
+
 ## Session: Sathi Connection Workflow & Verification System (2026-08-10)
 
 ### Sathi Volunteer Connection Workflow

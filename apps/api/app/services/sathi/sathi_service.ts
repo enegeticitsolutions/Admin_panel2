@@ -188,6 +188,18 @@ export const getVolunteerReviews = async (id: string) => {
   return reviews;
 };
 
+function calculateDistance(lat1?: number | null, lon1?: number | null, lat2?: number | null, lon2?: number | null): string | null {
+  if (lat1 == null || lon1 == null || lat2 == null || lon2 == null) return null;
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return (R * c).toFixed(1) + ' km';
+}
+
 export const getVolunteerDashboard = async (id: string) => {
   const volunteer = await prisma.volunteer.findUnique({
     where: { id },
@@ -243,7 +255,17 @@ export const getVolunteerDashboard = async (id: string) => {
           photo: true,
           age: true,
           address: true,
-          hobbiesInterests: true
+          latitude: true,
+          longitude: true,
+          hobbiesInterests: true,
+          _count: {
+            select: { volunteerVisitLogs: true }
+          },
+          volunteerVisitLogs: {
+            select: { checkInTime: true },
+            orderBy: { checkInTime: 'desc' },
+            take: 1
+          }
         }
       }
     },
@@ -263,7 +285,12 @@ export const getVolunteerDashboard = async (id: string) => {
           name: true,
           photo: true,
           age: true,
-          address: true
+          address: true,
+          latitude: true,
+          longitude: true,
+          _count: {
+            select: { volunteerVisitLogs: true }
+          }
         }
       }
     },
@@ -299,21 +326,29 @@ export const getVolunteerDashboard = async (id: string) => {
       photo: a.beneficiary.photo || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
       age: a.beneficiary.age,
       location: a.beneficiary.address,
+      distance: calculateDistance(volunteer.latitude, volunteer.longitude, a.beneficiary.latitude, a.beneficiary.longitude),
       hobbies: a.beneficiary.hobbiesInterests || [],
       assignedAt: a.createdAt.toISOString()
     })),
-    visitRequests: pendingRequests.map(r => ({
-      id: r.id,
-      beneficiaryId: r.beneficiaryId,
-      name: r.beneficiary.name,
-      photo: r.beneficiary.photo || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120',
-      age: r.beneficiary.age,
-      location: r.beneficiary.address,
-      dateTime: r.dateTime.toISOString(),
-      reason: r.reason,
-      bio: '', // Beneficiary has no bio field in Prisma schema
-      hobbies: r.beneficiary.hobbiesInterests || []
-    })),
+    visitRequests: pendingRequests.map(r => {
+      const lastVisitTime = r.beneficiary.volunteerVisitLogs?.[0]?.checkInTime;
+      const lastVisit = lastVisitTime ? new Date(lastVisitTime).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : null;
+      return {
+        id: r.id,
+        beneficiaryId: r.beneficiaryId,
+        name: r.beneficiary.name,
+        photo: r.beneficiary.photo || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120',
+        age: r.beneficiary.age,
+        location: r.beneficiary.address,
+        distance: calculateDistance(volunteer.latitude, volunteer.longitude, r.beneficiary.latitude, r.beneficiary.longitude),
+        dateTime: r.dateTime.toISOString(),
+        reason: r.reason,
+        bio: '', // Beneficiary has no bio field in Prisma schema
+        hobbies: r.beneficiary.hobbiesInterests || [],
+        totalVisits: r.beneficiary._count?.volunteerVisitLogs || 0,
+        lastVisit: lastVisit
+      };
+    }),
     upcomingVisits: upcomingVisits.map(v => {
       const assignment = volunteer.assignments.find(a => a.beneficiaryId === v.beneficiaryId);
       return {
@@ -324,8 +359,10 @@ export const getVolunteerDashboard = async (id: string) => {
         photo: v.beneficiary.photo || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120',
         age: v.beneficiary.age,
         location: v.beneficiary.address,
+        distance: calculateDistance(volunteer.latitude, volunteer.longitude, v.beneficiary.latitude, v.beneficiary.longitude),
         dateTime: v.dateTime.toISOString(),
         reason: v.reason,
+        visitCount: v.beneficiary._count?.volunteerVisitLogs || 0,
         status: v.status
       };
     })
