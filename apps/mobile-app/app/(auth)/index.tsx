@@ -10,6 +10,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigationStack } from '@/contexts/NavigationStackContext';
 import { useAndroidBackHandler } from '@/hooks/useAndroidBackHandler';
 import { useAuth } from '@/contexts/AuthContext';
+import { IS_PASSWORD_LOGIN_ENABLED } from '@/constants/authMode';
 
 const { width, height } = Dimensions.get('window');
 const BASE_WIDTH = 390;
@@ -158,7 +159,7 @@ export default function AuthScreen() {
                 keyboardType="numeric"
                 maxLength={10}
                 value={phone}
-                onChangeText={setPhone}
+                onChangeText={(text) => setPhone(text.replace(/\D/g, ''))}
                 editable={!isLoading}
               />
             </View>
@@ -190,16 +191,18 @@ export default function AuthScreen() {
             <Text style={styles.bioButtonText}>Biometric Login</Text>
           </TouchableOpacity>
 
-          {/* Password Login */}
-          <TouchableOpacity
-            style={styles.passwordButton}
-            onPress={() => push("/(auth)/login-password" as any)}
-            disabled={isLoading}
-            activeOpacity={0.85}
-          >
-            <MaterialCommunityIcons name="lock-outline" size={scale(22)} color="#111827" style={{ marginRight: scale(8) }} />
-            <Text style={styles.passwordButtonText}>Login with Password</Text>
-          </TouchableOpacity>
+          {/* Password Login — staging / dev only */}
+          {IS_PASSWORD_LOGIN_ENABLED && (
+            <TouchableOpacity
+              style={styles.passwordButton}
+              onPress={() => push("/(auth)/login-password" as any)}
+              disabled={isLoading}
+              activeOpacity={0.85}
+            >
+              <MaterialCommunityIcons name="lock-outline" size={scale(22)} color="#111827" style={{ marginRight: scale(8) }} />
+              <Text style={styles.passwordButtonText}>Login with Password</Text>
+            </TouchableOpacity>
+          )}
 
           {/* Footer */}
           <View style={styles.footer}>

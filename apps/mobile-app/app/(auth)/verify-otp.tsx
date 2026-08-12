@@ -10,6 +10,7 @@ import { API_URL } from '@/constants/api';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigationStack } from '@/contexts/NavigationStackContext';
 import { useAndroidBackHandler } from '@/hooks/useAndroidBackHandler';
+import { IS_PASSWORD_LOGIN_ENABLED } from '@/constants/authMode';
 
 export default function VerifyOtpScreen() {
     const router = useRouter();
@@ -71,8 +72,14 @@ export default function VerifyOtpScreen() {
                 const result = data.data;
 
                 if (result.isNewUser) {
-                    // Navigate to registration if user profile doesn't exist yet
-                    push({ pathname: "/(auth)/register", params: { phone } });
+                    // Route to the correct registration screen based on auth mode
+                    if (IS_PASSWORD_LOGIN_ENABLED) {
+                        // Staging: full registration with pincode, age, password
+                        push({ pathname: "/(auth)/register", params: { phone } });
+                    } else {
+                        // Production: lightweight OTP registration — name + age only
+                        push({ pathname: "/(auth)/register-otp", params: { phone } });
+                    }
                 } else if (result.user) {
                     // PERSIST SESSION via AuthContext
                     await login(result.token, result.user);
