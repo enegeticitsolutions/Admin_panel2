@@ -46,7 +46,11 @@ class MainApplication : Application(), ReactApplication {
       ReleaseLevel.STABLE
     }
     loadReactNative(this)
-    ApplicationLifecycleDispatcher.onApplicationCreate(this)
+    try {
+      ApplicationLifecycleDispatcher.onApplicationCreate(this)
+    } catch (e: Exception) {
+      // Prevent crash if DevLauncher was already initialized during loadReactNative
+    }
   }
 
   override fun onConfigurationChanged(newConfig: Configuration) {

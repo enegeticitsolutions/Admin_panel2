@@ -185,7 +185,7 @@ export default function CheckoutPage({ selectedPackage, token, user, onSuccess, 
   return (
     <div style={{ minHeight: "100vh", background: "#f8fafc", fontFamily: "'Poppins', sans-serif" }}>
       {/* Header */}
-      <header style={{
+      <header className="checkout-page-header" style={{
         background: "#ffffff",
         borderBottom: "1px solid #e2e8f0",
         padding: "16px 40px",
@@ -200,7 +200,7 @@ export default function CheckoutPage({ selectedPackage, token, user, onSuccess, 
         <div style={{ width: "80px" }} />
       </header>
 
-      <main style={{ maxWidth: "900px", margin: "40px auto", padding: "0 24px" }}>
+      <main className="checkout-page-main" style={{ maxWidth: "900px", margin: "40px auto", padding: "0 24px" }}>
 
         {/* SUCCESS SCREEN */}
         {purchaseSuccess ? (
@@ -240,7 +240,7 @@ export default function CheckoutPage({ selectedPackage, token, user, onSuccess, 
           </div>
         ) : (
           /* CHECKOUT FORM */
-          <div style={{ display: "grid", gridTemplateColumns: "1.2fr 0.8fr", gap: "32px" }}>
+          <div className="checkout-grid" style={{ display: "grid", gridTemplateColumns: "1.2fr 0.8fr", gap: "32px" }}>
 
             {/* Left: Duration selector */}
             <div>

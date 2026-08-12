@@ -16,7 +16,35 @@ import { fetchSubscriptionPackages } from "./services/api";
  * App Component - Root Application Shell & Router
  */
 const App = () => {
-  const [activePage, setActivePage] = useState("home");
+  const getPageFromHash = () => {
+    const hash = (window.location.hash || "").replace("#", "").toLowerCase();
+    const validPages = ["home", "services", "saathi", "plans", "auth", "account", "checkout"];
+    return validPages.includes(hash) ? hash : "home";
+  };
+
+  const [activePage, setActiveStatePage] = useState(getPageFromHash);
+
+  const setActivePage = (page) => {
+    setActiveStatePage(page);
+    try {
+      if (window.location.hash !== `#${page}`) {
+        window.history.pushState(null, "", `#${page}`);
+      }
+    } catch (e) {}
+  };
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      setActiveStatePage(getPageFromHash());
+    };
+    window.addEventListener("hashchange", handleHashChange);
+    window.addEventListener("popstate", handleHashChange);
+    return () => {
+      window.removeEventListener("hashchange", handleHashChange);
+      window.removeEventListener("popstate", handleHashChange);
+    };
+  }, []);
+
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   // User Auth State

@@ -14,7 +14,7 @@ config.resolver.nodeModulesPaths = [
   path.resolve(projectRoot, 'node_modules'),
   path.resolve(workspaceRoot, 'node_modules'),
 ];
-// 3. Force Metro to resolve (sub)dependencies only from the `nodeModulesPaths`
-config.resolver.disableHierarchicalLookup = true;
+// 3. Allow hierarchical lookup for nested node_modules (e.g., react-native/node_modules/@react-native/virtualized-lists)
+config.resolver.disableHierarchicalLookup = false;
 
 module.exports = config;

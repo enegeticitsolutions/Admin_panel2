@@ -29,18 +29,30 @@ router.get('/content/sathi', async (_req: Request, res: Response) => {
       return res.status(404).json({ success: false, message: 'Content not found' });
     }
 
-    // Fetch up to 3 approved volunteers for the "Meet our Saathis" section
-    const saathis = await (prisma as any).volunteer.findMany({
+    // Fetch up to 4 approved volunteers for the "Meet our Saathis" section
+    const saathisRaw = await (prisma as any).volunteer.findMany({
       where: { applicationStatus: 'APPROVED' },
-      take: 3,
+      take: 4,
       select: {
+        id: true,
         name: true,
         city: true,
         state: true,
+        streetArea: true,
         totalCreditHours: true,
         profilePhoto: true,
       },
     });
+
+    const saathis = saathisRaw.map((s: any) => ({
+      id: s.id,
+      name: s.name,
+      city: s.city,
+      state: s.state,
+      area: s.streetArea || null,
+      totalCreditHours: s.totalCreditHours || 0,
+      profilePhoto: s.profilePhoto || null,
+    }));
 
     // Aggregate live stats for the hero section
     const volunteerStats = await (prisma as any).volunteer.aggregate({

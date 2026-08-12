@@ -144,129 +144,72 @@ export default function AuthPage({ onAuthSuccess, onGoBack, initialView = "PHONE
   const isRegistering = view === "REGISTER";
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", background: "#f8fafc", fontFamily: "'Poppins', sans-serif" }}>
-      {/* ── Left Hero Side (Uber / Swiggy Minimalist Branding) ── */}
-      <div
-        style={{
-          flex: 1,
-          background: "linear-gradient(135deg, #14110f 0%, #2a1f1b 50%, #fe6700 100%)",
-          color: "#ffffff",
-          padding: "60px 80px",
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "space-between",
-          position: "relative",
-          overflow: "hidden",
-        }}
-        className="auth-hero-side"
-      >
+    <div className="auth-page-container">
+      {/* ── Left Hero Side ── */}
+      <div className="auth-hero-side">
+        {/* 
         <div style={{ zIndex: 2 }}>
-          <button
-            onClick={onGoBack}
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "8px",
-              background: "rgba(255, 255, 255, 0.12)",
-              color: "#ffffff",
-              border: "1px solid rgba(255, 255, 255, 0.2)",
-              padding: "10px 18px",
-              borderRadius: "30px",
-              fontSize: "0.88rem",
-              fontWeight: "600",
-              cursor: "pointer",
-              backdropFilter: "blur(10px)",
-              transition: "all 0.2s",
-            }}
-          >
+          <button onClick={onGoBack} className="auth-back-btn">
             ← Back to Main Website
           </button>
         </div>
+        */}
 
         <div style={{ zIndex: 2, maxWidth: "520px" }}>
-          <div
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "8px",
-              padding: "6px 14px",
-              borderRadius: "20px",
-              background: "rgba(254, 103, 0, 0.25)",
-              border: "1px solid rgba(254, 103, 0, 0.4)",
-              color: "#ffedd5",
-              fontSize: "0.8rem",
-              fontWeight: "700",
-              textTransform: "uppercase",
-              letterSpacing: "0.5px",
-              marginBottom: "20px",
-            }}
-          >
-            India's Senior Care Ecosystem
+          <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "20px", flexWrap: "wrap" }}>
+            <button onClick={onGoBack} className="auth-back-btn" style={{ margin: 0 }}>
+              ← Back
+            </button>
+            <div className="auth-badge" style={{ margin: 0 }}>
+              India's Senior Care Ecosystem
+            </div>
           </div>
-          <h1 style={{ fontSize: "2.8rem", fontWeight: "800", lineHeight: "1.15", marginBottom: "20px" }}>
+          <h1 className="auth-hero-title">
             Care for your loved ones, <span style={{ color: "#ffedd5" }}>simplified.</span>
           </h1>
-          <p style={{ fontSize: "1.05rem", color: "#e2e8f0", lineHeight: "1.6", margin: "0 0 32px" }}>
+          <p className="auth-hero-desc">
             Log in or create a prospect account to manage senior subscriptions, track Care Mitra visits, and receive real-time family updates.
           </p>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+          <div className="auth-features-list">
             {[
               { icon: "🛡️", title: "100% Verified Care Mitras", desc: "Background checked and trained companions" },
               { icon: "📊", title: "Vitals & Happiness Score", desc: "Live monitoring of health trends and mood" },
               { icon: "🚨", title: "24/7 Emergency Response", desc: "Instant alert button for complete family safety" },
             ].map((f, i) => (
-              <div
-                key={i}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "14px",
-                  background: "rgba(255, 255, 255, 0.08)",
-                  padding: "14px 18px",
-                  borderRadius: "14px",
-                  border: "1px solid rgba(255, 255, 255, 0.12)",
-                }}
-              >
-                <span style={{ fontSize: "1.4rem" }}>{f.icon}</span>
+              <div key={i} className="auth-feature-item">
+                <span className="auth-feature-icon">{f.icon}</span>
                 <div>
-                  <div style={{ fontSize: "0.92rem", fontWeight: "700", color: "#ffffff" }}>{f.title}</div>
-                  <div style={{ fontSize: "0.8rem", color: "#cbd5e1" }}>{f.desc}</div>
+                  <div className="auth-feature-title">{f.title}</div>
+                  <div className="auth-feature-desc">{f.desc}</div>
                 </div>
               </div>
             ))}
           </div>
         </div>
 
-        <div style={{ zIndex: 2, fontSize: "0.82rem", color: "rgba(255, 255, 255, 0.6)" }}>
+        <div className="auth-copyright">
           © 2026 MaiHoonNa Care Technologies. All rights reserved.
         </div>
       </div>
 
-      {/* ── Right Content Side (Uber / Swiggy Style Minimal Form) ── */}
-      <div
-        style={{
-          flex: 1,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          padding: "40px 24px",
-        }}
-      >
-        <div style={{ width: "100%", maxWidth: "440px" }}>
+      {/* ── Right Content Side ── */}
+      <div className="auth-form-side">
+        <div className={`auth-form-card ${isRegistering ? "auth-card--register" : "auth-card--login"}`}>
           {/* Header Brand */}
-          <div style={{ marginBottom: "28px", textAlign: "center" }}>
-            <img src={logo} alt="MaiHoonNa" style={{ height: "42px", margin: "0 auto 16px", display: "block" }} />
+          <div className="auth-header-brand" style={{ marginBottom: "16px", textAlign: "center" }}>
+            <img src={logo} alt="MaiHoonNa" className="auth-brand-logo" style={{ height: "36px", margin: "0 auto 10px", display: "block" }} />
             
-            {/* ── Segmented Tab Switcher (Log In vs Create Account) ── */}
+            {/* Tab Switcher */}
             <div
+              className="auth-tab-switcher"
               style={{
                 display: "grid",
                 gridTemplateColumns: "1fr 1fr",
-                background: "#e2e8f0",
-                padding: "4px",
-                borderRadius: "14px",
-                marginBottom: "20px",
+                background: "#f1f5f9",
+                padding: "3px",
+                borderRadius: "12px",
+                marginBottom: "14px",
               }}
             >
               <button
@@ -277,11 +220,11 @@ export default function AuthPage({ onAuthSuccess, onGoBack, initialView = "PHONE
                   setView("PHONE");
                 }}
                 style={{
-                  padding: "10px",
-                  borderRadius: "10px",
+                  padding: "8px",
+                  borderRadius: "9px",
                   border: "none",
                   fontWeight: "700",
-                  fontSize: "0.95rem",
+                  fontSize: "0.9rem",
                   background: !isRegistering ? "#ffffff" : "transparent",
                   color: !isRegistering ? "#0f172a" : "#64748b",
                   boxShadow: !isRegistering ? "0 2px 6px rgba(0, 0, 0, 0.08)" : "none",
@@ -299,11 +242,11 @@ export default function AuthPage({ onAuthSuccess, onGoBack, initialView = "PHONE
                   setView("REGISTER");
                 }}
                 style={{
-                  padding: "10px",
-                  borderRadius: "10px",
+                  padding: "8px",
+                  borderRadius: "9px",
                   border: "none",
                   fontWeight: "700",
-                  fontSize: "0.95rem",
+                  fontSize: "0.9rem",
                   background: isRegistering ? "#ffffff" : "transparent",
                   color: isRegistering ? "#0f172a" : "#64748b",
                   boxShadow: isRegistering ? "0 2px 6px rgba(0, 0, 0, 0.08)" : "none",
@@ -315,16 +258,16 @@ export default function AuthPage({ onAuthSuccess, onGoBack, initialView = "PHONE
               </button>
             </div>
 
-            <h2 style={{ fontSize: "1.6rem", fontWeight: "800", color: "#0f172a", margin: "0 0 6px" }}>
+            <h2 style={{ fontSize: "1.4rem", fontWeight: "800", color: "#0f172a", margin: "0 0 4px" }}>
               {view === "PHONE" && "Log in to MaiHoonNa"}
               {view === "OTP" && "Enter 6-digit OTP"}
-              {view === "REGISTER" && "Create your Prospect Account"}
+              {view === "REGISTER" && "Create Prospect Account"}
               {view === "PASSWORD_LOGIN" && "Password Login"}
             </h2>
-            <p style={{ fontSize: "0.9rem", color: "#64748b", margin: 0 }}>
-              {view === "PHONE" && "Enter your 10-digit mobile number to receive a 1-time OTP"}
+            <p style={{ fontSize: "0.84rem", color: "#64748b", margin: 0 }}>
+              {view === "PHONE" && "Enter your 10-digit mobile number to get an OTP."}
               {view === "OTP" && `We've sent a 6-digit verification code to +91 ${phone.replace(/\D/g, "").slice(-10)}`}
-              {view === "REGISTER" && "Sign up with your name & phone number to get started"}
+              {view === "REGISTER" && "Enter your details to get started."}
               {view === "PASSWORD_LOGIN" && "Enter your registered mobile number and password"}
             </p>
           </div>
@@ -332,13 +275,13 @@ export default function AuthPage({ onAuthSuccess, onGoBack, initialView = "PHONE
           {error && (
             <div
               style={{
-                padding: "12px 16px",
+                padding: "10px 14px",
                 borderRadius: "10px",
                 background: "#fef2f2",
                 border: "1px solid #fecaca",
                 color: "#991b1b",
-                fontSize: "0.88rem",
-                marginBottom: "20px",
+                fontSize: "0.85rem",
+                marginBottom: "14px",
                 fontWeight: "500",
               }}
             >
@@ -349,13 +292,13 @@ export default function AuthPage({ onAuthSuccess, onGoBack, initialView = "PHONE
           {infoMessage && (
             <div
               style={{
-                padding: "12px 16px",
+                padding: "10px 14px",
                 borderRadius: "10px",
                 background: "#f0fdf4",
                 border: "1px solid #bbf7d0",
                 color: "#166534",
-                fontSize: "0.88rem",
-                marginBottom: "20px",
+                fontSize: "0.85rem",
+                marginBottom: "14px",
                 fontWeight: "500",
               }}
             >
@@ -365,21 +308,21 @@ export default function AuthPage({ onAuthSuccess, onGoBack, initialView = "PHONE
 
           {/* ── View 1: PHONE INPUT (LOG IN) ── */}
           {view === "PHONE" && (
-            <form onSubmit={handlePhoneSubmit} style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+            <form onSubmit={handlePhoneSubmit} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
               <div>
-                <label style={{ fontSize: "0.85rem", fontWeight: "600", color: "#334155", display: "block", marginBottom: "8px" }}>
+                <label style={{ fontSize: "0.82rem", fontWeight: "600", color: "#334155", display: "block", marginBottom: "6px" }}>
                   Mobile Phone Number
                 </label>
-                <div style={{ display: "flex", gap: "10px" }}>
+                <div style={{ display: "flex", gap: "8px" }}>
                   <div
                     style={{
-                      padding: "14px 16px",
+                      padding: "12px 14px",
                       background: "#f1f5f9",
                       border: "1.5px solid #e2e8f0",
-                      borderRadius: "12px",
+                      borderRadius: "10px",
                       fontWeight: "700",
                       color: "#0f172a",
-                      fontSize: "1rem",
+                      fontSize: "0.95rem",
                     }}
                   >
                     +91
@@ -394,10 +337,10 @@ export default function AuthPage({ onAuthSuccess, onGoBack, initialView = "PHONE
                     autoFocus
                     style={{
                       flex: 1,
-                      padding: "14px 16px",
-                      borderRadius: "12px",
+                      padding: "12px 14px",
+                      borderRadius: "10px",
                       border: "1.5px solid #cbd5e1",
-                      fontSize: "1rem",
+                      fontSize: "0.95rem",
                       fontWeight: "600",
                       outline: "none",
                       background: "#ffffff",
@@ -411,12 +354,12 @@ export default function AuthPage({ onAuthSuccess, onGoBack, initialView = "PHONE
                 disabled={loading || phone.length < 10}
                 style={{
                   width: "100%",
-                  padding: "16px",
-                  borderRadius: "12px",
+                  padding: "14px",
+                  borderRadius: "10px",
                   background: "var(--orange, #fe6700)",
                   color: "#ffffff",
                   fontWeight: "700",
-                  fontSize: "1.05rem",
+                  fontSize: "1rem",
                   border: "none",
                   boxShadow: "0 4px 14px rgba(254, 103, 0, 0.35)",
                   opacity: loading || phone.length < 10 ? 0.6 : 1,
@@ -427,20 +370,24 @@ export default function AuthPage({ onAuthSuccess, onGoBack, initialView = "PHONE
                 {loading ? "Sending OTP..." : "Send OTP"}
               </button>
 
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.88rem", marginTop: "4px" }}>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "8px", marginTop: "4px" }}>
                 <button
                   type="button"
                   onClick={() => setView("PASSWORD_LOGIN")}
                   style={{
                     background: "none",
                     border: "none",
-                    color: "var(--orange, #fe6700)",
+                    color: "#64748b",
                     fontWeight: "600",
+                    fontSize: "0.85rem",
                     cursor: "pointer",
                   }}
                 >
-                  Log in with Password
+                  Log in with Password instead
                 </button>
+
+                <div style={{ width: "100%", height: "1px", background: "#f1f5f9" }} />
+
                 <button
                   type="button"
                   onClick={() => setView("REGISTER")}
@@ -448,11 +395,12 @@ export default function AuthPage({ onAuthSuccess, onGoBack, initialView = "PHONE
                     background: "none",
                     border: "none",
                     color: "#0f172a",
-                    fontWeight: "700",
+                    fontWeight: "600",
+                    fontSize: "0.85rem",
                     cursor: "pointer",
                   }}
                 >
-                  Don't have an account? <span style={{ color: "var(--orange, #fe6700)" }}>Sign Up</span>
+                  Don't have an account? <span style={{ color: "var(--orange, #fe6700)", fontWeight: "700" }}>Sign Up</span>
                 </button>
               </div>
             </form>
@@ -460,8 +408,8 @@ export default function AuthPage({ onAuthSuccess, onGoBack, initialView = "PHONE
 
           {/* ── View 2: OTP VERIFICATION ── */}
           {view === "OTP" && (
-            <form onSubmit={handleVerifyOtpSubmit} style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", gap: "8px" }}>
+            <form onSubmit={handleVerifyOtpSubmit} style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+              <div className="auth-otp-grid">
                 {otp.map((digit, idx) => (
                   <input
                     key={idx}
@@ -472,17 +420,10 @@ export default function AuthPage({ onAuthSuccess, onGoBack, initialView = "PHONE
                     value={digit}
                     onChange={(e) => handleOtpChange(e.target.value, idx)}
                     onKeyDown={(e) => handleOtpKeyDown(e, idx)}
+                    className="auth-otp-input"
                     style={{
-                      width: "52px",
-                      height: "60px",
-                      textAlign: "center",
-                      fontSize: "1.4rem",
-                      fontWeight: "800",
-                      borderRadius: "12px",
                       border: digit ? "2px solid var(--orange, #fe6700)" : "1.5px solid #cbd5e1",
                       background: digit ? "#fff8f3" : "#ffffff",
-                      outline: "none",
-                      boxShadow: digit ? "0 0 0 3px rgba(254, 103, 0, 0.15)" : "none",
                     }}
                   />
                 ))}
@@ -493,12 +434,12 @@ export default function AuthPage({ onAuthSuccess, onGoBack, initialView = "PHONE
                 disabled={loading || otp.join("").length !== 6}
                 style={{
                   width: "100%",
-                  padding: "16px",
-                  borderRadius: "12px",
+                  padding: "14px",
+                  borderRadius: "10px",
                   background: "var(--orange, #fe6700)",
                   color: "#ffffff",
                   fontWeight: "700",
-                  fontSize: "1.05rem",
+                  fontSize: "1rem",
                   border: "none",
                   boxShadow: "0 4px 14px rgba(254, 103, 0, 0.35)",
                   opacity: loading || otp.join("").length !== 6 ? 0.6 : 1,
@@ -508,7 +449,7 @@ export default function AuthPage({ onAuthSuccess, onGoBack, initialView = "PHONE
                 {loading ? "Verifying..." : "Verify & Continue"}
               </button>
 
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.9rem" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.85rem" }}>
                 <button
                   type="button"
                   onClick={() => {
@@ -532,9 +473,9 @@ export default function AuthPage({ onAuthSuccess, onGoBack, initialView = "PHONE
 
           {/* ── View 3: REGISTRATION FORM (CREATE PROSPECT ACCOUNT) ── */}
           {view === "REGISTER" && (
-            <form onSubmit={handleRegisterSubmit} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+            <form onSubmit={handleRegisterSubmit} style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
               <div>
-                <label style={{ fontSize: "0.85rem", fontWeight: "600", color: "#334155", display: "block", marginBottom: "6px" }}>
+                <label style={{ fontSize: "0.82rem", fontWeight: "600", color: "#334155", display: "block", marginBottom: "4px" }}>
                   Full Name *
                 </label>
                 <input
@@ -543,66 +484,69 @@ export default function AuthPage({ onAuthSuccess, onGoBack, initialView = "PHONE
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   required
-                  style={{ width: "100%", padding: "14px 16px", borderRadius: "12px", border: "1.5px solid #cbd5e1", fontSize: "1rem" }}
+                  style={{ width: "100%", padding: "12px 14px", borderRadius: "10px", border: "1.5px solid #cbd5e1", fontSize: "0.95rem" }}
                 />
               </div>
 
-              <div>
-                <label style={{ fontSize: "0.85rem", fontWeight: "600", color: "#334155", display: "block", marginBottom: "6px" }}>
-                  Mobile Phone Number *
-                </label>
-                <div style={{ display: "flex", gap: "10px" }}>
-                  <div
-                    style={{
-                      padding: "14px 16px",
-                      background: "#f1f5f9",
-                      border: "1.5px solid #e2e8f0",
-                      borderRadius: "12px",
-                      fontWeight: "700",
-                      color: "#0f172a",
-                      fontSize: "1rem",
-                    }}
-                  >
-                    +91
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 90px", gap: "10px" }}>
+                <div>
+                  <label style={{ fontSize: "0.82rem", fontWeight: "600", color: "#334155", display: "block", marginBottom: "4px" }}>
+                    Mobile Number *
+                  </label>
+                  <div style={{ display: "flex", gap: "6px" }}>
+                    <div
+                      style={{
+                        padding: "12px 10px",
+                        background: "#f1f5f9",
+                        border: "1.5px solid #e2e8f0",
+                        borderRadius: "10px",
+                        fontWeight: "700",
+                        color: "#0f172a",
+                        fontSize: "0.95rem",
+                      }}
+                    >
+                      +91
+                    </div>
+                    <input
+                      type="tel"
+                      placeholder="10-digit number"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                      maxLength={10}
+                      required
+                      style={{
+                        flex: 1,
+                        padding: "12px 10px",
+                        borderRadius: "10px",
+                        border: "1.5px solid #cbd5e1",
+                        fontSize: "0.95rem",
+                        fontWeight: "600",
+                        outline: "none",
+                        width: "100%",
+                      }}
+                    />
                   </div>
+                </div>
+
+                <div>
+                  <label style={{ fontSize: "0.82rem", fontWeight: "600", color: "#334155", display: "block", marginBottom: "4px" }}>
+                    Age *
+                  </label>
                   <input
-                    type="tel"
-                    placeholder="Enter 10-digit number"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
-                    maxLength={10}
+                    type="number"
+                    placeholder="35"
+                    value={age}
+                    onChange={(e) => setAge(e.target.value)}
+                    min={18}
+                    max={120}
                     required
-                    style={{
-                      flex: 1,
-                      padding: "14px 16px",
-                      borderRadius: "12px",
-                      border: "1.5px solid #cbd5e1",
-                      fontSize: "1rem",
-                      fontWeight: "600",
-                      outline: "none",
-                    }}
+                    style={{ width: "100%", padding: "12px 10px", borderRadius: "10px", border: "1.5px solid #cbd5e1", fontSize: "0.95rem" }}
                   />
                 </div>
               </div>
 
               <div>
-                <label style={{ fontSize: "0.85rem", fontWeight: "600", color: "#334155", display: "block", marginBottom: "6px" }}>
-                  Age *
-                </label>
-                <input
-                  type="number"
-                  placeholder="e.g. 35"
-                  value={age}
-                  onChange={(e) => setAge(e.target.value)}
-                  min={18}
-                  max={120}
-                  required
-                  style={{ width: "100%", padding: "14px 16px", borderRadius: "12px", border: "1.5px solid #cbd5e1", fontSize: "1rem" }}
-                />
-              </div>
-
-              <div>
-                <label style={{ fontSize: "0.85rem", fontWeight: "600", color: "#334155", display: "block", marginBottom: "6px" }}>
+                <label style={{ fontSize: "0.82rem", fontWeight: "600", color: "#334155", display: "block", marginBottom: "4px" }}>
                   Create Password *
                 </label>
                 <input
@@ -612,7 +556,7 @@ export default function AuthPage({ onAuthSuccess, onGoBack, initialView = "PHONE
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   minLength={6}
-                  style={{ width: "100%", padding: "14px 16px", borderRadius: "12px", border: "1.5px solid #cbd5e1", fontSize: "1rem" }}
+                  style={{ width: "100%", padding: "12px 14px", borderRadius: "10px", border: "1.5px solid #cbd5e1", fontSize: "0.95rem" }}
                 />
               </div>
 
@@ -621,27 +565,27 @@ export default function AuthPage({ onAuthSuccess, onGoBack, initialView = "PHONE
                 disabled={loading || phone.length < 10}
                 style={{
                   width: "100%",
-                  padding: "16px",
-                  borderRadius: "12px",
+                  padding: "14px",
+                  borderRadius: "10px",
                   background: "var(--orange, #fe6700)",
                   color: "#ffffff",
                   fontWeight: "700",
-                  fontSize: "1.05rem",
+                  fontSize: "1rem",
                   border: "none",
                   boxShadow: "0 4px 14px rgba(254, 103, 0, 0.35)",
                   opacity: loading || phone.length < 10 ? 0.6 : 1,
                   cursor: loading || phone.length < 10 ? "not-allowed" : "pointer",
-                  marginTop: "8px",
+                  marginTop: "4px",
                 }}
               >
-                {loading ? "Creating Prospect Account..." : "Create Account"}
+                {loading ? "Creating Account..." : "Create Account"}
               </button>
 
-              <div style={{ textAlign: "center", marginTop: "10px" }}>
+              <div style={{ textAlign: "center", marginTop: "4px" }}>
                 <button
                   type="button"
                   onClick={() => setView("PHONE")}
-                  style={{ background: "none", border: "none", color: "#64748b", fontWeight: "600", fontSize: "0.88rem", cursor: "pointer" }}
+                  style={{ background: "none", border: "none", color: "#64748b", fontWeight: "600", fontSize: "0.85rem", cursor: "pointer" }}
                 >
                   Already have an account? <span style={{ color: "var(--orange, #fe6700)", fontWeight: "700" }}>Log In</span>
                 </button>
@@ -712,6 +656,12 @@ export default function AuthPage({ onAuthSuccess, onGoBack, initialView = "PHONE
               </div>
             </form>
           )}
+        </div>
+
+        <div className="auth-mobile-header">
+          <button onClick={onGoBack} className="auth-mobile-back-btn">
+            ← Back to Website
+          </button>
         </div>
       </div>
     </div>

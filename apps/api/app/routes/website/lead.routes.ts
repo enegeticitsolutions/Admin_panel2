@@ -13,9 +13,10 @@ router.post('/submit-form', async (req: Request, res: Response) => {
   console.log('📩 [Website Lead] Received payload:', req.body);
 
   try {
-    const { name, phone, pinCode, email } = req.body;
+    const { name, phone, pinCode, pincode, email } = req.body;
+    const finalPinCode = pinCode || pincode;
 
-    if (!name || !phone || !pinCode || !email) {
+    if (!name || !phone || !finalPinCode || !email) {
       return res.status(400).json({
         success: false,
         message: 'Name, phone, pin code and email are required',
@@ -31,7 +32,7 @@ router.post('/submit-form', async (req: Request, res: Response) => {
         data: {
           name,
           phone,
-          pincode: pinCode,
+          pincode: finalPinCode,
           email,
           source: 'website',
           status: 'new',
