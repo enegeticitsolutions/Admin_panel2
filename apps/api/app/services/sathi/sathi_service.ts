@@ -205,7 +205,7 @@ export const getVolunteerDashboard = async (id: string) => {
     where: { id },
     include: {
       assignments: {
-        where: { isActive: true },
+        where: { isActive: true, status: 'CONNECTED' },
         include: {
           beneficiary: true
         }
@@ -379,7 +379,7 @@ export const getVolunteerMatches = async (id: string) => {
   }
 
   const assignments = await prisma.volunteerAssignment.findMany({
-    where: { volunteerId: id, isActive: true },
+    where: { volunteerId: id, isActive: true, status: 'CONNECTED' },
     include: {
       beneficiary: {
         select: {
@@ -433,7 +433,8 @@ export const getVolunteerMatchDetail = async (volunteerId: string, beneficiaryId
     where: {
       volunteerId,
       beneficiaryId,
-      isActive: true
+      isActive: true,
+      status: 'CONNECTED'
     },
     include: {
       beneficiary: true

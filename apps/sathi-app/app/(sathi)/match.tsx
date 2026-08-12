@@ -33,6 +33,7 @@ export default function SathiMatches() {
   const router = useRouter();
 
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [matches, setMatches] = useState<any[]>([]);
 
   const fetchMatches = async () => {
@@ -50,35 +51,10 @@ export default function SathiMatches() {
       if (!response.ok) throw new Error('Matches data error');
       const data = await response.json();
       setMatches(data.data || data);
+      setError(null);
     } catch (error) {
-      console.log('Error fetching matches, loading offline mock UI matches:', error);
-      // Mock matches as shown in the screenshot
-      setMatches([
-        {
-          assignmentId: 'mock-1',
-          beneficiary: {
-            id: 'ben-1',
-            name: 'Mrs. Sharma',
-            address: 'Vasant Vihar, Delhi',
-            distance: '0.8 km',
-            photo: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
-          },
-          totalVisits: 8,
-          lastVisit: '4/14/2026',
-        },
-        {
-          assignmentId: 'mock-2',
-          beneficiary: {
-            id: 'ben-2',
-            name: 'Mr. Kapoor',
-            address: 'Defence Colony, Delhi',
-            distance: '1.2 km',
-            photo: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150',
-          },
-          totalVisits: 5,
-          lastVisit: '4/10/2026',
-        },
-      ]);
+      console.log('Error fetching matches:', error);
+      setError('Unable to load matches. Please check your connection.');
     } finally {
       setLoading(false);
     }
@@ -121,6 +97,23 @@ export default function SathiMatches() {
       <View style={styles.loaderContainer}>
         <ActivityIndicator size="large" color={DEEP_ORANGE} />
         <Text style={styles.loaderText}>Finding visit requests...</Text>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <MaterialCommunityIcons name="wifi-off" size={scale(64)} color="#D1D5DB" />
+        <Text style={{ marginTop: scale(16), fontSize: scale(16), color: '#4B5563', textAlign: 'center', paddingHorizontal: scale(32) }}>
+          {error}
+        </Text>
+        <TouchableOpacity 
+          style={{ marginTop: scale(24), backgroundColor: DEEP_ORANGE, paddingHorizontal: scale(24), paddingVertical: scale(12), borderRadius: scale(8) }}
+          onPress={() => { setLoading(true); fetchMatches(); }}
+        >
+          <Text style={{ color: '#FFFFFF', fontWeight: '600', fontSize: scale(16) }}>Retry</Text>
+        </TouchableOpacity>
       </View>
     );
   }

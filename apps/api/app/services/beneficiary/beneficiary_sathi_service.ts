@@ -111,7 +111,12 @@ export const getLinkedVolunteers = async (beneficiaryId: string) => {
     include: {
       volunteer: {
         include: {
-          reviews: true
+          reviews: true,
+          _count: {
+            select: {
+              visitLogs: { where: { status: 'completed' } }
+            }
+          }
         }
       }
     }
@@ -145,7 +150,7 @@ export const getLinkedVolunteers = async (beneficiaryId: string) => {
       distance: distanceStr, 
       location: v.city ? `${v.city}${v.state ? `, ${v.state}` : ''}` : (v.address || 'Nearby'),
       hours: v.totalCreditHours.toFixed(1),
-      visits: Math.floor(v.totalCreditHours),
+      visits: v._count?.visitLogs || 0,
       bio: v.previousExperience || v.whyJoin || 'Volunteer passionate about community support.',
       availability: (v as any).availability || [],
       languages: (v as any).languages || [],

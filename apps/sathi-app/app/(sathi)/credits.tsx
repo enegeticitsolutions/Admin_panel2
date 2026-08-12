@@ -39,6 +39,7 @@ export default function SathiCreditsScreen() {
   const router = useRouter();
 
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [redeeming, setRedeeming] = useState(false);
   const [summary, setSummary] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<'REDEEM' | 'HISTORY' | 'VOUCHERS'>('REDEEM');
@@ -92,47 +93,10 @@ export default function SathiCreditsScreen() {
       } else {
         throw new Error('Summary fetch failed');
       }
+      setError(null);
     } catch (err) {
-      console.log('Error fetching credits summary, loading offline defaults:', err);
-      setSummary({
-        availableCredits: 150,
-        totalEarned: 150,
-        totalRedeemed: 0,
-        conversionRate: 10,
-        rewardOptions: [
-          { id: 'opt-1', title: 'MHN Gift Card ₹500', pointsRequired: 50, valueRs: 500, rewardType: 'GIFT_CARD' },
-          { id: 'opt-2', title: 'MHN Gift Card ₹1,000', pointsRequired: 100, valueRs: 1000, rewardType: 'GIFT_CARD' },
-          { id: 'opt-3', title: 'MHN Gift Card ₹1,500', pointsRequired: 150, valueRs: 1500, rewardType: 'GIFT_CARD' },
-        ],
-        coupons: [
-          {
-            id: 'mock-coupon-1',
-            code: 'MHN-GIFT-8A49-209B',
-            pointsRedeemed: 50,
-            valueRs: 500,
-            status: 'ACTIVE',
-            createdAt: new Date(Date.now() - 3600000 * 5).toISOString(),
-          }
-        ],
-        transactions: [
-          {
-            id: 'mock-1',
-            type: 'earned',
-            pointsDelta: 80,
-            balanceAfter: 80,
-            description: 'Companion Visit with Mrs. Sharma (8.0 hrs)',
-            createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
-          },
-          {
-            id: 'mock-2',
-            type: 'earned',
-            pointsDelta: 70,
-            balanceAfter: 150,
-            description: 'Companion Visit with Mr. Verma (7.0 hrs)',
-            createdAt: new Date(Date.now() - 86400000 * 1).toISOString(),
-          },
-        ],
-      });
+      console.log('Error fetching credits summary:', err);
+      setError('Unable to load rewards. Please check your connection.');
     } finally {
       setLoading(false);
     }
@@ -264,6 +228,24 @@ export default function SathiCreditsScreen() {
         <Stack.Screen options={{ headerShown: false }} />
         <ActivityIndicator size="large" color={DEEP_ORANGE} />
         <Text style={styles.loaderText}>Loading Companion Rewards...</Text>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <Stack.Screen options={{ headerShown: false }} />
+        <MaterialCommunityIcons name="wifi-off" size={48} color="#D1D5DB" />
+        <Text style={{ marginTop: 16, fontSize: 16, color: '#4B5563', textAlign: 'center', paddingHorizontal: 32 }}>
+          {error}
+        </Text>
+        <TouchableOpacity 
+          style={{ marginTop: 24, backgroundColor: DEEP_ORANGE, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 8 }}
+          onPress={() => { setLoading(true); fetchCreditsSummary(); }}
+        >
+          <Text style={{ color: '#FFFFFF', fontWeight: '600', fontSize: 16 }}>Retry</Text>
+        </TouchableOpacity>
       </View>
     );
   }

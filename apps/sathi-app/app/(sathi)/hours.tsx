@@ -29,6 +29,7 @@ export default function SathiHours() {
   const router = useRouter();
 
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [activeSession, setActiveSession] = useState<any>(null);
   const [assignedMatches, setAssignedMatches] = useState<any[]>([]);
   const [selectedMatch, setSelectedMatch] = useState<any>(null);
@@ -86,32 +87,8 @@ export default function SathiHours() {
       setCreditsLedger(creditsData.data || creditsData || []);
 
     } catch (err) {
-      console.log('Error fetching hours records, using mock state:', err);
-      // Mocks for local layout
-      setAssignedMatches([
-        { assignmentId: 'assign-1', beneficiary: { id: 'ben-1', name: 'Mrs. Patel' } },
-        { assignmentId: 'assign-2', beneficiary: { id: 'ben-2', name: 'Mr. Singh' } }
-      ]);
-      setVisitHistory([
-        {
-          id: 'vlog-1',
-          checkInTime: new Date(Date.now() - 86400000).toISOString(),
-          hoursEarned: 2.0,
-          creditPointsEarned: 20,
-          beneficiary: { name: 'Mrs. Patel' }
-        },
-        {
-          id: 'vlog-2',
-          checkInTime: new Date(Date.now() - 172800000).toISOString(),
-          hoursEarned: 1.5,
-          creditPointsEarned: 15,
-          beneficiary: { name: 'Mr. Singh' }
-        }
-      ]);
-      setCreditsLedger([
-        { id: 'tx-1', description: 'Volunteered with Mrs. Patel', pointsDelta: 20, createdAt: new Date(Date.now() - 86400000).toISOString() },
-        { id: 'tx-2', description: 'Volunteered with Mr. Singh', pointsDelta: 15, createdAt: new Date(Date.now() - 172800000).toISOString() }
-      ]);
+      console.log('Error fetching hours records:', err);
+      setError('Unable to load visit records. Please check your connection.');
     } finally {
       setLoading(false);
     }
@@ -224,6 +201,23 @@ export default function SathiHours() {
       <View style={styles.loaderContainer}>
         <ActivityIndicator size="large" color={DEEP_ORANGE} />
         <Text style={styles.loaderText}>Loading visit records...</Text>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <MaterialCommunityIcons name="wifi-off" size={64} color="#D1D5DB" />
+        <Text style={{ marginTop: 16, fontSize: 16, color: '#4B5563', textAlign: 'center', paddingHorizontal: 32 }}>
+          {error}
+        </Text>
+        <TouchableOpacity 
+          style={{ marginTop: 24, backgroundColor: DEEP_ORANGE, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 8 }}
+          onPress={() => { setLoading(true); setError(null); loadHoursData(); }}
+        >
+          <Text style={{ color: '#FFFFFF', fontWeight: '600', fontSize: 16 }}>Retry</Text>
+        </TouchableOpacity>
       </View>
     );
   }

@@ -41,6 +41,7 @@ export default function SathiDashboard() {
   const router = useRouter();
 
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [dashboard, setDashboard] = useState<any>(null);
   const [unreadCount, setUnreadCount] = useState(0);
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -209,58 +210,10 @@ export default function SathiDashboard() {
       if (!response.ok) throw new Error('Dashboard data error');
       const data = await response.json();
       setDashboard(data.data || data);
+      setError(null);
     } catch (error) {
-      console.log('Error fetching dashboard, loading offline mocks:', error);
-      // Premium Offline Mock Mode
-      setDashboard({
-        status: 'verified', // 'pending' | 'verified' | 'under_review'
-        applicationStatus: 'APPROVED',
-        name: 'Meera',
-        totalCreditHours: 12.5,
-        totalCreditPoints: 125,
-        monthlyGoalHours: 10,
-        beneficiariesCount: 2,
-        upcomingVisits: [
-          {
-            id: 'visit-1',
-            name: 'Mrs. Sharma',
-            location: 'Vasant Vihar, Delhi',
-            distance: '0.8 km',
-            dateString: 'Sun, Apr 19',
-            visitCount: 8,
-            photo: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=120',
-          },
-          {
-            id: 'visit-2',
-            name: 'Mr. Kapoor',
-            location: 'Defence Colony, Delhi',
-            distance: '1.2 km',
-            dateString: 'Tue, Apr 21',
-            visitCount: 5,
-            photo: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120',
-          },
-        ],
-        visitRequests: [
-          {
-            id: 'req-1',
-            name: 'Mrs. Sharma',
-            location: 'Vasant Vihar, Delhi',
-            distance: '0.8 km',
-            totalVisits: 8,
-            lastVisit: '4/14/2026',
-            photo: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=120',
-          },
-          {
-            id: 'req-2',
-            name: 'Mr. Kapoor',
-            location: 'Defence Colony, Delhi',
-            distance: '1.2 km',
-            totalVisits: 5,
-            lastVisit: '4/10/2026',
-            photo: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120',
-          },
-        ],
-      });
+      console.log('Error fetching dashboard:', error);
+      setError('Unable to load dashboard. Please check your connection.');
     } finally {
       setLoading(false);
     }
@@ -546,6 +499,23 @@ export default function SathiDashboard() {
       <View style={styles.loaderContainer}>
         <ActivityIndicator size="large" color={DEEP_ORANGE} />
         <Text style={styles.loaderText}>Loading Saathi Dashboard...</Text>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <MaterialCommunityIcons name="wifi-off" size={scale(64)} color="#D1D5DB" />
+        <Text style={{ marginTop: scale(16), fontSize: scale(16), color: '#4B5563', textAlign: 'center', paddingHorizontal: scale(32) }}>
+          {error}
+        </Text>
+        <TouchableOpacity 
+          style={{ marginTop: scale(24), backgroundColor: DEEP_ORANGE, paddingHorizontal: scale(24), paddingVertical: scale(12), borderRadius: scale(8) }}
+          onPress={() => { setLoading(true); fetchDashboardData(); }}
+        >
+          <Text style={{ color: '#FFFFFF', fontWeight: '600', fontSize: scale(16) }}>Retry</Text>
+        </TouchableOpacity>
       </View>
     );
   }
