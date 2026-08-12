@@ -8,6 +8,8 @@ import PackageUtilizationPanel, { DetailedUtilization } from '@/components/share
 import { AddonsSection } from '@/components/addons/AddonsSection';
 import { useSafeBack } from '@/hooks/useSafeBack';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import * as Location from 'expo-location';
+import { AddressPicker } from '@/components/ui/AddressPicker';
 // @ts-ignore
 import RazorpayCheckout from 'react-native-razorpay';
 import Constants from 'expo-constants';
@@ -88,6 +90,13 @@ export default function PackageUtilizationScreen() {
   const [showAddonModal, setShowAddonModal] = useState(false);
   const [addonLoading, setAddonLoading] = useState(false);
   const [addonProcessing, setAddonProcessing] = useState(false);
+
+  // ── Location state for Region-based Add-ons ──────────────────────────────
+  const [selectedRegionId, setSelectedRegionId] = useState<string>('');
+  const [selectedAddress, setSelectedAddress] = useState<string>('');
+  const [selectedPincode, setSelectedPincode] = useState<string>('');
+  const [checkingLocation, setCheckingLocation] = useState<boolean>(false);
+  const [mapModalVisible, setMapModalVisible] = useState<boolean>(false);
 
   const promptExhaustedMessage = (benefitName?: string) => {
     const msg = `Benefit ${benefitName ? `"${benefitName}" ` : ''}is exhausted. Please connect with support team to renew or upgrade your package.`;
@@ -205,17 +214,72 @@ export default function PackageUtilizationScreen() {
     }
   };
 
-  const fetchAddons = async () => {
+  const fetchAddons = async (regionId?: string) => {
     try {
       const token = await AsyncStorage.getItem('userToken');
       if (!token) return;
-      const res = await fetch(`${API_URL}/subscriber/subscriptions/addons/available`, {
+      const targetRegion = regionId !== undefined ? regionId : selectedRegionId;
+      const query = targetRegion ? `?regionId=${targetRegion}` : '';
+      const res = await fetch(`${API_URL}/subscriber/subscriptions/addons/available${query}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
       if (data.success) setAvailableAddons(data.data || []);
     } catch (e) {
       // silently ignore — addons are optional
+    }
+  };
+
+  const handleCheckLocation = async (lat: number, lng: number) => {
+    setCheckingLocation(true);
+    try {
+      const res = await fetch(`${API_URL}/public/location/reverse-geocode?lat=${lat}&lng=${lng}`);
+      const json = await res.json();
+      if (json.success && json.data.pincode) {
+        const pincode = json.data.pincode;
+        const svcRes = await fetch(`${API_URL}/public/zones/check-pincode?pincode=${pincode}`);
+        const svcJson = await svcRes.json();
+        
+        if (svcJson.success && svcJson.data.available) {
+          const regionId = svcJson.data.regionId || '';
+          const addr = json.data.address || `${svcJson.data.location} (${pincode})`;
+          setSelectedAddress(addr);
+          setSelectedPincode(pincode);
+          setSelectedRegionId(regionId);
+          await fetchAddons(regionId);
+        } else {
+          setSelectedAddress(json.data.address || `Pincode ${pincode}`);
+          setSelectedPincode(pincode);
+          setSelectedRegionId('');
+          await fetchAddons('');
+        }
+      } else {
+        setSelectedAddress('Could not resolve address');
+      }
+    } catch (err) {
+      console.error('Error checking location:', err);
+      Alert.alert('Error', 'Could not check location serviceability.');
+    } finally {
+      setCheckingLocation(false);
+    }
+  };
+
+  const handleDirectDetectLocation = async () => {
+    setCheckingLocation(true);
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Denied', 'Location permission is required to detect your current location.');
+        setCheckingLocation(false);
+        return;
+      }
+      const location = await Location.getCurrentPositionAsync({});
+      const { latitude, longitude } = location.coords;
+      await handleCheckLocation(latitude, longitude);
+    } catch (err) {
+      console.error('Direct detect location failed:', err);
+      Alert.alert('Error', 'Failed to auto-detect your location.');
+      setCheckingLocation(false);
     }
   };
 
@@ -381,7 +445,39 @@ export default function PackageUtilizationScreen() {
   // Fetch add-ons once when we land on a detail view (subscriber only)
   useEffect(() => {
     if (beneficiaryId && userRole === 'subscriber') {
-      fetchAddons();
+      const initLocationAndAddons = async () => {
+        try {
+          const token = await AsyncStorage.getItem('userToken');
+          if (token) {
+            const profileRes = await fetch(`${API_URL}/subscriber/profile`, {
+              headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const profileJson = await profileRes.json();
+            if (profileJson.success && profileJson.data?.user) {
+              const u = profileJson.data.user;
+              if (u.latitude && u.longitude) {
+                await handleCheckLocation(u.latitude, u.longitude);
+                return;
+              } else if (u.pincode) {
+                const svcRes = await fetch(`${API_URL}/public/zones/check-pincode?pincode=${u.pincode}`);
+                const svcJson = await svcRes.json();
+                if (svcJson.success && svcJson.data.available) {
+                  const regId = svcJson.data.regionId || '';
+                  setSelectedAddress(svcJson.data.location || `Pincode ${u.pincode}`);
+                  setSelectedPincode(u.pincode);
+                  setSelectedRegionId(regId);
+                  await fetchAddons(regId);
+                  return;
+                }
+              }
+            }
+          }
+        } catch (e) {
+          console.warn('Location init failed:', e);
+        }
+        fetchAddons('');
+      };
+      initLocationAndAddons();
     }
   }, [beneficiaryId, userRole]);
 
@@ -496,6 +592,12 @@ export default function PackageUtilizationScreen() {
               onQuantityChange={handleQuantityChange}
               onPaymentSubmit={handleAddonPayment}
               beneficiaryName={detailData?.beneficiaryName || 'beneficiary'}
+              selectedAddress={selectedAddress}
+              selectedPincode={selectedPincode}
+              selectedRegionId={selectedRegionId}
+              checkingLocation={checkingLocation}
+              onDetectLocation={handleDirectDetectLocation}
+              onOpenMapPicker={() => setMapModalVisible(true)}
             />
           )}
         </ScrollView>
@@ -629,6 +731,21 @@ export default function PackageUtilizationScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Address Picker Modal for Region-based Add-ons */}
+      {mapModalVisible && (
+        <Modal visible={mapModalVisible} animationType="slide" transparent={false}>
+          <AddressPicker
+            onAddressSelected={(selected) => {
+              setMapModalVisible(false);
+              handleCheckLocation(selected.latitude, selected.longitude);
+            }}
+            onCancel={() => setMapModalVisible(false)}
+            title="Set Accurate Location"
+            subtitle="Move the pin to detect location-specific add-on benefits"
+          />
+        </Modal>
+      )}
     </SafeAreaView>
   );
 }
