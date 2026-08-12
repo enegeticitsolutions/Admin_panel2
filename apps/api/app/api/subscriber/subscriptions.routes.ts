@@ -15,7 +15,12 @@ const GST_RATE = 0.18; // 18%
 // ─────────────────────────────────────────────────────────────────────────────
 // Helper to calculate exact pricing (used by both preview and create-order)
 // ─────────────────────────────────────────────────────────────────────────────
-async function calculatePricing(packageId: string, couponCode: string | undefined, userId: string) {
+async function calculatePricing(
+  packageId: string, 
+  couponCode: string | undefined, 
+  userId: string,
+  selectedAddons?: Array<{ benefitId: string; quantity: number }>
+) {
   const pkg = await prisma.subscriptionPackage.findFirst({
     where: {
       OR: [{ id: packageId }, { type: packageId }],
@@ -28,7 +33,36 @@ async function calculatePricing(packageId: string, couponCode: string | undefine
     throw new Error('Package not found or inactive');
   }
 
-  const basePrice: number = pkg.basePrice;
+  let packageBasePrice = pkg.basePrice;
+  let addonsTotalPrice = 0;
+  const addonsBreakdown: any[] = [];
+
+  if (selectedAddons && Array.isArray(selectedAddons) && selectedAddons.length > 0) {
+    for (const addonItem of selectedAddons) {
+      if (!addonItem.benefitId) continue;
+      const q = Math.max(1, Math.floor(Number(addonItem.quantity) || 1));
+      const benefit = await prisma.benefit.findUnique({
+        where: { id: addonItem.benefitId },
+        select: { id: true, name: true, unitLabel: true, addonPrice: true, addonDiscountPrice: true, addonIncludedUnits: true }
+      });
+      if (benefit && benefit.addonPrice) {
+        const unitP = benefit.addonDiscountPrice ?? benefit.addonPrice;
+        const itemTotal = unitP * q;
+        addonsTotalPrice += itemTotal;
+        addonsBreakdown.push({
+          benefitId: benefit.id,
+          name: benefit.name,
+          unitLabel: benefit.unitLabel,
+          quantity: q,
+          includedUnits: (benefit.addonIncludedUnits || 1) * q,
+          unitPrice: unitP,
+          totalPrice: itemTotal
+        });
+      }
+    }
+  }
+
+  const basePrice: number = packageBasePrice + addonsTotalPrice;
   let discountApplied = 0;
   let finalBase = basePrice;
   let couponValid = false;
@@ -60,6 +94,9 @@ async function calculatePricing(packageId: string, couponCode: string | undefine
 
   return {
     pkg,
+    packageBasePrice,
+    addonsTotalPrice,
+    addonsBreakdown,
     basePrice,
     discountApplied,
     finalBase,
@@ -74,26 +111,29 @@ async function calculatePricing(packageId: string, couponCode: string | undefine
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /subscriber/subscriptions/checkout/preview
 // Server-side pricing calculation — no client-side math ever trusted.
-// Body: { packageId, couponCode? }
-// Returns: { packageName, basePrice, gstRate, tax, discount, discountApplied, total, couponValid, couponId }
+// Body: { packageId, couponCode?, selectedAddons? }
+// Returns: { packageName, basePrice, packageBasePrice, addonsTotalPrice, addonsBreakdown, gstRate, tax, discount, discountApplied, total, couponValid, couponId }
 // ─────────────────────────────────────────────────────────────────────────────
 router.post('/checkout/preview', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.userId!;
-    const { packageId, couponCode } = req.body;
+    const { packageId, couponCode, selectedAddons } = req.body;
 
     if (!packageId) {
       return res.status(400).json({ success: false, message: 'packageId is required' });
     }
 
     try {
-      const pricing = await calculatePricing(packageId, couponCode, userId);
+      const pricing = await calculatePricing(packageId, couponCode, userId, selectedAddons);
       
       return res.json({
         success: true,
         data: {
           packageId: pricing.pkg.id,
           packageName: pricing.pkg.name,
+          packageBasePrice: pricing.packageBasePrice,
+          addonsTotalPrice: pricing.addonsTotalPrice,
+          addonsBreakdown: pricing.addonsBreakdown,
           basePrice: pricing.basePrice,
           gstRate: GST_RATE,
           discountApplied: pricing.discountApplied,
@@ -116,17 +156,18 @@ router.post('/checkout/preview', authenticate, async (req: AuthRequest, res: Res
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /subscriber/subscriptions/create-order
 // Server-side calculation -> create razorpay order
+// Body: { packageId, couponCode?, selectedAddons? }
 // ─────────────────────────────────────────────────────────────────────────────
 router.post('/create-order', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.userId!;
-    const { packageId, couponCode } = req.body;
+    const { packageId, couponCode, selectedAddons } = req.body;
 
     if (!packageId) {
       return res.status(400).json({ success: false, message: 'packageId is required' });
     }
 
-    const pricing = await calculatePricing(packageId, couponCode, userId);
+    const pricing = await calculatePricing(packageId, couponCode, userId, selectedAddons);
     
     // Receipt ID must be max 40 chars. 
     // Format: rcpt_ + first 8 chars of userId + _ + timestamp (total ~27 chars)
@@ -442,7 +483,9 @@ function formatAddonUnitText(count: number, rawLabel?: string | null): string {
 // ─────────────────────────────────────────────────────────────────────────────
 // Helper: Calculate add-on pricing (same GST_RATE as main checkout)
 // ─────────────────────────────────────────────────────────────────────────────
-async function calculateAddonPricing(benefitId: string, subscriptionId: string, userId: string) {
+async function calculateAddonPricing(benefitId: string, subscriptionId: string, userId: string, quantity: number = 1) {
+  const q = Math.max(1, Math.floor(Number(quantity) || 1));
+
   // 1. Fetch the benefit and assert it is an active add-on
   const benefit = await prisma.benefit.findUnique({
     where: { id: benefitId },
@@ -461,17 +504,25 @@ async function calculateAddonPricing(benefitId: string, subscriptionId: string, 
   });
   if (!subscription) throw new Error('Active subscription not found or access denied');
 
-  // 3. Calculate pricing — use discount price if set, otherwise full price
-  const basePrice = benefit.addonDiscountPrice ?? benefit.addonPrice;
+  // 3. Calculate pricing — scaled by quantity `q`
+  const singleBasePrice = benefit.addonDiscountPrice ?? benefit.addonPrice;
+  const singleOriginalPrice = benefit.addonPrice;
+  const singleUnits = benefit.addonIncludedUnits ?? 1;
+
+  const basePrice = parseFloat((singleBasePrice * q).toFixed(2));
+  const originalPrice = parseFloat((singleOriginalPrice * q).toFixed(2));
   const tax = parseFloat((basePrice * GST_RATE).toFixed(2));
   const total = parseFloat((basePrice + tax).toFixed(2));
-  const includedUnits = benefit.addonIncludedUnits ?? 1;
+  const includedUnits = singleUnits * q;
 
   return {
     benefit,
     subscription,
+    quantity: q,
+    unitPrice: singleBasePrice,
+    unitIncludedUnits: singleUnits,
     basePrice,
-    originalPrice: benefit.addonPrice,
+    originalPrice,
     hasDiscount: !!(benefit.addonDiscountPrice && benefit.addonDiscountPrice < benefit.addonPrice),
     tax,
     total,
@@ -485,8 +536,22 @@ async function calculateAddonPricing(benefitId: string, subscriptionId: string, 
 // ─────────────────────────────────────────────────────────────────────────────
 router.get('/addons/available', authenticate, async (req: AuthRequest, res: Response) => {
   try {
+    const regionId = req.query.regionId as string | undefined;
+
     const addons = await prisma.benefit.findMany({
-      where: { isAddon: true, isActive: true },
+      where: {
+        isAddon: true,
+        isActive: true,
+        OR: [
+          { isGlobal: true },
+          regionId ? {
+            isGlobal: false,
+            benefitRegions: {
+              some: { regionId }
+            }
+          } : null
+        ].filter(Boolean) as any
+      },
       include: { benefitType: { select: { id: true, name: true, iconCode: true } } },
       orderBy: [{ benefitType: { displayOrder: 'asc' } }, { displayOrder: 'asc' }]
     });
@@ -501,18 +566,18 @@ router.get('/addons/available', authenticate, async (req: AuthRequest, res: Resp
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /subscriber/subscriptions/addon/preview
 // Returns pricing breakdown for an add-on before payment.
-// Body: { subscriptionId, benefitId }
+// Body: { subscriptionId, benefitId, quantity? }
 // ─────────────────────────────────────────────────────────────────────────────
 router.post('/addon/preview', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.userId!;
-    const { subscriptionId, benefitId } = req.body;
+    const { subscriptionId, benefitId, quantity } = req.body;
 
     if (!subscriptionId || !benefitId) {
       return res.status(400).json({ success: false, message: 'subscriptionId and benefitId are required' });
     }
 
-    const p = await calculateAddonPricing(benefitId, subscriptionId, userId);
+    const p = await calculateAddonPricing(benefitId, subscriptionId, userId, quantity);
 
     return res.json({
       success: true,
@@ -521,6 +586,9 @@ router.post('/addon/preview', authenticate, async (req: AuthRequest, res: Respon
         benefitName: p.benefit.name,
         benefitTypeName: p.benefit.benefitType?.name,
         unitLabel: p.benefit.unitLabel,
+        quantity: p.quantity,
+        unitPrice: p.unitPrice,
+        unitIncludedUnits: p.unitIncludedUnits,
         includedUnits: p.includedUnits,
         originalPrice: p.originalPrice,
         basePrice: p.basePrice,
@@ -539,18 +607,18 @@ router.post('/addon/preview', authenticate, async (req: AuthRequest, res: Respon
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /subscriber/subscriptions/addon/create-order
 // Creates a Razorpay order for an add-on purchase.
-// Body: { subscriptionId, benefitId }
+// Body: { subscriptionId, benefitId, quantity? }
 // ─────────────────────────────────────────────────────────────────────────────
 router.post('/addon/create-order', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.userId!;
-    const { subscriptionId, benefitId } = req.body;
+    const { subscriptionId, benefitId, quantity } = req.body;
 
     if (!subscriptionId || !benefitId) {
       return res.status(400).json({ success: false, message: 'subscriptionId and benefitId are required' });
     }
 
-    const p = await calculateAddonPricing(benefitId, subscriptionId, userId);
+    const p = await calculateAddonPricing(benefitId, subscriptionId, userId, quantity);
 
     const shortUserId = userId.substring(0, 8);
     const receiptId = `rcpt_ao_${shortUserId}_${Date.now()}`.substring(0, 40);
@@ -564,9 +632,10 @@ router.post('/addon/create-order', authenticate, async (req: AuthRequest, res: R
         amount: order.amount,
         currency: order.currency,
         receipt: order.receipt,
-        // Pass back for the purchase step
         benefitName: p.benefit.name,
         total: p.total,
+        quantity: p.quantity,
+        includedUnits: p.includedUnits,
       }
     });
   } catch (error: any) {
@@ -578,12 +647,12 @@ router.post('/addon/create-order', authenticate, async (req: AuthRequest, res: R
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /subscriber/subscriptions/addon/purchase
 // Verifies payment and credits the benefit units to the subscription.
-// Body: { subscriptionId, benefitId, razorpay_payment_id, razorpay_order_id, razorpay_signature }
+// Body: { subscriptionId, benefitId, quantity?, razorpay_payment_id, razorpay_order_id, razorpay_signature }
 // ─────────────────────────────────────────────────────────────────────────────
 router.post('/addon/purchase', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.userId!;
-    const { subscriptionId, benefitId, razorpay_payment_id, razorpay_order_id, razorpay_signature } = req.body;
+    const { subscriptionId, benefitId, quantity, razorpay_payment_id, razorpay_order_id, razorpay_signature } = req.body;
 
     if (!subscriptionId || !benefitId) {
       return res.status(400).json({ success: false, message: 'subscriptionId and benefitId are required' });
@@ -602,7 +671,7 @@ router.post('/addon/purchase', authenticate, async (req: AuthRequest, res: Respo
     }
 
     // 2. Validate pricing again server-side (never trust client)
-    const p = await calculateAddonPricing(benefitId, subscriptionId, userId);
+    const p = await calculateAddonPricing(benefitId, subscriptionId, userId, quantity);
 
     // 3. Credit units in a transaction
     const updatedBalance = await prisma.$transaction(async (tx) => {

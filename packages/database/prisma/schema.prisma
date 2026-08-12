@@ -574,6 +574,7 @@ model Benefit {
   addonPrice             Float?
   addonDiscountPrice     Float?
   addonIncludedUnits     Int                          @default(1)
+  isGlobal               Boolean                      @default(true)
 
   createdAt              DateTime                     @default(now())
   updatedAt              DateTime                     @updatedAt
@@ -583,6 +584,7 @@ model Benefit {
   visits                 Visit[]
   packageVersionBenefits PackageVersionBenefit[]
   serviceRequests        ServiceRequest[]
+  benefitRegions         BenefitRegion[]
 
   @@map("benefits")
 }
@@ -1818,6 +1820,7 @@ model Region {
   updatedAt      DateTime                    @updatedAt
   zones          Zone[]
   packageRegions SubscriptionPackageRegion[]
+  benefitRegions BenefitRegion[]
 
   @@map("regions")
 }
@@ -1830,6 +1833,16 @@ model SubscriptionPackageRegion {
 
   @@id([packageId, regionId])
   @@map("subscription_package_regions")
+}
+
+model BenefitRegion {
+  benefitId String
+  regionId  String
+  benefit   Benefit @relation(fields: [benefitId], references: [id], onDelete: Cascade)
+  region    Region  @relation(fields: [regionId], references: [id], onDelete: Cascade)
+
+  @@id([benefitId, regionId])
+  @@map("benefit_regions")
 }
 
 // ─── Sathi Network Volunteer Table ───────────────────────────────────────────

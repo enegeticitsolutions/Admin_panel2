@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_URL } from '@/constants/api';
 import PackageUtilizationPanel, { DetailedUtilization } from '@/components/shared/PackageUtilizationPanel';
+import { AddonsSection } from '@/components/addons/AddonsSection';
 import { useSafeBack } from '@/hooks/useSafeBack';
 import { SafeAreaView } from 'react-native-safe-area-context';
 // @ts-ignore
@@ -83,6 +84,7 @@ export default function PackageUtilizationScreen() {
   const [availableAddons, setAvailableAddons] = useState<any[]>([]);
   const [selectedAddon, setSelectedAddon] = useState<any | null>(null);
   const [addonPreview, setAddonPreview] = useState<any | null>(null);
+  const [addonQuantity, setAddonQuantity] = useState<number>(1);
   const [showAddonModal, setShowAddonModal] = useState(false);
   const [addonLoading, setAddonLoading] = useState(false);
   const [addonProcessing, setAddonProcessing] = useState(false);
@@ -223,14 +225,24 @@ export default function PackageUtilizationScreen() {
       return;
     }
     setSelectedAddon(addon);
-    setAddonLoading(true);
+    setAddonQuantity(1);
     setShowAddonModal(true);
+    await fetchAddonPreview(addon.id, 1);
+  };
+
+  const fetchAddonPreview = async (benefitId: string, qty: number) => {
+    if (!detailData?.subscription?.id) return;
+    setAddonLoading(true);
     try {
       const token = await AsyncStorage.getItem('userToken');
       const res = await fetch(`${API_URL}/subscriber/subscriptions/addon/preview`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ subscriptionId: detailData.subscription.id, benefitId: addon.id })
+        body: JSON.stringify({
+          subscriptionId: detailData.subscription.id,
+          benefitId: benefitId,
+          quantity: qty
+        })
       });
       const data = await res.json();
       if (data.success) {
@@ -246,6 +258,14 @@ export default function PackageUtilizationScreen() {
     }
   };
 
+  const handleQuantityChange = (delta: number) => {
+    if (!selectedAddon) return;
+    const newQty = Math.max(1, addonQuantity + delta);
+    if (newQty === addonQuantity) return;
+    setAddonQuantity(newQty);
+    fetchAddonPreview(selectedAddon.id, newQty);
+  };
+
   const handleAddonPayment = async () => {
     if (!selectedAddon || !addonPreview || !detailData?.subscription?.id) return;
     setAddonProcessing(true);
@@ -259,7 +279,11 @@ export default function PackageUtilizationScreen() {
       const orderRes = await fetch(`${API_URL}/subscriber/subscriptions/addon/create-order`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ subscriptionId: detailData.subscription.id, benefitId: selectedAddon.id })
+        body: JSON.stringify({
+          subscriptionId: detailData.subscription.id,
+          benefitId: selectedAddon.id,
+          quantity: addonQuantity
+        })
       });
       const orderData = await orderRes.json();
       if (!orderData.success) throw new Error(orderData.message);
@@ -330,6 +354,7 @@ export default function PackageUtilizationScreen() {
         body: JSON.stringify({
           subscriptionId: detailData.subscription.id,
           benefitId: selectedAddon.id,
+          quantity: addonQuantity,
           ...paymentDetails
         })
       });
@@ -450,43 +475,28 @@ export default function PackageUtilizationScreen() {
             />
           )}
 
-          {/* ── Available Add-ons (subscriber detail view only) ── */}
-          {detailData && userRole === 'subscriber' && availableAddons.length > 0 && (
-            <View style={styles.addonSection}>
-              <View style={styles.addonSectionHeader}>
-                <Ionicons name="add-circle-outline" size={20} color="#FF5B0A" style={{ marginRight: 6 }} />
-                <Text style={styles.addonSectionTitle}>Available Add-ons</Text>
-              </View>
-              <Text style={styles.addonSectionSubtitle}>Top up benefits instantly. Paid units are credited immediately.</Text>
-              {availableAddons.map((addon) => (
-                <TouchableOpacity
-                  key={addon.id}
-                  style={styles.addonCard}
-                  activeOpacity={0.8}
-                  onPress={() => handleSelectAddon(addon)}
-                >
-                  <View style={styles.addonCardLeft}>
-                    <Text style={styles.addonCardType}>{addon.benefitType?.iconCode} {addon.benefitType?.name}</Text>
-                    <Text style={styles.addonCardName}>{addon.name}</Text>
-                    {addon.description ? <Text style={styles.addonCardDesc} numberOfLines={1}>{addon.description}</Text> : null}
-                    <Text style={styles.addonCardUnits}>+{formatUnitLabelText(addon.addonIncludedUnits ?? 1, addon.unitLabel)}</Text>
-                  </View>
-                  <View style={styles.addonCardRight}>
-                    {addon.addonDiscountPrice && addon.addonDiscountPrice < addon.addonPrice ? (
-                      <>
-                        <Text style={styles.addonCardOriginalPrice}>₹{addon.addonPrice}</Text>
-                        <Text style={styles.addonCardPrice}>₹{addon.addonDiscountPrice}</Text>
-                      </>
-                    ) : (
-                      <Text style={styles.addonCardPrice}>₹{addon.addonPrice}</Text>
-                    )}
-                    <View style={styles.addonBuyBtn}>
-                      <Text style={styles.addonBuyBtnText}>Add</Text>
-                    </View>
-                  </View>
-                </TouchableOpacity>
-              ))}
-            </View>
+          {/* ── Available Add-ons Component ── */}
+          {detailData && userRole === 'subscriber' && (
+            <AddonsSection
+              addons={availableAddons}
+              onSelectAddon={handleSelectAddon}
+              formatUnitLabelText={formatUnitLabelText}
+              showModal={showAddonModal}
+              onCloseModal={() => {
+                if (!addonProcessing) {
+                  setShowAddonModal(false);
+                  setAddonPreview(null);
+                  setSelectedAddon(null);
+                }
+              }}
+              addonPreview={addonPreview}
+              addonQuantity={addonQuantity}
+              addonLoading={addonLoading}
+              addonProcessing={addonProcessing}
+              onQuantityChange={handleQuantityChange}
+              onPaymentSubmit={handleAddonPayment}
+              beneficiaryName={detailData?.beneficiaryName || 'beneficiary'}
+            />
           )}
         </ScrollView>
       )}
@@ -521,82 +531,6 @@ export default function PackageUtilizationScreen() {
           </TouchableOpacity>
         </View>
       )}
-
-      {/* ── Add-on Purchase Modal ── */}
-      <Modal
-        visible={showAddonModal}
-        transparent
-        animationType="slide"
-        onRequestClose={() => { if (!addonProcessing) { setShowAddonModal(false); setAddonPreview(null); setSelectedAddon(null); } }}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Add-on Details</Text>
-              <TouchableOpacity
-                onPress={() => { if (!addonProcessing) { setShowAddonModal(false); setAddonPreview(null); setSelectedAddon(null); } }}
-                style={{ padding: 4 }}
-              >
-                <Ionicons name="close" size={24} color="#374151" />
-              </TouchableOpacity>
-            </View>
-
-            {addonLoading ? (
-              <View style={{ paddingVertical: 40, alignItems: 'center' }}>
-                <ActivityIndicator size="large" color="#FF5B0A" />
-                <Text style={{ marginTop: 12, color: '#6B7280', fontSize: 14 }}>Calculating price...</Text>
-              </View>
-            ) : addonPreview ? (
-              <ScrollView showsVerticalScrollIndicator={false}>
-                <Text style={styles.modalSubTitle}>{addonPreview.benefitName}</Text>
-                <Text style={{ fontSize: 13, color: '#6B7280', marginBottom: 16 }}>
-                  {addonPreview.benefitTypeName} · +{formatUnitLabelText(addonPreview.includedUnits, addonPreview.unitLabel)}
-                </Text>
-
-                {/* Pricing Breakdown */}
-                <View style={styles.addonPricingBox}>
-                  <View style={styles.addonPricingRow}>
-                    <Text style={styles.addonPricingLabel}>Base Price</Text>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                      {addonPreview.hasDiscount && (
-                        <Text style={styles.addonPricingStrike}>₹{addonPreview.originalPrice}</Text>
-                      )}
-                      <Text style={styles.addonPricingValue}>₹{addonPreview.basePrice}</Text>
-                    </View>
-                  </View>
-                  <View style={styles.addonPricingRow}>
-                    <Text style={styles.addonPricingLabel}>GST (18%)</Text>
-                    <Text style={styles.addonPricingValue}>₹{addonPreview.tax}</Text>
-                  </View>
-                  <View style={[styles.addonPricingRow, { borderTopWidth: 1, borderTopColor: '#F3F4F6', marginTop: 8, paddingTop: 12 }]}>
-                    <Text style={[styles.addonPricingLabel, { fontWeight: '800', fontSize: 15, color: '#111827' }]}>Total</Text>
-                    <Text style={[styles.addonPricingValue, { fontWeight: '800', fontSize: 18, color: '#FF5B0A' }]}>₹{addonPreview.total}</Text>
-                  </View>
-                </View>
-
-                <Text style={{ fontSize: 12, color: '#9CA3AF', marginBottom: 20, textAlign: 'center' }}>
-                  +{formatUnitLabelText(addonPreview.includedUnits, addonPreview.unitLabel)} will be instantly credited to {detailData?.beneficiaryName || 'beneficiary'}'s package.
-                </Text>
-
-                <TouchableOpacity
-                  style={[styles.requestServiceBtn, addonProcessing && { opacity: 0.7 }]}
-                  onPress={handleAddonPayment}
-                  disabled={addonProcessing}
-                >
-                  {addonProcessing ? (
-                    <ActivityIndicator size="small" color="#FFFFFF" style={{ marginRight: 8 }} />
-                  ) : (
-                    <Ionicons name="card-outline" size={18} color="#FFFFFF" style={{ marginRight: 8 }} />
-                  )}
-                  <Text style={styles.requestServiceBtnText}>
-                    {addonProcessing ? 'PROCESSING...' : `PAY ₹${addonPreview.total}`}
-                  </Text>
-                </TouchableOpacity>
-              </ScrollView>
-            ) : null}
-          </View>
-        </View>
-      </Modal>
 
       {/* Request Modal */}
       <Modal
@@ -939,6 +873,53 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     marginBottom: 14,
     marginLeft: 2,
+  },
+  quantityContainer: {
+    backgroundColor: '#FFF7ED',
+    borderRadius: 14,
+    padding: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#FFEDD5',
+  },
+  quantityLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#9A3412',
+    marginBottom: 8,
+  },
+  quantityRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  quantityBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#FED7AA',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  quantityBtnDisabled: {
+    backgroundColor: '#F3F4F6',
+    borderColor: '#E5E7EB',
+  },
+  quantityDisplay: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  quantityValueText: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#9A3412',
+  },
+  quantityUnitText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#C2410C',
   },
   addonCard: {
     backgroundColor: '#FFFFFF',

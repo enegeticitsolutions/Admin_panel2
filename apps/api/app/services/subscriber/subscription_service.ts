@@ -162,7 +162,8 @@ export const purchaseSubscription = async (
   } | null,
   medicalData?: any,
   emergencyContactsRaw?: any,
-  couponCode?: string
+  couponCode?: string,
+  selectedAddons?: Array<{ benefitId: string; quantity: number }>
 ) => {
   // Look up the package directly by UUID (id) or by type slug — this works for
   // both global and regional packages, unlike getSubscriptionPackages() which
@@ -502,6 +503,49 @@ export const purchaseSubscription = async (
         })),
         skipDuplicates: true,
       });
+    }
+
+    // 2d. Initialize snapshot balances for optional selected Add-ons during package purchase
+    if (selectedAddons && Array.isArray(selectedAddons) && selectedAddons.length > 0) {
+      for (const addonItem of selectedAddons) {
+        if (!addonItem.benefitId) continue;
+        const q = Math.max(1, Math.floor(Number(addonItem.quantity) || 1));
+        const benefit = await tx.benefit.findUnique({
+          where: { id: addonItem.benefitId }
+        });
+        if (!benefit || !benefit.isAddon || !benefit.isActive) continue;
+
+        const addUnits = (benefit.addonIncludedUnits || 1) * q;
+
+        const existingBal = await tx.subscriptionBenefitBalance.findFirst({
+          where: { subscriptionId: subscription.id, benefitId: benefit.id }
+        });
+
+        if (existingBal) {
+          await tx.subscriptionBenefitBalance.update({
+            where: { id: existingBal.id },
+            data: {
+              totalUnits: existingBal.totalUnits + addUnits,
+              availableUnits: (existingBal.availableUnits || 0) + addUnits,
+            }
+          });
+        } else {
+          await tx.subscriptionBenefitBalance.create({
+            data: {
+              id: generateUUID(),
+              subscriptionId: subscription.id,
+              benefitId: benefit.id,
+              snapshotBenefitName: benefit.name,
+              snapshotUnitLabel: benefit.unitLabel,
+              totalUnits: addUnits,
+              availableUnits: addUnits,
+              usedUnits: 0,
+              reservedUnits: 0,
+              unit: benefit.unitLabel ? normalizeUnit(benefit.unitLabel) : 'visits',
+            }
+          });
+        }
+      }
     }
 
     // 3. Create a Payment record snapshotting details at enrollment

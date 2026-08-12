@@ -3,7 +3,7 @@ const router = express.Router();
 const path = require('path');
 const { prisma } = require('../lib/prisma');
 
-// GET /api/benefits — list all benefits (with type info)
+// GET /api/benefits — list all benefits (with type info & region targeting)
 router.get('/', async (req, res) => {
   const { activeOnly } = req.query;
   try {
@@ -15,9 +15,17 @@ router.get('/', async (req, res) => {
       orderBy: [{ benefitTypeId: 'asc' }, { displayOrder: 'asc' }],
       include: {
         benefitType: { select: { id: true, name: true, iconCode: true } },
+        benefitRegions: { include: { region: true } },
       },
     });
-    res.json({ success: true, data: benefits });
+
+    const formatted = benefits.map(b => ({
+      ...b,
+      regionIds: (b.benefitRegions || []).map(br => br.regionId),
+      regions: (b.benefitRegions || []).map(br => br.region),
+    }));
+
+    res.json({ success: true, data: formatted });
   } catch (err) {
     console.error('GET benefits error:', err);
     res.status(500).json({ success: false, message: err.message });
@@ -29,13 +37,23 @@ router.get('/:id', async (req, res) => {
   try {
     const benefit = await prisma.benefit.findUnique({
       where: { id: req.params.id },
-      include: { benefitType: true },
+      include: {
+        benefitType: true,
+        benefitRegions: { include: { region: true } },
+      },
     });
     if (!benefit)
       return res
         .status(404)
         .json({ success: false, message: 'Benefit not found' });
-    res.json({ success: true, data: benefit });
+
+    const formatted = {
+      ...benefit,
+      regionIds: (benefit.benefitRegions || []).map(br => br.regionId),
+      regions: (benefit.benefitRegions || []).map(br => br.region),
+    };
+
+    res.json({ success: true, data: formatted });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -58,6 +76,8 @@ router.post('/', async (req, res) => {
     addonPrice,
     addonDiscountPrice,
     addonIncludedUnits,
+    isGlobal = true,
+    regionIds = [],
   } = req.body;
   if (!benefitTypeId || !name) {
     return res
@@ -65,26 +85,52 @@ router.post('/', async (req, res) => {
       .json({ success: false, message: 'benefitTypeId and name are required' });
   }
   try {
-    const benefit = await prisma.benefit.create({
-      data: {
-        benefitTypeId,
-        code: code ? code.trim().toUpperCase() : null,
-        name,
-        description,
-        isChargeable: isChargeable ?? false,
-        unitCost: unitCost ?? null,
-        cost: cost ?? null,
-        unitLabel,
-        defaultUnits: defaultUnits ?? 1,
-        displayOrder: displayOrder ?? 0,
-        isAddon: isAddon ?? false,
-        addonPrice: addonPrice ?? null,
-        addonDiscountPrice: addonDiscountPrice ?? null,
-        addonIncludedUnits: addonIncludedUnits ?? 1,
-      },
-      include: { benefitType: { select: { id: true, name: true } } },
+    const benefit = await prisma.$transaction(async (tx) => {
+      const created = await tx.benefit.create({
+        data: {
+          benefitTypeId,
+          code: code ? code.trim().toUpperCase() : null,
+          name,
+          description,
+          isChargeable: isChargeable ?? false,
+          unitCost: unitCost ?? null,
+          cost: cost ?? null,
+          unitLabel,
+          defaultUnits: defaultUnits ?? 1,
+          displayOrder: displayOrder ?? 0,
+          isAddon: isAddon ?? false,
+          addonPrice: addonPrice ?? null,
+          addonDiscountPrice: addonDiscountPrice ?? null,
+          addonIncludedUnits: addonIncludedUnits ?? 1,
+          isGlobal: isGlobal ?? true,
+        },
+      });
+
+      if (!created.isGlobal && regionIds && regionIds.length > 0) {
+        await tx.benefitRegion.createMany({
+          data: regionIds.map((rId) => ({
+            benefitId: created.id,
+            regionId: rId,
+          })),
+        });
+      }
+
+      return tx.benefit.findUnique({
+        where: { id: created.id },
+        include: {
+          benefitType: { select: { id: true, name: true } },
+          benefitRegions: { include: { region: true } },
+        },
+      });
     });
-    res.status(201).json({ success: true, data: benefit });
+
+    const formatted = {
+      ...benefit,
+      regionIds: (benefit.benefitRegions || []).map(br => br.regionId),
+      regions: (benefit.benefitRegions || []).map(br => br.region),
+    };
+
+    res.status(201).json({ success: true, data: formatted });
   } catch (err) {
     console.error('POST benefits error:', err);
     res.status(500).json({ success: false, message: err.message });
@@ -110,6 +156,8 @@ router.patch('/:id', async (req, res) => {
     addonPrice,
     addonDiscountPrice,
     addonIncludedUnits,
+    isGlobal,
+    regionIds,
   } = req.body;
   try {
     const dataToUpdate = {};
@@ -128,13 +176,42 @@ router.patch('/:id', async (req, res) => {
     if (addonPrice !== undefined) dataToUpdate.addonPrice = addonPrice;
     if (addonDiscountPrice !== undefined) dataToUpdate.addonDiscountPrice = addonDiscountPrice;
     if (addonIncludedUnits !== undefined) dataToUpdate.addonIncludedUnits = addonIncludedUnits;
+    if (isGlobal !== undefined) dataToUpdate.isGlobal = isGlobal;
 
-    const benefit = await prisma.benefit.update({
-      where: { id },
-      data: dataToUpdate,
-      include: { benefitType: { select: { id: true, name: true } } },
+    const benefit = await prisma.$transaction(async (tx) => {
+      const updated = await tx.benefit.update({
+        where: { id },
+        data: dataToUpdate,
+      });
+
+      if (regionIds !== undefined) {
+        await tx.benefitRegion.deleteMany({ where: { benefitId: id } });
+        if (!updated.isGlobal && regionIds.length > 0) {
+          await tx.benefitRegion.createMany({
+            data: regionIds.map((rId) => ({
+              benefitId: id,
+              regionId: rId,
+            })),
+          });
+        }
+      }
+
+      return tx.benefit.findUnique({
+        where: { id },
+        include: {
+          benefitType: { select: { id: true, name: true } },
+          benefitRegions: { include: { region: true } },
+        },
+      });
     });
-    res.json({ success: true, data: benefit });
+
+    const formatted = {
+      ...benefit,
+      regionIds: (benefit.benefitRegions || []).map(br => br.regionId),
+      regions: (benefit.benefitRegions || []).map(br => br.region),
+    };
+
+    res.json({ success: true, data: formatted });
   } catch (err) {
     if (err.code === 'P2025')
       return res

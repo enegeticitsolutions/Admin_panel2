@@ -1,122 +1,194 @@
-# Add-ons Management & In-Package Top-up Architecture
+# Add-ons Management, Region-Based Selection & In-Package Top-up Architecture
 
-This document details the complete architecture, database schema changes, backend API endpoints, Admin Panel management, and Mobile App purchase flow for Add-ons and Benefit Top-ups.
+This document details the complete architecture, database schema, regional targeting flow, backend API endpoints, Admin Panel management, and Mobile App user experience for Add-ons, Package Customization, and In-Package Top-ups.
 
 ---
 
-## 1. Database Schema Updates
+## 1. Core Architecture Overview
 
-The `Benefit` model in `packages/database/prisma/schema.prisma` was extended with five key fields:
+The system supports two distinct entry points for Add-ons:
+
+1. **Care Plan Customization (Pre-Purchase / Initial Enrollment)**:
+   - When a subscriber selects a base care package (e.g. Gold Package with 3 standard benefits), an **Add-on Customization Step Modal** allows selecting optional add-on benefits with quantity selectors before checkout.
+   - Standard package benefits and selected add-on benefits are initialized together in a single atomic database transaction.
+   - Result: All benefits (e.g., 3 standard + 1 add-on = 4 total) immediately appear together under **Package Utilization**.
+
+2. **In-Package Top-up (Post-Purchase / Active Subscription)**:
+   - Subscribers with an active subscription can top-up additional units for existing or new benefits directly from the **Package Utilization** screen.
+
+---
+
+## 2. Database Schema Architecture
+
+The `Benefit` model in `packages/database/prisma/schema.prisma` was extended to serve as the unified engine for both standard benefits and add-ons:
 
 ```prisma
 model Benefit {
   id                     String   @id @default(uuid())
-  // ... existing fields ...
-  unitCost               Float?
-  cost                   Float?   // Internal cost vs unit price
+  code                   String   @unique
+  name                   String
+  description            String?
+  unitLabel              String   @default("visits")
+  unitCost               Float?   // Internal cost incurred by company
+  cost                   Float?   // Standard library cost
   
   // Add-on configuration
   isAddon                Boolean  @default(false)
-  addonPrice             Float?
-  addonDiscountPrice     Float?
-  addonIncludedUnits     Int      @default(1)
-  // ...
+  isGlobal               Boolean  @default(true)
+  addonPrice             Float?   // Base retail price per add-on pack
+  addonDiscountPrice     Float?   // Optional discounted price
+  addonIncludedUnits     Int      @default(1) // Units included in 1 pack (e.g., 10 visits)
+  
+  // Relations
+  regions                BenefitRegion[]
+  packageBenefits        PackageVersionBenefit[]
+  subscriptionBalances   SubscriptionBenefitBalance[]
 }
 ```
 
 ### Purpose of Fields:
-- **`cost`**: Internal unit cost incurred by the provider/company (stored in Benefits Library form).
-- **`isAddon`**: Boolean flag marking whether a benefit is available for standalone purchase outside of packages.
-- **`addonPrice`**: Retail price of the add-on package in INR.
-- **`addonDiscountPrice`**: Optional discounted price of the add-on package.
-- **`addonIncludedUnits`**: The number of benefit units included in a single add-on purchase (e.g., 5 companion hours, 2 visits).
+- **`isAddon`**: Marks whether a benefit is available as a standalone add-on.
+- **`isGlobal`**: If `true`, the add-on is available nationally across all locations. If `false`, it requires regional targeting via `BenefitRegion`.
+- **`addonPrice`**: Retail price of 1 add-on unit pack in INR.
+- **`addonDiscountPrice`**: Discounted price if applicable.
+- **`addonIncludedUnits`**: Number of benefit units credited per pack (e.g., `1 pack = 10 visits`).
 
 ---
 
-## 2. Admin Panel Configuration
+## 3. Region-Based Add-ons Flow
 
-### Benefits Library (`apps/admin-frontend/src/app/pages/BenefitsPage.tsx`)
-- Updated the benefit creation and edit form under "Chargeable Benefit" toggle.
-- Displays `Cost (₹)` (internal cost) alongside `Unit Price (₹)` (retail price charged per unit).
+Add-ons can be scoped globally or targeted to specific geographical regions:
 
-### Add-ons Management (`apps/admin-frontend/src/app/pages/AddonsPage.tsx`)
-- New dedicated admin page accessible via sidebar at `/addons`.
-- Fetches all benefits from the library grouped by category (Emergency, Tele-consultation, Nurse, etc.).
-- Includes a toggle switch (`isAddon`) for each benefit.
-- When toggled ON, exposes inputs for:
-  - **Included Units** (`addonIncludedUnits`)
-  - **Price (₹)** (`addonPrice`)
-  - **Discount (₹)** (`addonDiscountPrice`)
-- Saves directly to the database via `PATCH /api/benefits/:id` in `apps/admin-backend/routes/benefits.js`.
+```
+[ Subscriber Sets Location (Pincode / GPS Pin) ]
+                       │
+                       ▼
+         [ Resolves selectedRegionId ]
+                       │
+                       ▼
+ [ GET /subscriber/subscriptions/addons/available?regionId=${selectedRegionId} ]
+                       │
+                       ▼
+    ┌──────────────────┴──────────────────┐
+    ▼                                     ▼
+[ isGlobal === true ]          [ BenefitRegion contains regionId ]
+(Global Add-ons)               (Location-Targeted Add-ons)
+    └──────────────────┬──────────────────┘
+                       ▼
+  [ Returns Combined Available Add-ons List ]
+```
+
+### Step-by-Step Regional Flow:
+1. **Admin Targeting (`AddonsPage.tsx`)**:
+   - Admin creates an add-on (e.g., "Morning Nurse Special - Delhi NCR").
+   - Sets `isGlobal = false` and links regional zones (`Delhi NCR`, `Gurugram`).
+2. **Mobile Location Resolution (`subscription-packages.tsx`)**:
+   - Subscriber enters Pincode (`110001`) or drops a map pin.
+   - App checks serviceability and sets `selectedRegionId`.
+3. **API Query Filtering**:
+   - `GET /subscriber/subscriptions/addons/available?regionId=...` returns benefits matching:
+     `isAddon === true` AND `isActive === true` AND (`isGlobal === true` OR `regions.some(r => r.regionId === selectedRegionId)`).
+4. **Dynamic UI Adaptation**:
+   - If the user changes location to Bangalore, the modal dynamically re-fetches and displays Bangalore-specific add-ons.
 
 ---
 
-## 3. Subscriber Add-on Purchase Flow (Mobile App)
+## 4. Package Selection Add-ons Customization Flow (Pre-Purchase)
 
-### User Flow:
-1. Subscriber logs in -> Profile -> Selects Beneficiary -> Opens **Package Utilization** (`/package-utilization?beneficiaryId=...`).
-2. Below the active benefit balances, an **"Available Add-ons"** section displays all active benefits with `isAddon === true`.
-3. Tapping **"Add"** opens a purchase modal showing:
-   - Benefit name & category icon
-   - Unit count added (e.g. `+5 hours`)
-   - Server-calculated price breakdown: Base price + 18% GST = Total price.
-4. Tapping **"PAY ₹X"** opens Razorpay Checkout (or dev mock in web/Expo Go).
-5. Upon successful payment verification, the backend instantly credits the units to the beneficiary's active subscription balance and auto-refreshes the screen.
+When selecting a care package on `subscription-packages.tsx`:
+
+1. **Package Card Selection**:
+   - Subscriber taps "Select" on a package card (e.g., Gold Package).
+2. **Customize Your Plan Modal**:
+   - Displays package summary banner (`3 Standard Benefits Included · ₹5,000`).
+   - Fetches available location-matched and global add-ons.
+   - Shows add-on items with quantity steppers (`-` `[quantity]` `+`).
+3. **Dynamic Live Calculations**:
+   - **Total Coverage**: `Standard Benefits + Selected Add-on Benefits = Total Benefits` (e.g., `3 + 1 = 4 Benefits Total`).
+   - **Total Price**: `Base Package Price + Sum(Addon Price * Quantity)`.
+4. **Checkout Transmission (`checkout.tsx`)**:
+   - Passes `selectedAddons: Array<{ benefitId: string, quantity: number }>` to `POST /checkout/preview`, `POST /create-order`, and `POST /purchase`.
+   - Displays selected add-ons breakdown inside the Checkout **Order Summary** card.
+5. **Atomic Backend Purchase & Balance Initialization**:
+   - Inside `purchaseSubscription` transaction in `subscription_service.ts`:
+     - Creates `Subscription` record.
+     - Initializes balances for standard `versionBenefits`.
+     - Initializes/tops-up balances for `selectedAddons` (`units = addonIncludedUnits * quantity`).
+   - Result: Both standard and add-on benefits immediately show up together in **Package Utilization** (`package-utilization.tsx`).
 
 ---
 
-## 4. Backend API Endpoints
+## 5. Backend API Reference
 
 All endpoints are located in `apps/api/app/api/subscriber/subscriptions.routes.ts`:
 
 ### 1. `GET /subscriber/subscriptions/addons/available`
-- **Auth:** Subscriber
-- **Returns:** List of active benefits where `isAddon === true`.
+- **Auth:** Subscriber token
+- **Query Params:** `regionId?: string`
+- **Returns:** Array of active add-on benefits (filtered by region + global).
 
-### 2. `POST /subscriber/subscriptions/addon/preview`
-- **Auth:** Subscriber
-- **Body:** `{ subscriptionId, benefitId }`
-- **Logic:** Server-side calculation of base price, 18% GST tax, and total amount. Never trusts client-side math.
+### 2. `POST /subscriber/subscriptions/checkout/preview`
+- **Auth:** Subscriber token
+- **Body:** `{ packageId: string, couponCode?: string, selectedAddons?: Array<{ benefitId: string, quantity: number }> }`
+- **Returns:** Calculated breakdown including `packageBasePrice`, `addonsTotalPrice`, `addonsBreakdown`, `discountApplied`, `tax` (18% GST), and `total`.
 
-### 3. `POST /subscriber/subscriptions/addon/create-order`
-- **Auth:** Subscriber
-- **Body:** `{ subscriptionId, benefitId }`
-- **Logic:** Calls `createOrder()` service to initialize Razorpay payment order.
+### 3. `POST /subscriber/subscriptions/create-order`
+- **Auth:** Subscriber token
+- **Body:** `{ packageId: string, couponCode?: string, selectedAddons?: Array<{ benefitId: string, quantity: number }> }`
+- **Logic:** Server-side calculation of total amount including add-ons; creates Razorpay payment order.
 
-### 4. `POST /subscriber/subscriptions/addon/purchase`
-- **Auth:** Subscriber
-- **Body:** `{ subscriptionId, benefitId, razorpay_payment_id, razorpay_order_id, razorpay_signature }`
-- **Logic:**
-  1. Verifies Razorpay HMAC signature via `verifyPaymentSignature()`.
-  2. Runs a database transaction:
-     - Upserts `SubscriptionBenefitBalance`: if the benefit already exists in the subscription, adds `addonIncludedUnits` to `totalUnits` and `availableUnits`. If it's a new benefit, creates a balance record.
-     - Logs a audit entry in `BenefitTransaction` with `transactionType: 'ALLOCATED'` and `reason: Add-on purchase...`.
+### 4. `POST /subscriber/subscriptions/purchase`
+- **Auth:** Subscriber token
+- **Body:** `{ packageId: string, beneficiaryData: ..., selectedAddons?: Array<{ benefitId: string, quantity: number }>, razorpay_payment_id, ... }`
+- **Logic:** Verifies payment signature and runs atomic database transaction populating all standard + selected add-on balances.
+
+### 5. `POST /subscriber/subscriptions/addon/preview` (In-Package Top-up)
+- **Auth:** Subscriber token
+- **Body:** `{ subscriptionId: string, benefitId: string, quantity?: number }`
+- **Returns:** Pricing breakdown for standalone top-up purchase.
+
+### 6. `POST /subscriber/subscriptions/addon/purchase` (In-Package Top-up)
+- **Auth:** Subscriber token
+- **Body:** `{ subscriptionId: string, benefitId: string, quantity?: number, razorpay_payment_id, ... }`
+- **Logic:** Verifies signature, updates/upserts `SubscriptionBenefitBalance`, logs `BenefitTransaction` (`ALLOCATED`), and dispatches push & in-app notifications.
 
 ---
 
-## 5. Architectural Integrity & Reuse
+## 6. Shared Modular Frontend Architecture (`apps/mobile-app/`)
 
-- **No schema pollution:** No separate `Addon` table needed; extended `Benefit` and existing `SubscriptionBenefitBalance`.
-- **Payment reuse:** Uses existing `createOrder` and `verifyPaymentSignature` methods from `razorpay_service.ts`.
-- **Audit trail:** All credit additions are tracked in `BenefitTransaction` with `ALLOCATED` type.
+To maintain clean code separation and max reusability, components are organized under `components/addons/`:
+
+```
+apps/mobile-app/components/addons/
+├── AddonCard.tsx            # Universal Add-on Card (Direct mode & Stepper mode)
+├── AddonPurchaseModal.tsx   # Top-up Purchase Sheet with Quantity Selector & Price Breakdown
+└── AddonsSection.tsx        # Section Container for Package Utilization screen
+```
+
+### Dual Operating Modes of `AddonCard.tsx`:
+1. **Direct Purchase Mode** (`package-utilization.tsx`):
+   - Renders `Add` button that opens `AddonPurchaseModal` for topping up an active subscription.
+2. **Interactive Stepper Mode** (`subscription-packages.tsx`):
+   - Accepts `selectedQuantity` and `onQuantityChange` props.
+   - When quantity is `0`: Renders `+ Add` button.
+   - When quantity is `> 0`: Renders interactive `-` `[quantity]` `+` stepper controls directly on the card.
 
 ---
 
-## 6. Push & In-App Notifications
+## 7. Minimalist Design System Standards
 
-Upon successful completion of an add-on purchase (`POST /subscriber/subscriptions/addon/purchase`), dual notifications are dispatched asynchronously via `apps/api/app/services/notification_service.ts`:
+The Add-on UI adheres to modern minimalist design principles:
 
-1. **Subscriber Notification** (The Buyer):
-   - **Recipient:** Purchasing Subscriber (`userId`)
-   - **Title:** `Add-on Purchased! 🎉`
-   - **Body:** `You successfully added 10 visits of General physician for Sourav.`
-   - **Type:** `payment_success`
-   - **Channel:** Both Expo Push (FCM / APNs) and In-App DB Notification (`notifications` table)
+- **Typography**: Clean slate hierarchy (`#0F172A` headings, `#64748B` body, tracking letter-spacing on category badges).
+- **Cards**: Pure white background (`#FFFFFF`), subtle border (`1px solid #E2E8F0`), soft subtle orange tint on selection (`#FFFBF9`).
+- **Badges**: Micro unit pills (`#F1F5F9` subtle tint badge, `#475569` text).
+- **Buttons**: Minimalist `#FF5B0A` solid buttons with clean white text and smooth touch feedback.
 
-2. **Beneficiary Notification** (The Recipient):
-   - **Recipient:** Linked Beneficiary (`beneficiary.userId`), if registered with a user account
-   - **Title:** `New Benefit Added! 🎁`
-   - **Body:** `10 visits of General physician has been added to your care package!`
-   - **Type:** `system`
-   - **Channel:** Both Expo Push (FCM / APNs) and In-App DB Notification (`notifications` table)
+---
 
+## 8. Notifications & Audit Trail
+
+Upon completing any Add-on purchase:
+1. **Audit Log**: Formally recorded in `BenefitTransaction` table with `transactionType: 'ALLOCATED'` and reason string.
+2. **Subscriber Notification**: Dispatched via FCM/APNs & stored in `notifications` table (`Add-on Purchased! 🎉`).
+3. **Beneficiary Notification**: Dispatched to beneficiary user account (`New Benefit Added! 🎁`).

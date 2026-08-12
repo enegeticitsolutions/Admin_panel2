@@ -16,6 +16,7 @@ import type { SubscriptionPackage, Benefit, PackageBenefit } from '../../types';
 import { Plus, Check, ArrowRight, ArrowLeft, Package, Edit, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { StatusChip } from '../components/common/StatusChip';
+import { RegionSelector } from '../components/common/RegionSelector';
 
 type WizardStep = 'define' | 'benefits' | 'units' | 'review';
 
@@ -644,19 +645,17 @@ export default function SubscriptionsPage() {
                   </div>
 
                   <div className="flex flex-col gap-3 mb-6">
-                    <div className="flex items-center space-x-3 p-4 bg-orange-50 border border-orange-200 rounded-lg">
-                      <Checkbox
-                        id="isGlobal"
-                        checked={isGlobal}
-                        onCheckedChange={(val) => setIsGlobal(!!val)}
-                      />
-                      <div className="space-y-1 leading-none">
-                        <Label htmlFor="isGlobal" className="font-semibold text-orange-900 cursor-pointer text-base">Make this package Global</Label>
-                        <p className="text-sm text-orange-700">
-                          When checked, this package will be visible to all app users. When unchecked, it will be kept private.
-                        </p>
-                      </div>
-                    </div>
+                    <RegionSelector
+                      isGlobal={isGlobal}
+                      setIsGlobal={setIsGlobal}
+                      selectedRegionIds={selectedRegionIds}
+                      setSelectedRegionIds={setSelectedRegionIds}
+                      regions={regions}
+                      globalLabel="Make this package Global"
+                      globalDescription="When checked, this package will be visible to all app users across all regions. When unchecked, it will be restricted to targeted regions."
+                      title="Target Regions"
+                      description="Search and select specific regions this package is limited to (applicable only if non-global)."
+                    />
 
                     <div className="flex items-center space-x-3 p-4 bg-orange-50 border border-orange-200 rounded-lg">
                       <Checkbox
@@ -683,83 +682,6 @@ export default function SubscriptionsPage() {
                         <p className="text-sm text-orange-700">
                           When checked, this package will be featured side-by-side in the Comparison Table on the website.
                         </p>
-                      </div>
-                    </div>
-
-                    {/* Region Targeting Multi-Select Search */}
-                    <div className="flex flex-col gap-2 p-4 bg-orange-50 border border-orange-200 rounded-lg">
-                      <div className="space-y-1 leading-none mb-2">
-                        <Label className="font-semibold text-orange-900 text-base">Target Regions</Label>
-                        <p className="text-sm text-orange-700">
-                          Search and select specific regions this package is limited to (applicable only if non-global).
-                        </p>
-                      </div>
-
-                      <div className="relative">
-                        <input
-                          type="text"
-                          placeholder={isGlobal ? "Package is Global (disable targeting)" : "Type to search and select regions..."}
-                          value={regionSearch}
-                          disabled={isGlobal}
-                          onFocus={() => setRegionFocused(true)}
-                          onBlur={() => setTimeout(() => setRegionFocused(false), 200)}
-                          onChange={(e) => setRegionSearch(e.target.value)}
-                          className="w-full px-4 py-3 rounded-2xl bg-white border border-[#E7DED6] focus:outline-none focus:border-[#FF7A00] font-semibold text-sm shadow-sm disabled:bg-gray-150 disabled:opacity-50"
-                        />
-                        {!isGlobal && regionFocused && (
-                          <div className="absolute z-50 left-0 right-0 mt-1 bg-white border border-[#E7DED6] rounded-2xl shadow-xl max-h-[180px] overflow-y-auto">
-                            {filteredRegions.map(r => {
-                              const isSelected = selectedRegionIds.includes(r.id);
-                              return (
-                                <button
-                                  key={r.id}
-                                  type="button"
-                                  onMouseDown={() => {
-                                    if (isSelected) {
-                                      setSelectedRegionIds(selectedRegionIds.filter(id => id !== r.id));
-                                    } else {
-                                      setSelectedRegionIds([...selectedRegionIds, r.id]);
-                                    }
-                                  }}
-                                  className={`w-full text-left px-4 py-3 hover:bg-orange-50 transition border-b border-gray-50 last:border-0 text-sm font-semibold flex justify-between items-center ${
-                                    isSelected ? 'bg-orange-50 text-[#FF7A00]' : 'text-gray-700'
-                                  }`}
-                                >
-                                  <span>{r.name} ({r.city})</span>
-                                  {isSelected && <span className="w-2.5 h-2.5 rounded-full bg-[#FF7A00]" />}
-                                </button>
-                              );
-                            })}
-                            {filteredRegions.length === 0 && (
-                              <div className="p-3 text-xs text-gray-400 text-center italic">No matching regions found</div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Selected Regions chips */}
-                      <div className="flex flex-wrap gap-2 mt-2">
-                        {selectedRegionIds.map(id => {
-                          const rObj = regions.find(r => r.id === id);
-                          if (!rObj) return null;
-                          return (
-                            <span key={id} className="bg-white text-orange-700 border border-orange-200 px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 shadow-sm">
-                              {rObj.name}
-                              <button
-                                type="button"
-                                onClick={() => setSelectedRegionIds(selectedRegionIds.filter(x => x !== id))}
-                                className="text-orange-400 hover:text-orange-600 font-bold"
-                              >
-                                &times;
-                              </button>
-                            </span>
-                          );
-                        })}
-                        {selectedRegionIds.length === 0 && (
-                          <p className="text-xs text-orange-600 italic">
-                            {isGlobal ? "Available to all regions (Global)" : "No regions selected. Specify regions or check Make Global."}
-                          </p>
-                        )}
                       </div>
                     </div>
                   </div>

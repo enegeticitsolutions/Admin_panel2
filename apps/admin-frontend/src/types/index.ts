@@ -319,14 +319,25 @@ export type BenefitType =
 
 export interface Benefit {
   id: string;
+  code?: string;
   name: string;
-  type: BenefitType;
-  description: string;
-  defaultUnits: number;
-  unitLabel: string; // e.g., "visits", "sessions", "deliveries"
+  type?: BenefitType;
+  benefitTypeId?: string;
+  benefitType?: { id: string; name: string; iconCode?: string; description?: string };
+  description?: string;
+  defaultUnits?: number;
+  unitLabel?: string; // e.g., "visits", "sessions", "deliveries"
   unitCost?: number;
+  cost?: number;
   isChargeable?: boolean;
   isActive: boolean;
+  isAddon?: boolean;
+  addonPrice?: number;
+  addonDiscountPrice?: number;
+  addonIncludedUnits?: number;
+  isGlobal?: boolean;
+  regionIds?: string[];
+  regions?: any[];
 }
 
 export interface PackageBenefit {

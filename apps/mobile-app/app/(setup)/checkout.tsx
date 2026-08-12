@@ -214,6 +214,14 @@ export default function CheckoutScreen() {
     const [upiId, setUpiId] = useState('');
     const [promoCode, setPromoCode] = useState('');
 
+    // Parse selectedAddons from navigation params
+    const selectedAddons = React.useMemo(() => {
+        const raw = params.selectedAddons;
+        if (!raw) return [];
+        const str = Array.isArray(raw) ? raw[0] : (raw as string);
+        try { return JSON.parse(str); } catch { return []; }
+    }, [params.selectedAddons]);
+
     // ── Single function: calls /checkout/preview with optional couponCode ──────
     // All arithmetic lives on the server. Frontend just renders what it receives.
     const fetchCheckoutPreview = async (couponCode?: string) => {
@@ -225,7 +233,11 @@ export default function CheckoutScreen() {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${storedToken}`
                 },
-                body: JSON.stringify({ packageId, couponCode: couponCode || undefined })
+                body: JSON.stringify({ 
+                    packageId, 
+                    couponCode: couponCode || undefined,
+                    selectedAddons: selectedAddons.map((a: any) => ({ benefitId: a.benefitId, quantity: a.quantity }))
+                })
             });
             const result = await response.json();
 
@@ -509,7 +521,11 @@ export default function CheckoutScreen() {
                         'Content-Type': 'application/json',
                         'Authorization': storedToken ? `Bearer ${storedToken}` : ''
                     },
-                    body: JSON.stringify({ packageId, couponCode: appliedCouponCode || undefined })
+                    body: JSON.stringify({ 
+                        packageId, 
+                        couponCode: appliedCouponCode || undefined,
+                        selectedAddons: selectedAddons.map((a: any) => ({ benefitId: a.benefitId, quantity: a.quantity }))
+                    })
                 });
                 const orderData = await orderRes.json();
                 if (!orderData.success) {
@@ -632,6 +648,7 @@ export default function CheckoutScreen() {
                 emergencyContacts,
                 preferencesData,
                 couponCode: appliedCouponCode || undefined,
+                selectedAddons: selectedAddons.map((a: any) => ({ benefitId: a.benefitId, quantity: a.quantity })),
                 ...paymentDetails
             };
 
@@ -1080,6 +1097,27 @@ export default function CheckoutScreen() {
                                         </View>
                                     ))}
                                 </View>
+
+                                {selectedAddons && selectedAddons.length > 0 && (
+                                    <View style={{ marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#F3F4F6' }}>
+                                        <Text style={{ fontSize: 13, fontWeight: '700', color: '#FF5B0A', marginBottom: 8 }}>
+                                            + Custom Selected Add-ons ({selectedAddons.length})
+                                        </Text>
+                                        {selectedAddons.map((addon: any, index: number) => (
+                                            <View key={index} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                                                <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 8 }}>
+                                                    <Ionicons name="add-circle" size={16} color="#FF5B0A" style={{ marginRight: 6 }} />
+                                                    <Text style={{ fontSize: 13, color: '#374151', fontWeight: '600' }}>
+                                                        {addon.name} ({addon.quantity} {addon.quantity === 1 ? 'pack' : 'packs'})
+                                                    </Text>
+                                                </View>
+                                                <Text style={{ fontSize: 13, fontWeight: '700', color: '#111827' }}>
+                                                    ₹{(addon.unitPrice * addon.quantity).toFixed(2)}
+                                                </Text>
+                                            </View>
+                                        ))}
+                                    </View>
+                                )}
 
                                 <View style={styles.divider} />
 

@@ -6,6 +6,7 @@ import { GlobalHeader } from '../../components/GlobalHeader';
 import { Image } from "react-native";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AddressPicker } from '../../components/ui/AddressPicker';
+import { AddonCard } from '@/components/addons/AddonCard';
 import * as Location from 'expo-location';
 
 type PlanDuration = 'basic' | '6months' | 'annual';
@@ -34,6 +35,13 @@ export default function SubscriptionPackagesScreen() {
     const [selectedCycle, setSelectedCycle] = useState<string>('1');
 
     const [mapModalVisible, setMapModalVisible] = useState(false);
+
+    // Add-on selection step modal states
+    const [showAddonSelectionModal, setShowAddonSelectionModal] = useState(false);
+    const [selectedPackageForAddons, setSelectedPackageForAddons] = useState<any | null>(null);
+    const [availableAddonsForPackage, setAvailableAddonsForPackage] = useState<any[]>([]);
+    const [loadingAddons, setLoadingAddons] = useState(false);
+    const [selectedAddonsMap, setSelectedAddonsMap] = useState<{ [benefitId: string]: { benefitId: string; name: string; unitLabel?: string; quantity: number; unitPrice: number; includedUnits: number } }>({});
 
     const [checkingPin, setCheckingPin] = useState(false);
     const [serviceMessage, setServiceMessage] = useState('');
@@ -190,11 +198,29 @@ export default function SubscriptionPackagesScreen() {
         init();
     }, []);
 
+    const fetchAddonsForSelection = async (regionId: string) => {
+        setLoadingAddons(true);
+        try {
+            const token = await AsyncStorage.getItem('userToken');
+            const query = regionId ? `?regionId=${regionId}` : '';
+            const res = await fetch(`${API_URL}/subscriber/subscriptions/addons/available${query}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const json = await res.json();
+            if (json.success) {
+                setAvailableAddonsForPackage(json.data || []);
+            }
+        } catch (e) {
+            console.warn('Failed to fetch addons:', e);
+        } finally {
+            setLoadingAddons(false);
+        }
+    };
+
     const handleSelectPackage = async (packageType: string) => {
         // Check if user is logged in
         const token = await AsyncStorage.getItem('userToken');
         if (!token) {
-            // Not logged in — send to login with warning message
             Alert.alert(
                 "Login Required",
                 "Please login first to select a package.",
@@ -219,15 +245,53 @@ export default function SubscriptionPackagesScreen() {
             return;
         }
 
-        // Logged in — go directly to checkout with the packageId and location parameters
-        // Wrap serviceAddress in JSON so commas/spaces survive Expo Router URL serialisation
+        setSelectedPackageForAddons(selectedPkg);
+        setSelectedAddonsMap({});
+        setShowAddonSelectionModal(true);
+        await fetchAddonsForSelection(selectedRegionId);
+    };
+
+    const handleAddonQuantityChange = (addon: any, delta: number) => {
+        const current = selectedAddonsMap[addon.id];
+        const currentQty = current ? current.quantity : 0;
+        const newQty = currentQty + delta;
+
+        if (newQty <= 0) {
+            const updated = { ...selectedAddonsMap };
+            delete updated[addon.id];
+            setSelectedAddonsMap(updated);
+        } else {
+            const unitP = addon.addonDiscountPrice ?? addon.addonPrice ?? 0;
+            const incUnits = addon.addonIncludedUnits ?? 1;
+            setSelectedAddonsMap({
+                ...selectedAddonsMap,
+                [addon.id]: {
+                    benefitId: addon.id,
+                    name: addon.name,
+                    unitLabel: addon.unitLabel,
+                    quantity: newQty,
+                    unitPrice: unitP,
+                    includedUnits: incUnits * newQty
+                }
+            });
+        }
+    };
+
+    const handleProceedToCheckout = () => {
+        if (!selectedPackageForAddons) return;
+
+        const selectedAddonsPayload = Object.values(selectedAddonsMap);
+
+        setShowAddonSelectionModal(false);
+
         push('/(setup)/checkout', { 
-            packageId: selectedPkg.id, 
+            packageId: selectedPackageForAddons.id, 
             serviceRegionId: selectedRegionId,
             servicePincode: selectedPincode,
             serviceAddress: JSON.stringify(selectedAddress),
             serviceLat: selectedLat ? String(selectedLat) : '',
-            serviceLng: selectedLng ? String(selectedLng) : ''
+            serviceLng: selectedLng ? String(selectedLng) : '',
+            selectedAddons: JSON.stringify(selectedAddonsPayload)
         });
     };
 
@@ -544,6 +608,111 @@ export default function SubscriptionPackagesScreen() {
                     />
                 </Modal>
             )}
+            {/* ── Add-ons Customization Step Modal ── */}
+            <Modal
+                visible={showAddonSelectionModal}
+                transparent
+                animationType="slide"
+                onRequestClose={() => setShowAddonSelectionModal(false)}
+            >
+                <View style={styles.addonStepModalOverlay}>
+                    <View style={styles.addonStepModalContent}>
+                        {/* Header */}
+                        <View style={styles.addonStepHeader}>
+                            <View>
+                                <Text style={styles.addonStepTitle}>Customize Your Plan</Text>
+                                <Text style={styles.addonStepSubTitle}>Select optional add-on benefits for your package</Text>
+                            </View>
+                            <TouchableOpacity onPress={() => setShowAddonSelectionModal(false)} style={styles.closeBtnCircle}>
+                                <Ionicons name="close" size={18} color="#64748B" />
+                            </TouchableOpacity>
+                        </View>
+
+                        <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 20 }}>
+                            {/* Selected Package Banner */}
+                            {selectedPackageForAddons && (
+                                <View style={styles.selectedPkgBanner}>
+                                    <View style={styles.selectedPkgIconCircle}>
+                                        <Ionicons name="cube-outline" size={20} color="#FF5B0A" />
+                                    </View>
+                                    <View style={{ flex: 1 }}>
+                                        <Text style={styles.selectedPkgName}>{selectedPackageForAddons.name}</Text>
+                                        <Text style={styles.selectedPkgBenefitsCount}>
+                                            {selectedPackageForAddons.packageBenefits?.length || 3} Standard Benefits Included · ₹{selectedPackageForAddons.basePrice}
+                                        </Text>
+                                    </View>
+                                </View>
+                            )}
+
+                            <View style={{ marginBottom: 12 }}>
+                                <Text style={styles.addonsListHeaderTitle}>Available Add-on Benefits</Text>
+                                <Text style={styles.addonsListHeaderSub}>
+                                    {selectedRegionId ? 'Location-matched & global add-on options' : 'Select optional benefit top-ups'}
+                                </Text>
+                            </View>
+
+                            {loadingAddons ? (
+                                <View style={{ paddingVertical: 30, alignItems: 'center' }}>
+                                    <ActivityIndicator size="small" color="#FF5B0A" />
+                                    <Text style={{ marginTop: 8, fontSize: 13, color: '#6B7280' }}>Loading add-ons...</Text>
+                                </View>
+                            ) : availableAddonsForPackage.length === 0 ? (
+                                <View style={{ paddingVertical: 20, alignItems: 'center' }}>
+                                    <Text style={{ color: '#6B7280', fontSize: 13 }}>No add-ons available at this time.</Text>
+                                </View>
+                            ) : (
+                                availableAddonsForPackage.map((addon) => {
+                                    const currentItem = selectedAddonsMap[addon.id];
+                                    const qty = currentItem ? currentItem.quantity : 0;
+
+                                    return (
+                                        <AddonCard
+                                            key={addon.id}
+                                            addon={addon}
+                                            selectedQuantity={qty}
+                                            onQuantityChange={handleAddonQuantityChange}
+                                        />
+                                    );
+                                })
+                            )}
+                        </ScrollView>
+
+                        {/* Dynamic Summary Bar & Checkout Button */}
+                        {selectedPackageForAddons && (
+                            <View style={styles.addonSummaryFooter}>
+                                <View style={styles.summaryStatsRow}>
+                                    <View style={{ flex: 1, marginRight: 10 }}>
+                                        <Text style={styles.summaryBenefitsLabel}>TOTAL PACKAGE COVERAGE</Text>
+                                        <Text style={styles.summaryBenefitsCount}>
+                                            {(selectedPackageForAddons.packageBenefits?.length || 3) + Object.keys(selectedAddonsMap).length} Total Benefits Included
+                                        </Text>
+                                    </View>
+
+                                    <View style={{ alignItems: 'flex-end' }}>
+                                        <Text style={styles.summaryPriceLabel}>TOTAL PRICE</Text>
+                                        <Text style={styles.summaryPriceValue}>
+                                            ₹{(selectedPackageForAddons.basePrice + Object.values(selectedAddonsMap).reduce((sum: number, item: any) => sum + (item.unitPrice * item.quantity), 0)).toLocaleString('en-IN')}
+                                        </Text>
+                                    </View>
+                                </View>
+
+                                <TouchableOpacity
+                                    style={styles.proceedCheckoutBtn}
+                                    onPress={handleProceedToCheckout}
+                                    activeOpacity={0.85}
+                                >
+                                    <Text style={styles.proceedCheckoutBtnText}>
+                                        {Object.keys(selectedAddonsMap).length > 0
+                                            ? `Proceed with Add-ons (${(selectedPackageForAddons.packageBenefits?.length || 3) + Object.keys(selectedAddonsMap).length} Benefits)`
+                                            : 'Proceed to Checkout'}
+                                    </Text>
+                                    <Ionicons name="arrow-forward" size={16} color="#FFFFFF" style={{ marginLeft: 6 }} />
+                                </TouchableOpacity>
+                            </View>
+                        )}
+                    </View>
+                </View>
+            </Modal>
         </SafeAreaView>
     );
 }
@@ -771,5 +940,137 @@ const styles = StyleSheet.create({
     },
     detailsBtnRegional: {
         borderColor: '#0D9488'
+    },
+
+    // Add-on selection modal styles (Minimalist Design)
+    addonStepModalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(15, 23, 42, 0.4)',
+        justifyContent: 'flex-end'
+    },
+    addonStepModalContent: {
+        backgroundColor: '#FFFFFF',
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
+        height: '85%',
+        paddingTop: 20,
+        paddingHorizontal: 20,
+        paddingBottom: 10,
+    },
+    addonStepHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        borderBottomWidth: 1,
+        borderBottomColor: '#F1F5F9',
+        paddingBottom: 14,
+        marginBottom: 16
+    },
+    addonStepTitle: {
+        fontSize: 18,
+        fontWeight: '800',
+        color: '#0F172A',
+    },
+    addonStepSubTitle: {
+        fontSize: 12,
+        color: '#64748B',
+        marginTop: 2
+    },
+    closeBtnCircle: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        backgroundColor: '#F1F5F9',
+        alignItems: 'center',
+        justifyContent: 'center'
+    },
+    selectedPkgBanner: {
+        backgroundColor: '#F8FAFC',
+        borderRadius: 14,
+        padding: 14,
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 18,
+        borderWidth: 1,
+        borderColor: '#E2E8F0',
+    },
+    selectedPkgIconCircle: {
+        width: 38,
+        height: 38,
+        borderRadius: 19,
+        backgroundColor: '#FFF3ED',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: 12
+    },
+    selectedPkgName: {
+        fontSize: 15,
+        fontWeight: '700',
+        color: '#0F172A',
+        marginBottom: 2
+    },
+    selectedPkgBenefitsCount: {
+        fontSize: 12,
+        color: '#64748B'
+    },
+    addonsListHeaderTitle: {
+        fontSize: 15,
+        fontWeight: '700',
+        color: '#0F172A',
+    },
+    addonsListHeaderSub: {
+        fontSize: 12,
+        color: '#64748B',
+        marginTop: 2
+    },
+    addonSummaryFooter: {
+        borderTopWidth: 1,
+        borderTopColor: '#F1F5F9',
+        paddingTop: 14,
+        paddingBottom: Platform.OS === 'ios' ? 24 : 14,
+        backgroundColor: '#FFFFFF'
+    },
+    summaryStatsRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 12
+    },
+    summaryBenefitsLabel: {
+        fontSize: 10,
+        color: '#94A3B8',
+        fontWeight: '700',
+        letterSpacing: 0.6,
+        marginBottom: 2
+    },
+    summaryBenefitsCount: {
+        fontSize: 13,
+        fontWeight: '700',
+        color: '#0F172A'
+    },
+    summaryPriceLabel: {
+        fontSize: 10,
+        color: '#94A3B8',
+        fontWeight: '700',
+        letterSpacing: 0.6,
+        marginBottom: 2
+    },
+    summaryPriceValue: {
+        fontSize: 20,
+        fontWeight: '800',
+        color: '#FF5B0A',
+    },
+    proceedCheckoutBtn: {
+        backgroundColor: '#FF5B0A',
+        borderRadius: 14,
+        height: 48,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    proceedCheckoutBtnText: {
+        color: '#FFFFFF',
+        fontSize: 14,
+        fontWeight: '700',
     }
 });
