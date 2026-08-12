@@ -101,12 +101,34 @@ const markAllReadHandler = async (req: any, res: any, next: any) => {
   }
 };
 
+// Helper handler for unread count
+const getUnreadCountHandler = async (req: any, res: any, next: any) => {
+  try {
+    const authReq = req as AuthRequest;
+    const userId = authReq.userId;
+    if (!userId) {
+      return res.status(401).json({ success: false, message: 'Unauthorized' });
+    }
+
+    const count = await prisma.notification.count({
+      where: { userId, isRead: false },
+    });
+
+    res.json({ success: true, count });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // Mount handlers for both /notifications and /
 router.get('/', authenticate, getNotificationsHandler);
 router.get('/notifications', authenticate, getNotificationsHandler);
 
 router.patch('/read-all', authenticate, markAllReadHandler);
 router.patch('/notifications/read-all', authenticate, markAllReadHandler);
+
+router.get('/unread-count', authenticate, getUnreadCountHandler);
+router.get('/notifications/unread-count', authenticate, getUnreadCountHandler);
 
 router.patch('/:id/read', authenticate, markReadHandler);
 router.patch('/notifications/:id/read', authenticate, markReadHandler);

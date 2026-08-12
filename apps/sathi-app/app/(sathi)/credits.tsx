@@ -368,7 +368,7 @@ export default function SathiCreditsScreen() {
               style={{ marginRight: 6 }}
             />
             <Text style={[styles.tabButtonText, activeTab === 'VOUCHERS' && styles.tabButtonTextActive, { fontSize: 11 }]}>
-              Vouchers ({coupons.length})
+              Vouchers
             </Text>
           </TouchableOpacity>
 
