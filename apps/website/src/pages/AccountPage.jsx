@@ -29,7 +29,7 @@ export default function AccountPage({ user, token, onLogout, onNavigateToPlans, 
   return (
     <div style={{ minHeight: "100vh", background: "#f8fafc", fontFamily: "'Poppins', sans-serif" }}>
       {/* ── Top Header Bar ── */}
-      <header style={{
+      <header className="account-page-header" style={{
         background: "#ffffff",
         borderBottom: "1px solid #e2e8f0",
         padding: "16px 40px",
@@ -60,10 +60,10 @@ export default function AccountPage({ user, token, onLogout, onNavigateToPlans, 
       </header>
 
       {/* ── Main Dashboard Body ── */}
-      <main style={{ maxWidth: "1000px", margin: "40px auto", padding: "0 24px" }}>
+      <main className="account-page-main" style={{ maxWidth: "1000px", margin: "40px auto", padding: "0 24px" }}>
 
         {/* Profile Card */}
-        <div style={{
+        <div className="account-profile-card" style={{
           background: "#ffffff", borderRadius: "20px", padding: "32px",
           border: "1px solid #e2e8f0", boxShadow: "0 4px 20px rgba(0,0,0,0.04)",
           display: "flex", alignItems: "center", justifyContent: "space-between",

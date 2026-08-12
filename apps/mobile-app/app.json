@@ -8,7 +8,7 @@
     "updates": {
       "enabled": false
     },
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/adaptive-icon.png",
     "scheme": "maihoonna",
     "userInterfaceStyle": "automatic",
     "ios": {
@@ -37,7 +37,7 @@
       }
     },
     "web": {
-      "favicon": "./assets/images/icon.png"
+      "favicon": "./assets/images/adaptive-icon.png"
     },
     "plugins": [
       "expo-router",
@@ -59,7 +59,7 @@
       [
         "expo-notifications",
         {
-          "icon": "./assets/images/icon.png",
+          "icon": "./assets/images/adaptive-icon.png",
           "color": "#FF7A00",
           "sounds": [],
           "androidMode": "default",

@@ -1,49 +1,64 @@
-import React from "react";
+import React, { useState } from "react";
 import logo from "../../assets/logo.svg";
 
 /**
  * Header Component - Site Navigation and User Actions Bar
  */
 const Header = ({ activePage, setActivePage, user, openForm }) => {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const handleNavClick = (page) => {
+    setActivePage(page);
+    setMobileMenuOpen(false);
+  };
+
   return (
     <header className="topbar" role="banner">
-      <a href="/" aria-label="MaiHoonNa home" className="topbar__brand">
+      <a
+        href="#home"
+        aria-label="MaiHoonNa home"
+        className="topbar__brand"
+        onClick={(e) => {
+          e.preventDefault();
+          handleNavClick("home");
+        }}
+      >
         <img src={logo} alt="MaiHoonNa" />
       </a>
+
       <nav className="topbar__nav" aria-label="Main navigation">
         <button
           className={activePage === "home" ? "active" : ""}
-          onClick={() => setActivePage("home")}
+          onClick={() => handleNavClick("home")}
         >
           Home
         </button>
         <button
           className={activePage === "services" ? "active" : ""}
-          onClick={() => setActivePage("services")}
+          onClick={() => handleNavClick("services")}
         >
           Our Services
         </button>
         <button
           className={activePage === "saathi" ? "active" : ""}
-          onClick={() => setActivePage("saathi")}
+          onClick={() => handleNavClick("saathi")}
         >
           Saathi Network
         </button>
       </nav>
-      <div
-        className="topbar__actions"
-        style={{ display: "flex", gap: "10px", alignItems: "center" }}
-      >
+
+      <div className="topbar__actions">
         <button
           className={`view-plan-button ${activePage === "plans" ? "active" : ""}`}
-          onClick={() => setActivePage("plans")}
+          onClick={() => handleNavClick("plans")}
         >
           View Plans
         </button>
 
         {user ? (
           <button
-            onClick={() => setActivePage("account")}
+            className="user-account-btn"
+            onClick={() => handleNavClick("account")}
             style={{
               display: "flex",
               alignItems: "center",
@@ -62,27 +77,76 @@ const Header = ({ activePage, setActivePage, user, openForm }) => {
           </button>
         ) : (
           <button
-            className="pill-button"
-            onClick={() => setActivePage("auth")}
-            style={{
-              padding: "8px 18px",
-              borderRadius: "20px",
-              background: "var(--orange, #fe6700)",
-              color: "#ffffff",
-              fontWeight: "700",
-              fontSize: "13px",
-              border: "none",
-              cursor: "pointer",
-            }}
+            className="pill-button pill-button--light"
+            onClick={() => handleNavClick("auth")}
           >
-            Login / Sign Up
+            Sign Up
           </button>
         )}
 
         <button className="pill-button pill-button--light" onClick={openForm}>
           Join Waitlist
         </button>
+
+        {/* Mobile Hamburger Menu Button */}
+        <button
+          className="topbar__hamburger"
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          aria-label={mobileMenuOpen ? "Close menu" : "Open navigation menu"}
+        >
+          {mobileMenuOpen ? (
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          ) : (
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+          )}
+        </button>
       </div>
+
+      {/* Mobile Navigation Drawer Dropdown */}
+      {mobileMenuOpen && (
+        <div className="topbar__mobile-menu">
+          <button
+            className={activePage === "home" ? "active" : ""}
+            onClick={() => handleNavClick("home")}
+          >
+            🏠 Home
+          </button>
+          <button
+            className={activePage === "services" ? "active" : ""}
+            onClick={() => handleNavClick("services")}
+          >
+            ✨ Our Services
+          </button>
+          <button
+            className={activePage === "saathi" ? "active" : ""}
+            onClick={() => handleNavClick("saathi")}
+          >
+            🤝 Saathi Network
+          </button>
+          <button
+            className={activePage === "plans" ? "active" : ""}
+            onClick={() => handleNavClick("plans")}
+          >
+            📋 View Plans
+          </button>
+
+          {user ? (
+            <button
+              className={activePage === "account" ? "active" : ""}
+              onClick={() => handleNavClick("account")}
+            >
+              👤 My Account ({user.name})
+            </button>
+          ) : (
+            <button
+              className={activePage === "auth" ? "active" : ""}
+              onClick={() => handleNavClick("auth")}
+            >
+              🔑 Sign Up
+            </button>
+          )}
+        </div>
+      )}
     </header>
   );
 };
