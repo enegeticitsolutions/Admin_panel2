@@ -340,7 +340,7 @@ export default function RegisterScreen() {
                                             keyboardType="numeric"
                                             maxLength={10}
                                             value={form.phone}
-                                            onChangeText={(text) => setForm({ ...form, phone: text })}
+                                            onChangeText={(text) => setForm({ ...form, phone: text.replace(/\D/g, '') })}
                                             editable={!isLoading}
                                         />
                                     </View>

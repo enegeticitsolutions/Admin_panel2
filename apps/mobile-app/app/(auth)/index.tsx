@@ -159,7 +159,7 @@ export default function AuthScreen() {
                 keyboardType="numeric"
                 maxLength={10}
                 value={phone}
-                onChangeText={setPhone}
+                onChangeText={(text) => setPhone(text.replace(/\D/g, ''))}
                 editable={!isLoading}
               />
             </View>
