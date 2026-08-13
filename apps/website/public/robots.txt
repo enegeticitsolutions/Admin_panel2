@@ -1,8 +1,11 @@
-# MaiHoonNa - Senior Care Ecosystem
+# MaiHoonNa - Connected Senior Care Ecosystem
 # https://maihoonna.in
 
 User-agent: *
 Allow: /
+Disallow: /auth
+Disallow: /account
+Disallow: /checkout
 Disallow: /api/
 Disallow: /submit-form
 

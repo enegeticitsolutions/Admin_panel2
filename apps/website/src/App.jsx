@@ -12,14 +12,18 @@ import PlansPage from "./pages/PlansPage";
 import SiteGatekeeper from "./components/SiteGatekeeper";
 import { fetchSubscriptionPackages } from "./services/api";
 
+import SeoHead from "./components/seo/SeoHead";
+import NotFoundPage from "./pages/NotFoundPage";
+
 /**
  * App Component - Root Application Shell & Router
  */
 const App = () => {
   const getPageFromHash = () => {
-    const hash = (window.location.hash || "").replace("#", "").toLowerCase();
+    const rawHash = (window.location.hash || "").replace("#", "").toLowerCase();
+    if (!rawHash) return "home";
     const validPages = ["home", "services", "saathi", "plans", "auth", "account", "checkout"];
-    return validPages.includes(hash) ? hash : "home";
+    return validPages.includes(rawHash) ? rawHash : "not-found";
   };
 
   const [activePage, setActiveStatePage] = useState(getPageFromHash);
@@ -167,12 +171,14 @@ const App = () => {
           <ServicesPage setActivePage={setActivePage} openForm={openForm} />
         ) : activePage === "saathi" ? (
           <SaathiPage />
-        ) : (
+        ) : activePage === "plans" ? (
           <PlansPage
             livePackages={livePackages}
             onSelectPackage={handleSelectPackageForBuy}
             openForm={openForm}
           />
+        ) : (
+          <NotFoundPage setActivePage={setActivePage} />
         )}
 
         <Footer setActivePage={setActivePage} />
@@ -182,7 +188,12 @@ const App = () => {
     );
   };
 
-  return <SiteGatekeeper>{renderAppContent()}</SiteGatekeeper>;
+  return (
+    <SiteGatekeeper>
+      <SeoHead activePage={activePage} />
+      {renderAppContent()}
+    </SiteGatekeeper>
+  );
 };
 
 export default App;

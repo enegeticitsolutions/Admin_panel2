@@ -448,7 +448,7 @@ const SaathiPage = () => {
               return (
                 <div key={idx} className="saathi-card">
                   <div className="saathi-card__img-wrap">
-                    <img src={photoSrc} alt={saathi.name} className="saathi-card__img" />
+                    <img src={photoSrc} alt={`Saathi companion ${saathi.name} - Senior Companionship Volunteer`} loading="lazy" className="saathi-card__img" />
                     <div className="saathi-card__img-overlay" />
                     <div className="saathi-card__tier-badge" style={{ background: tierBg }}>
                       {tierName}

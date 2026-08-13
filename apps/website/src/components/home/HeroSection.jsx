@@ -11,7 +11,7 @@ const HeroSection = ({ openForm }) => {
       <div className="hero__inner">
         <div className="hero__copy">
           <div className="eyebrow">
-            <img src={healthcareIcon} alt="" />
+            <img src={healthcareIcon} alt="MaiHoonNa - Connected Senior Care Ecosystem" loading="eager" fetchpriority="high" width="20" height="20" />
             India's connected senior care ecosystem
           </div>
           <h1>
