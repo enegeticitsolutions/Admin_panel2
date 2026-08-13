@@ -995,16 +995,18 @@ export default function VolunteersPage() {
               <div>
                 <h4 className="font-bold text-sm mb-2">Visit History (Last 20)</h4>
                 <div className="border border-border rounded-xl overflow-hidden">
-                  <table className="w-full text-left text-sm">
-                    <thead className="bg-secondary text-xs uppercase">
-                      <tr>
-                        <th className="p-3">Senior</th>
-                        <th className="p-3">Logged Date</th>
-                        <th className="p-3">Duration</th>
-                        <th className="p-3">Points</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border">
+                  <div className="max-h-[240px] overflow-y-auto">
+                    <table className="w-full text-left text-sm relative">
+                      <thead className="bg-secondary text-xs uppercase sticky top-0 z-10">
+                        <tr>
+                          <th className="p-3">Senior</th>
+                          <th className="p-3">Logged Date</th>
+                          <th className="p-3">Duration</th>
+                          <th className="p-3">Points</th>
+                          <th className="p-3">Feedback</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border">
                       {detailedVolunteer.visitLogs?.length > 0 ? (
                         detailedVolunteer.visitLogs.map((log: any) => (
                           <tr key={log.id}>
@@ -1014,15 +1016,17 @@ export default function VolunteersPage() {
                             </td>
                             <td className="p-3">{log.hoursEarned?.toFixed(1) || '0.0'} hrs</td>
                             <td className="p-3 text-success font-semibold">+{log.creditPointsEarned?.toFixed(0) || '0'} pts</td>
+                            <td className="p-3 text-muted-foreground text-xs max-w-[200px] truncate" title={log.feedback || 'no feedback'}>{log.feedback || 'no feedback'}</td>
                           </tr>
                         ))
                       ) : (
                         <tr>
-                          <td colSpan={4} className="p-4 text-center text-muted-foreground italic">No completed visits recorded.</td>
+                          <td colSpan={5} className="p-4 text-center text-muted-foreground">No visits recorded.</td>
                         </tr>
                       )}
                     </tbody>
                   </table>
+                  </div>
                 </div>
               </div>
 

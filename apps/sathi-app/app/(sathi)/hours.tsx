@@ -44,6 +44,11 @@ export default function SathiHours() {
   const [otpCode, setOtpCode] = useState('');
   const [targetVisit, setTargetVisit] = useState<any>(null);
 
+  // Feedback Modal State
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [feedbackText, setFeedbackText] = useState('');
+  const [feedbackTargetId, setFeedbackTargetId] = useState<string | null>(null);
+
   // Timer state for active visit
   const [elapsedTime, setElapsedTime] = useState('00:00:00');
 
@@ -158,7 +163,37 @@ export default function SathiHours() {
         Alert.alert('Check-In Failed', data.message || 'Verification conflict.');
       }
     } catch (err) {
+      console.log('Check-in failed:', err);
       Alert.alert('Error', 'Connection to backend API failed.');
+    }
+  };
+
+  const handleFeedbackSubmit = async () => {
+    if (!feedbackText.trim() || !feedbackTargetId) {
+      Alert.alert('Error', 'Please enter some feedback first.');
+      return;
+    }
+    try {
+      const token = await AsyncStorage.getItem('userToken');
+      const response = await fetch(`${API_URL}/sathi/visits/${feedbackTargetId}/feedback`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ feedback: feedbackText })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || 'Feedback failed');
+      
+      Alert.alert('Success', 'Thank you for your feedback!');
+      setShowFeedbackModal(false);
+      setFeedbackText('');
+      setFeedbackTargetId(null);
+      loadHoursData(); // Refresh history
+    } catch (err) {
+      console.log('Feedback submission failed:', err);
+      Alert.alert('Error', 'Unable to submit feedback. Please try again.');
     }
   };
 
@@ -367,6 +402,44 @@ export default function SathiHours() {
           </View>
         </Modal>
 
+        {/* Feedback Modal */}
+        <Modal
+          visible={showFeedbackModal}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowFeedbackModal(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Visit Feedback</Text>
+              <Text style={styles.modalSubtitle}>How was your visit? Any notes or concerns?</Text>
+              
+              <TextInput
+                style={[styles.modalInput, { height: 100, textAlignVertical: 'top' }]}
+                value={feedbackText}
+                onChangeText={setFeedbackText}
+                placeholder="Type your feedback here..."
+                placeholderTextColor="#9CA3AF"
+                multiline
+                numberOfLines={4}
+              />
+
+              <View style={styles.modalBtns}>
+                <TouchableOpacity style={styles.modalCancelBtn} onPress={() => setShowFeedbackModal(false)}>
+                  <Text style={styles.modalCancelText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[styles.modalSubmitBtn, !feedbackText.trim() && { opacity: 0.6 }]} 
+                  onPress={handleFeedbackSubmit}
+                  disabled={!feedbackText.trim()}
+                >
+                  <Text style={styles.modalSubmitText}>Submit</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+
         {/* Visit Logs History */}
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' }}>
           <Text style={styles.sectionTitle}>Completed Visits History</Text>
@@ -397,7 +470,25 @@ export default function SathiHours() {
                     <Text style={styles.historyPoints}>+{item.creditPointsEarned?.toFixed(0)} pts</Text>
                   </View>
                 </View>
-
+                {/* Feedback Button for History Items */}
+                {!item.feedback && (
+                  <TouchableOpacity 
+                    style={{ marginTop: 12, backgroundColor: '#FFF3E0', padding: 10, borderRadius: 8, alignItems: 'center' }}
+                    onPress={() => {
+                      setFeedbackTargetId(item.id);
+                      setFeedbackText('');
+                      setShowFeedbackModal(true);
+                    }}
+                  >
+                    <Text style={{ color: DEEP_ORANGE, fontWeight: '600', fontSize: 13 }}>+ Add Feedback</Text>
+                  </TouchableOpacity>
+                )}
+                {item.feedback && (
+                  <View style={{ marginTop: 12, backgroundColor: '#F3F4F6', padding: 10, borderRadius: 8 }}>
+                    <Text style={{ fontSize: 12, color: '#6B7280', marginBottom: 2 }}>Your Feedback:</Text>
+                    <Text style={{ fontSize: 13, color: '#374151' }}>{item.feedback}</Text>
+                  </View>
+                )}
               </View>
           ))
         ) : (

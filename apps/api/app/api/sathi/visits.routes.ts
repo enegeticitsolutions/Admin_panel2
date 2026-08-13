@@ -20,6 +20,11 @@ router.patch('/visits/:id/checkout', authenticate, validate(volunteerCheckoutSch
   res.json(new ApiResponse(200, result, message));
 });
 
+router.patch('/visits/:id/feedback', authenticate, async (req: AuthRequest, res: Response) => {
+  const updated = await sathiService.updateVolunteerVisitFeedback(req.userId!, req.params.id as string, req.body.feedback);
+  res.json(new ApiResponse(200, updated, 'Feedback submitted successfully'));
+});
+
 router.get('/hours', authenticate, async (req: AuthRequest, res: Response) => {
   const logs = await sathiService.getVolunteerVisitLogs(req.userId!);
   res.json(new ApiResponse(200, logs));

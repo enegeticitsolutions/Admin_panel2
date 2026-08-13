@@ -1165,3 +1165,24 @@ export const submitSathiVisitFeedback = async (
 
   return { request: updatedRequest, message: 'Feedback submitted successfully.' };
 };
+
+export const updateVolunteerVisitFeedback = async (volunteerId: string, visitId: string, feedback: string) => {
+  const visit = await prisma.volunteerVisitLog.findFirst({
+    where: { id: visitId, volunteerId }
+  });
+
+  if (!visit) {
+    throw new ApiError(404, 'Visit log not found');
+  }
+
+  if (visit.status !== 'completed') {
+    throw new ApiError(400, 'You can only add feedback to completed visits');
+  }
+
+  const updated = await prisma.volunteerVisitLog.update({
+    where: { id: visitId },
+    data: { feedback }
+  });
+
+  return updated;
+};

@@ -17,6 +17,12 @@
     "build:packages": "npm run build --workspaces --if-present"
   },
   "dependencies": {
-    "razorpay": "^2.9.8"
+    "razorpay": "^2.9.8",
+    "react": "19.1.0",
+    "react-dom": "19.1.0"
+  },
+  "overrides": {
+    "react": "19.1.0",
+    "react-native": "0.81.5"
   }
 }
