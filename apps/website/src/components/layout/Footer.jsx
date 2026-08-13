@@ -13,7 +13,7 @@ const Footer = ({ setActivePage }) => {
       <div className="footer-inner">
         <div className="footer-brand">
           <a onClick={() => setActivePage && setActivePage("home")} href="#home" aria-label="MaiHoonNa home">
-            <img src={logo} alt="MaiHoonNa" />
+            <img src={logo} alt="MaiHoonNa - Senior Care Ecosystem" loading="lazy" width="238" height="42" />
           </a>
           <p>
             India's connected senior care ecosystem. Compassionate Care Mitras, Saathi Network, and real-time family visibility — all in one subscription.
@@ -38,10 +38,10 @@ const Footer = ({ setActivePage }) => {
           {/* App Store Download Badges */}
           <div className="footer-store-row">
             <a href={SITE_LINKS.appStore.googlePlay} className="store-badge-card" target="_blank" rel="noopener noreferrer">
-              <img src={googlePlayImg} alt="Get it on Google Play" />
+              <img src={googlePlayImg} alt="Get MaiHoonNa Family Connect App on Google Play" loading="lazy" width="135" height="40" />
             </a>
             <a href={SITE_LINKS.appStore.appleAppStore} className="store-badge-card" target="_blank" rel="noopener noreferrer">
-              <img src={appStoreImg} alt="Download on the App Store" />
+              <img src={appStoreImg} alt="Download MaiHoonNa Family Connect App on Apple App Store" loading="lazy" width="135" height="40" />
             </a>
           </div>
         </div>

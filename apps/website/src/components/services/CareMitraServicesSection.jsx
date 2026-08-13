@@ -236,7 +236,7 @@ const CareMitraServicesSection = () => {
 
           {/* Geo-fenced live visit image card */}
           <div className="svc-visit-live-card">
-            <img src={piccImg} alt="Care Mitra visiting parent" />
+            <img src={piccImg} alt="Care Mitra health visit and vitals monitoring for elderly parents in India" loading="lazy" width="576" height="324" />
             <div className="svc-visit-live-card__overlay">
               <div className="svc-live-pulsing-badge">
                 <span className="pulsing-circle" />

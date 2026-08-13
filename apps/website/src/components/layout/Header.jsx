@@ -23,7 +23,7 @@ const Header = ({ activePage, setActivePage, user, openForm }) => {
           handleNavClick("home");
         }}
       >
-        <img src={logo} alt="MaiHoonNa" />
+        <img src={logo} alt="MaiHoonNa - Connected Senior Care & Elder Companionship Platform" width="238" height="42" loading="eager" fetchpriority="high" />
       </a>
 
       <nav className="topbar__nav" aria-label="Main navigation">
