@@ -1025,8 +1025,16 @@ a {
   font-weight: 400;
 }
 
+@media (min-width: 1024px) {
+  .nri-banner p {
+    color: rgba(255, 255, 255, 0.72);
+    font-size: 15px;
+    line-height: 27px;
+    letter-spacing: 0.01em;
+  }
+}
+
 .nri-banner button {
-  margin: 0;
   padding: 14px 28px;
   background: #fff;
   color: #111111;
@@ -2288,7 +2296,7 @@ a {
   align-items: center;
   padding: 8px 16px;
   gap: 7px;
-  height: 37.33px;
+  min-height: 37.33px;
   background: #FFFFFF;
   border: 0.666667px solid #E5E5E5;
   border-radius: 50px;
@@ -2319,9 +2327,8 @@ a {
   flex-direction: column;
   align-items: flex-start;
   padding: 32px 28px;
-  width: 544px;
-  max-width: 100%;
-  min-height: 384.83px;
+  width: 100%;
+  max-width: 544px;
   margin-top: 36px;
   background: #FFFFFF;
   border: 0.666667px solid #E5E5E5;
@@ -2361,7 +2368,8 @@ a {
   justify-content: space-between;
   align-items: center;
   width: 100%;
-  height: 21px;
+  min-height: 21px;
+  gap: 8px;
 }
 
 .hours-row__name {
@@ -2380,6 +2388,7 @@ a {
   font-size: 13px;
   line-height: 20px;
   color: #666666;
+  white-space: nowrap;
 }
 
 .hours-row__ratio strong {
@@ -2412,7 +2421,8 @@ a {
   align-items: center;
   padding-top: 5px;
   width: 100%;
-  height: 21.5px;
+  min-height: 21.5px;
+  gap: 8px;
 }
 
 .hours-row__used {
@@ -2440,7 +2450,7 @@ a {
   padding: 12px 16px;
   gap: 8px;
   width: 100%;
-  height: 44px;
+  min-height: 44px;
   margin-top: 20px;
   background: #FFF1E8;
   border-radius: 12px;
@@ -2485,34 +2495,56 @@ a {
 
 .billing-toggle {
   display: flex;
-  gap: 8px;
+  gap: 10px;
   align-items: center;
-  padding: 6px;
-  border-radius: 999px;
-  background: #f6f6f6;
+  padding: 0;
+  background: transparent;
+  flex-wrap: wrap;
 }
 
 .billing-toggle button {
-  border: 0;
-  border-radius: 999px;
-  padding: 9px 16px;
-  color: #6d6d6d;
-  background: transparent;
-  font-size: 12px;
-  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid #E2E8F0;
+  border-radius: 50px;
+  padding: 10px 18px;
+  color: #475569;
+  background: #FFFFFF;
+  font-family: 'Poppins', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
 }
 
-.billing-toggle .active,
-.billing-toggle span {
-  color: #fff;
-  background: var(--orange);
+.billing-toggle button:hover {
+  border-color: #FE6700;
+  color: #FE6700;
 }
 
-.billing-toggle span {
+.billing-toggle button.active {
+  color: #FFFFFF;
+  background: #FE6700;
+  border-color: #FE6700;
+  box-shadow: 0 4px 14px rgba(254, 103, 0, 0.28);
+}
+
+.billing-toggle button span {
   margin-left: 6px;
-  padding: 3px 6px;
-  border-radius: 999px;
+  padding: 3px 8px;
+  border-radius: 50px;
   font-size: 10px;
+  font-weight: 700;
+  color: #FE6700;
+  background: #FFF1E8;
+  transition: all 0.2s ease;
+}
+
+.billing-toggle button.active span {
+  color: #FE6700;
+  background: #FFFFFF;
 }
 
 .plan-grid {
@@ -2951,7 +2983,7 @@ a {
 
 .quote-card {
   box-sizing: border-box;
-  width: 680px;
+  width: 100%;
   max-width: 680px;
   margin: 0 auto;
   padding: 52px 48px;
@@ -3148,6 +3180,12 @@ a {
   .nri-banner,
   .site-footer {
     grid-template-columns: 1fr;
+  }
+
+  .nri-banner button {
+    display: block;
+    margin: 0 auto;
+    width: fit-content;
   }
 
   .hero h1,
@@ -3438,7 +3476,7 @@ a {
 
   .hero {
     min-height: auto;
-    padding: 88px 16px 48px;
+    padding: 72px 16px 48px;
     overflow: hidden;
   }
 
@@ -3607,62 +3645,220 @@ a {
   }
 
   .plans-hero {
-    padding: 108px 16px 70px;
+    padding: 76px 16px 48px;
+    background: linear-gradient(180deg, #F8FAFC 0%, #EDF2F7 100%);
   }
 
   .plans-hero h1 {
-    font-size: 42px;
+    font-size: 32px;
+    line-height: 40px;
+    width: 100%;
+  }
+
+  .plans-hero__copy p {
+    font-size: 14px;
+    line-height: 24px;
+    width: 100%;
+    margin-top: 14px;
   }
 
   .hours-card {
-    padding: 22px;
+    padding: 20px 16px;
+    width: 100%;
+    box-sizing: border-box;
+    margin-top: 24px;
+  }
+
+  .hours-row__header {
+    gap: 6px;
+  }
+
+  .hours-row__name {
+    font-size: 13px;
+  }
+
+  .hours-row__ratio {
+    font-size: 12px;
   }
 
   .pricing-section {
-    width: calc(100% - 32px);
-    padding-top: 58px;
+    width: 100%;
+    padding: 48px 16px 56px;
+    box-sizing: border-box;
   }
 
   .billing-toggle {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
     width: 100%;
-    align-items: stretch;
-    flex-direction: column;
-    border-radius: 18px;
+    background: transparent;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  .billing-toggle button {
+    width: 100%;
+    justify-content: center;
+    text-align: center;
+    padding: 10px 6px;
+    font-size: 11.5px;
+    box-sizing: border-box;
   }
 
   .plan-card {
-    padding: 30px 24px;
+    padding: 24px 18px;
+  }
+
+  .comparison {
+    padding: 48px 0 0;
+  }
+
+  .comparison__heading h2 {
+    font-size: 24px;
+    line-height: 32px;
+  }
+
+  .comparison__heading p {
+    font-size: 13px;
+    margin: 8px 0 20px;
   }
 
   .comparison-table {
     overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    width: 100%;
+    display: block;
+    border-radius: 14px;
   }
 
   .comparison-row {
-    min-width: 720px;
+    min-width: 460px;
+    grid-template-columns: 1.4fr repeat(3, 1fr);
+    min-height: 48px;
+  }
+
+  .comparison-row--head {
+    min-height: 52px;
+    font-size: 10.5px;
+  }
+
+  .comparison-row--head strong {
+    padding: 10px 4px;
+    word-break: break-word;
+    line-height: 14px;
+    font-size: 11px;
+  }
+
+  .comparison-row>span {
+    padding: 10px 10px;
+    font-size: 12px;
+    line-height: 16px;
+  }
+
+  .comparison-row>strong {
+    padding: 8px 4px;
+    font-size: 12px;
   }
 
   .bespoke-banner {
-    padding: 34px 24px;
+    grid-template-columns: 1fr;
+    padding: 28px 20px;
+    gap: 20px;
+    margin-top: 48px;
   }
 
-  .bespoke-banner ul,
+  .bespoke-banner h2 {
+    font-size: 24px;
+    line-height: 32px;
+  }
+
+  .bespoke-banner p {
+    font-size: 13px;
+    line-height: 22px;
+    margin-top: 12px;
+  }
+
+  .bespoke-banner ul {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    margin-top: 16px;
+  }
+
+  .bespoke-banner button {
+    width: 100%;
+    text-align: center;
+    justify-content: center;
+    box-sizing: border-box;
+    font-size: 14px;
+    padding: 14px 20px;
+  }
+
   .plans-hero__badges {
     flex-direction: column;
     align-items: flex-start;
+    gap: 8px;
   }
 
   .quote-section {
-    padding: 64px 16px;
+    padding: 40px 16px 56px;
+    width: 100%;
+    box-sizing: border-box;
   }
 
   .quote-card {
-    padding: 30px 22px;
+    width: 100%;
+    max-width: 100%;
+    padding: 24px 18px;
+    box-sizing: border-box;
+    border-radius: 20px;
   }
 
-  .quote-grid,
-  .plan-pills {
+  .quote-card h2 {
+    font-size: 22px;
+    line-height: 30px;
+    text-align: center;
+  }
+
+  .quote-card p {
+    font-size: 13px;
+    line-height: 20px;
+    margin: 8px auto 20px;
+    text-align: center;
+  }
+
+  .quote-grid {
     grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .plan-pills {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    width: 100%;
+  }
+
+  .plan-pill {
+    height: 40px;
+    font-size: 11.5px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .quote-card input {
+    height: 46px;
+    font-size: 14px;
+  }
+
+  .quote-card>button[type="submit"] {
+    height: 50px;
+    font-size: 15px;
+  }
+
+  .plans-faq {
+    padding-top: 48px;
+    padding-bottom: 64px;
   }
 }
 
@@ -3671,14 +3867,14 @@ a {
    ============================================= */
 
 .services-page {
-  padding-top: 84px;
+  padding-top: 0;
 }
 
 /* Services Hero */
 .services-hero {
   background: #111111;
   color: #fff;
-  padding: 80px max(24px, calc((100vw - 1200px) / 2)) 96px;
+  padding: 108px max(24px, calc((100vw - 1200px) / 2)) 96px;
   position: relative;
   overflow: hidden;
   box-sizing: border-box;
@@ -3765,7 +3961,7 @@ a {
   font-family: 'Poppins', sans-serif;
   font-size: 18px;
   line-height: 32px;
-  color: rgba(255, 255, 255, 0.65);
+  color: rgba(255, 255, 255, 0.82);
   margin: 0 0 40px;
 }
 
@@ -3832,9 +4028,11 @@ a {
   padding: 16px 20px;
   gap: 16px;
   width: 544px;
-  height: 76.3px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 0.67px solid rgba(255, 255, 255, 0.08);
+  max-width: 100%;
+  height: auto;
+  min-height: 72px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 0.67px solid rgba(255, 255, 255, 0.12);
   border-radius: 16px;
   transition: background 180ms ease, border-color 180ms ease;
 }
@@ -3874,7 +4072,7 @@ a {
   font-size: 13px;
   font-weight: 400;
   line-height: 20px;
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.75);
 }
 
 /* Care Mitra Visits Section */
@@ -3942,7 +4140,7 @@ a {
 
 .svc-visits__container-grid {
   display: grid;
-  grid-template-columns: 576px 576px;
+  grid-template-columns: 1fr 1fr;
   justify-content: space-between;
   gap: 48px;
   max-width: 1200px;
@@ -4311,7 +4509,8 @@ a {
 /* Photo Visit Live Card */
 .svc-visit-live-card {
   position: relative;
-  width: 576px;
+  width: 100%;
+  max-width: 576px;
   height: 324px;
   border-radius: 20px;
   overflow: hidden;
@@ -4403,7 +4602,7 @@ a {
 
 .svc-eco-top-row {
   display: grid;
-  grid-template-columns: 793px 387px;
+  grid-template-columns: 2fr 1fr;
   justify-content: space-between;
   gap: 20px;
 }
@@ -4637,7 +4836,7 @@ a {
 /* Bottom Grid Cards */
 .svc-eco-bottom-grid {
   display: grid;
-  grid-template-columns: repeat(2, 590px);
+  grid-template-columns: repeat(2, 1fr);
   justify-content: space-between;
   gap: 20px;
 }
@@ -4861,41 +5060,242 @@ a {
 }
 
 /* Responsive for Services Page */
+/* Responsive for Services Page */
 @media (max-width: 900px) {
   .services-hero__inner {
-    grid-template-columns: 1fr;
+    flex-direction: column;
     gap: 40px;
   }
 
+  .services-hero__copy {
+    width: 100%;
+  }
+
   .services-hero__features {
+    width: 100%;
     grid-template-columns: 1fr 1fr;
   }
 
-  .svc-visits__grid {
+  .services-hero__feature-card {
+    width: 100%;
+  }
+
+  .svc-visits__container-grid {
     grid-template-columns: 1fr;
   }
 
-  .svc-eco-grid {
+  .svc-visit-live-card {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 16 / 9;
+  }
+
+  .svc-eco-top-row {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .svc-eco-card-flagship {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 24px;
+    padding: 32px 24px;
+    width: 100%;
+  }
+
+  .svc-eco-card-flagship__left {
+    width: 100%;
+  }
+
+  .svc-eco-card-flagship__right {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .svc-eco-card-emergency {
+    width: 100%;
+  }
+
+  .svc-eco-bottom-grid,
+  .svc-eco-bottom-row {
     grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    width: 100%;
+  }
+
+  .svc-eco-small-card {
+    width: 100%;
   }
 }
 
 @media (max-width: 600px) {
+  .services-page {
+    overflow-x: hidden;
+  }
+
+  /* Hero */
   .services-hero {
-    padding: 60px 20px;
+    padding: 76px 16px 48px;
+  }
+
+  .services-hero__inner {
+    flex-direction: column;
+    gap: 32px;
+  }
+
+  .services-hero__copy {
+    width: 100%;
+  }
+
+  .services-hero__copy h1 {
+    font-size: 32px;
+    line-height: 42px;
+  }
+
+  .services-hero__copy p {
+    font-size: 15px;
+    line-height: 26px;
+    width: 100%;
+  }
+
+  .services-hero__actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    width: 100%;
+  }
+
+  .services-btn-explore,
+  .services-btn-plans {
+    justify-content: center;
+    width: 100%;
+    box-sizing: border-box;
   }
 
   .services-hero__features {
+    width: 100%;
     grid-template-columns: 1fr;
+    gap: 10px;
   }
 
-  .svc-eco-grid {
-    grid-template-columns: 1fr;
+  .services-hero__feature-card {
+    width: 100%;
+    height: auto;
   }
 
+  /* Care Mitra Visits section */
+  .svc-visits {
+    padding: 48px 16px 56px;
+  }
+
+  .svc-visits__header-main h2 {
+    font-size: 26px;
+    line-height: 36px;
+  }
+
+  .svc-visits__header-main p {
+    font-size: 14px;
+    line-height: 24px;
+  }
+
+  .svc-visits__container-grid {
+    grid-template-columns: 1fr;
+    gap: 24px;
+    width: 100%;
+  }
+
+  .svc-visit-live-card {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 16 / 9;
+  }
+
+  /* Ecosystem section */
+  .svc-ecosystem {
+    padding: 48px 16px 56px;
+  }
+
+  .svc-eco-grid-container {
+    width: 100%;
+    gap: 16px;
+  }
+
+  .svc-eco-top-row {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    width: 100%;
+  }
+
+  .svc-eco-card-flagship {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 20px;
+    padding: 24px 18px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .svc-eco-card-flagship__left {
+    width: 100%;
+  }
+
+  .svc-eco-card-flagship__left h3 {
+    font-size: 22px;
+    line-height: 30px;
+  }
+
+  .svc-eco-card-flagship__left p {
+    font-size: 14px;
+    line-height: 24px;
+  }
+
+  .flagship-tags {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .svc-eco-card-emergency {
+    padding: 24px 18px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .emergency-tags {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .svc-eco-bottom-grid,
+  .svc-eco-bottom-row {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    width: 100%;
+  }
+
+  .svc-eco-small-card {
+    width: 100%;
+    padding: 22px 18px;
+    box-sizing: border-box;
+  }
+
+  .small-card-tags {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  /* CTA actions */
   .svc-cta__actions {
     flex-direction: column;
-    align-items: center;
+    align-items: stretch;
+    width: 100%;
+    gap: 12px;
+  }
+
+  .svc-cta-btn-plans,
+  .svc-cta-btn-callback {
+    width: 100%;
+    justify-content: center;
+    box-sizing: border-box;
   }
 }
 
@@ -5671,7 +6071,7 @@ a {
 
 @media (max-width: 767px) {
   .saathi-hero {
-    padding: 96px 16px 48px;
+    padding: 76px 16px 48px;
   }
 
   .saathi-hero__title {
