@@ -16,14 +16,14 @@
       "config": {
         "googleMapsApiKey": "AIzaSyDPrFpN29FZ786mTWjIbeQvW3y6ztjx3xU"
       },
-      "bundleIdentifier": "com.rajeev-23.maihoonna",
+      "bundleIdentifier": "com.maihoonna.app",
       "infoPlist": {
         "NSLocationAlwaysAndWhenInUseUsageDescription": "MaiHoonNa uses your location to share it with your care team when you trigger an SOS Emergency Alert.",
         "NSLocationAlwaysUsageDescription": "MaiHoonNa needs background location access so your GPS coordinates are shared with caregivers the moment you press the SOS button."
       }
     },
     "android": {
-      "package": "com.rajeev_23.maihoonna",
+      "package": "com.maihoonna.app",
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",

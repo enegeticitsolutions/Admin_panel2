@@ -20,7 +20,7 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.rajeev_23.maihoonna"
+      "package": "com.maihoonna.app"
     },
     "web": {
       "output": "static",

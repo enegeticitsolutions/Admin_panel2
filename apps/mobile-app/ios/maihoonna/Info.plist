@@ -28,7 +28,7 @@
         <key>CFBundleURLSchemes</key>
         <array>
           <string>maihoonna</string>
-          <string>com.rajeev-23.maihoonna</string>
+          <string>com.maihoonna.app</string>
         </array>
       </dict>
       <dict>

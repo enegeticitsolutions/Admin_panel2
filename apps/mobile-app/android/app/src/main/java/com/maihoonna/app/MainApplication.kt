@@ -1,4 +1,4 @@
-package com.rajeev_23.maihoonna
+package com.maihoonna.app
 
 import android.app.Application
 import android.content.res.Configuration
