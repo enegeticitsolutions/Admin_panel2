@@ -15,6 +15,12 @@ const medicationEvents = require('./medication-event.dispatcher');
 const emergencyEvents = require('./emergency-event.dispatcher');
 const vitalsEvents = require('./vitals-event.dispatcher');
 const rosterEvents = require('./roster-event.dispatcher');
+const accountEvents = require('./account-event.dispatcher');
+const moodEvents = require('./mood-event.dispatcher');
+const subscriptionEvents = require('./subscription-event.dispatcher');
+const communityEvents = require('./community-event.dispatcher');
+const serviceRequestEvents = require('./service-request-event.dispatcher');
+const adminEvents = require('./admin-event.dispatcher');
 
 module.exports = {
   visitEvents,
@@ -22,6 +28,12 @@ module.exports = {
   emergencyEvents,
   vitalsEvents,
   rosterEvents,
+  accountEvents,
+  moodEvents,
+  subscriptionEvents,
+  communityEvents,
+  serviceRequestEvents,
+  adminEvents,
 
   // Direct helper exports for convenience
   ...visitEvents,
@@ -29,4 +41,10 @@ module.exports = {
   ...emergencyEvents,
   ...vitalsEvents,
   ...rosterEvents,
+  ...accountEvents,
+  ...moodEvents,
+  ...subscriptionEvents,
+  ...communityEvents,
+  ...serviceRequestEvents,
+  ...adminEvents,
 };

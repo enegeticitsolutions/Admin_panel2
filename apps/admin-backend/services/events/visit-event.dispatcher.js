@@ -393,10 +393,249 @@ async function dispatchVisitCompleted(visitOrId, durationMinutes = 60) {
   }
 }
 
+/**
+ * 6. Dispatch VISIT_REMINDER (NT-011)
+ */
+async function dispatchVisitReminder({ visitId }) {
+  try {
+    const visit = await fetchFullVisit(visitId);
+    if (!visit) return;
+
+    const { formattedTime } = formatVisitTime(visit.scheduledTime);
+    const beneficiaryName = visit.beneficiary?.name || 'the beneficiary';
+
+    // A. Notify Care Companion (Push)
+    if (visit.careCompanion?.userId) {
+      notifyUser(prisma, {
+        userId: visit.careCompanion.userId,
+        type: 'reminder',
+        title: '⏰ Upcoming Visit Reminder',
+        body: `Reminder: your visit with ${beneficiaryName} starts at ${formattedTime}. Tap to view directions.`,
+        data: { visitId: visit.id, event: 'VISIT_REMINDER' },
+      }).catch(err => console.error('[VisitDispatcher] CC Reminder Push Error:', err.message));
+    }
+
+    // B. WhatsApp Notification (To Care Companion)
+    const ccPhone = getValidPhone(visit.careCompanion?.user?.phone);
+    if (ccPhone) {
+      notificationService.send({
+        channel: 'whatsapp',
+        event: 'VISIT_REMINDER',
+        to: ccPhone,
+        variables: { beneficiaryName, time: formattedTime }
+      }).catch(err => console.error('[VisitDispatcher] Visit Reminder WhatsApp Error:', err.message));
+    }
+  } catch (err) {
+    console.error('[VisitDispatcher] dispatchVisitReminder Exception:', err.message);
+  }
+}
+
+/**
+ * 7. Dispatch MANUAL_CHECKIN_FLAGGED (NT-013)
+ */
+async function dispatchManualCheckinFlagged({ visitId, fmUserId, fmPhone, remarks }) {
+  try {
+    const visit = await fetchFullVisit(visitId);
+    if (!visit) return;
+
+    const ccName = visit.careCompanion?.name || 'Care Companion';
+    const beneficiaryName = visit.beneficiary?.name || 'the beneficiary';
+    const reason = remarks || 'Outside geo-fence';
+
+    // A. Notify Field Manager (Push)
+    if (fmUserId) {
+      notifyUser(prisma, {
+        userId: fmUserId,
+        type: 'alert',
+        title: '⚠️ Manual Check-in Alert',
+        body: `${ccName} performed a manual check-in for ${beneficiaryName} (outside geo-fence). Reason: ${reason}.`,
+        data: { visitId: visit.id, event: 'MANUAL_CHECKIN_FLAGGED' },
+      }).catch(err => console.error('[VisitDispatcher] FM Alert Push Error:', err.message));
+    }
+
+    // B. WhatsApp Notification (To FM)
+    const fmValidPhone = getValidPhone(fmPhone);
+    if (fmValidPhone) {
+      notificationService.send({
+        channel: 'whatsapp',
+        event: 'MANUAL_CHECKIN_FLAGGED',
+        to: fmValidPhone,
+        variables: { ccName, beneficiaryName, remarks: reason }
+      }).catch(err => console.error('[VisitDispatcher] Manual Check-in WhatsApp Error:', err.message));
+    }
+  } catch (err) {
+    console.error('[VisitDispatcher] dispatchManualCheckinFlagged Exception:', err.message);
+  }
+}
+
+/**
+ * 8. Dispatch DAILY_VISIT_SUMMARY (NT-015)
+ */
+async function dispatchDailyVisitSummary({ visitId, mood, notes }) {
+  try {
+    const visit = await fetchFullVisit(visitId);
+    if (!visit) return;
+
+    const beneficiaryName = visit.beneficiary?.name || 'the beneficiary';
+    const subscriberName = visit.beneficiary?.subscriber?.name || 'Subscriber';
+    
+    // Notify Subscriber (Push + WhatsApp)
+    const subscriberId = visit.beneficiary?.subscriberId || visit.beneficiary?.subscriber?.id;
+    if (subscriberId) {
+      notifyUser(prisma, {
+        userId: subscriberId,
+        type: 'info',
+        title: `📄 Today's Visit Summary for ${beneficiaryName}`,
+        body: `Hi ${subscriberName}, here's today's update for ${beneficiaryName}: Mood — ${mood}. Notes: ${notes}`,
+        data: { visitId: visit.id, event: 'DAILY_VISIT_SUMMARY' },
+      }).catch(err => console.error('[VisitDispatcher] Subscriber Summary Push Error:', err.message));
+    }
+
+    const subscriberPhone = getValidPhone(visit.beneficiary?.subscriber?.phone);
+    if (subscriberPhone) {
+      notificationService.send({
+        channel: 'whatsapp',
+        event: 'DAILY_VISIT_SUMMARY',
+        to: subscriberPhone,
+        variables: { subscriberName, beneficiaryName, mood, notes }
+      }).catch(err => console.error('[VisitDispatcher] Summary WhatsApp Error:', err.message));
+    }
+  } catch (err) {
+    console.error('[VisitDispatcher] dispatchDailyVisitSummary Exception:', err.message);
+  }
+}
+
+/**
+ * 9. Dispatch MISSED_VISIT (NT-016)
+ */
+async function dispatchMissedVisit({ visitId, fmUserId, fmPhone }) {
+  try {
+    const visit = await fetchFullVisit(visitId);
+    if (!visit) return;
+
+    const beneficiaryName = visit.beneficiary?.name || 'the beneficiary';
+    
+    // Notify Subscriber
+    const subscriberId = visit.beneficiary?.subscriberId || visit.beneficiary?.subscriber?.id;
+    if (subscriberId) {
+      notifyUser(prisma, {
+        userId: subscriberId,
+        type: 'alert',
+        title: '⚠️ Visit Not Completed',
+        body: `We're sorry — today's scheduled visit for ${beneficiaryName} could not be completed. Our team is following up.`,
+        data: { visitId: visit.id, event: 'MISSED_VISIT' },
+      }).catch(err => console.error('[VisitDispatcher] Subscriber Missed Push Error:', err.message));
+    }
+
+    const subscriberPhone = getValidPhone(visit.beneficiary?.subscriber?.phone);
+    if (subscriberPhone) {
+      notificationService.send({
+        channel: 'whatsapp',
+        event: 'MISSED_VISIT',
+        to: subscriberPhone,
+        variables: { beneficiaryName }
+      }).catch(err => console.error('[VisitDispatcher] Subscriber Missed WhatsApp Error:', err.message));
+    }
+
+    // Notify Field Manager (WhatsApp only or Push if needed)
+    const fmValidPhone = getValidPhone(fmPhone);
+    if (fmValidPhone) {
+      notificationService.send({
+        channel: 'whatsapp',
+        event: 'MISSED_VISIT',
+        to: fmValidPhone,
+        variables: { beneficiaryName }
+      }).catch(err => console.error('[VisitDispatcher] FM Missed WhatsApp Error:', err.message));
+    }
+  } catch (err) {
+    console.error('[VisitDispatcher] dispatchMissedVisit Exception:', err.message);
+  }
+}
+
+/**
+ * 10. Dispatch CLINIC_VISIT_STARTED (NT-017)
+ */
+async function dispatchClinicVisitStarted({ visitId, clinicName }) {
+  try {
+    const visit = await fetchFullVisit(visitId);
+    if (!visit) return;
+
+    const ccName = visit.careCompanion?.name || 'Care Companion';
+    const beneficiaryName = visit.beneficiary?.name || 'the beneficiary';
+
+    // Notify Subscriber
+    const subscriberId = visit.beneficiary?.subscriberId || visit.beneficiary?.subscriber?.id;
+    if (subscriberId) {
+      notifyUser(prisma, {
+        userId: subscriberId,
+        type: 'info',
+        title: '🏥 Clinic Visit Started',
+        body: `${ccName} is accompanying ${beneficiaryName} to ${clinicName}. We'll update you when the visit concludes.`,
+        data: { visitId: visit.id, event: 'CLINIC_VISIT_STARTED' },
+      }).catch(err => console.error('[VisitDispatcher] Subscriber Clinic Push Error:', err.message));
+    }
+
+    const subscriberPhone = getValidPhone(visit.beneficiary?.subscriber?.phone);
+    if (subscriberPhone) {
+      notificationService.send({
+        channel: 'whatsapp',
+        event: 'CLINIC_VISIT_STARTED',
+        to: subscriberPhone,
+        variables: { ccName, beneficiaryName, clinicName }
+      }).catch(err => console.error('[VisitDispatcher] Clinic WhatsApp Error:', err.message));
+    }
+  } catch (err) {
+    console.error('[VisitDispatcher] dispatchClinicVisitStarted Exception:', err.message);
+  }
+}
+
+/**
+ * 11. Dispatch RATING_FEEDBACK_PROMPT (NT-018)
+ */
+async function dispatchRatingFeedbackPrompt({ visitId }) {
+  try {
+    const visit = await fetchFullVisit(visitId);
+    if (!visit) return;
+
+    const ccName = visit.careCompanion?.name || 'Care Companion';
+    
+    // Notify Subscriber
+    const subscriberId = visit.beneficiary?.subscriberId || visit.beneficiary?.subscriber?.id;
+    if (subscriberId) {
+      notifyUser(prisma, {
+        userId: subscriberId,
+        type: 'info',
+        title: '⭐ Rate Today\'s Visit',
+        body: `How was today's visit with ${ccName}? Tap to rate and share feedback.`,
+        data: { visitId: visit.id, event: 'RATING_FEEDBACK_PROMPT' },
+      }).catch(err => console.error('[VisitDispatcher] Rating Push Error:', err.message));
+    }
+
+    const subscriberPhone = getValidPhone(visit.beneficiary?.subscriber?.phone);
+    if (subscriberPhone) {
+      notificationService.send({
+        channel: 'whatsapp',
+        event: 'RATING_FEEDBACK_PROMPT',
+        to: subscriberPhone,
+        variables: { ccName }
+      }).catch(err => console.error('[VisitDispatcher] Rating WhatsApp Error:', err.message));
+    }
+  } catch (err) {
+    console.error('[VisitDispatcher] dispatchRatingFeedbackPrompt Exception:', err.message);
+  }
+}
+
+
 module.exports = {
   dispatchVisitScheduled,
   dispatchVisitRescheduled,
   dispatchVisitCancelled,
   dispatchVisitStarted,
   dispatchVisitCompleted,
+  dispatchVisitReminder,
+  dispatchManualCheckinFlagged,
+  dispatchDailyVisitSummary,
+  dispatchMissedVisit,
+  dispatchClinicVisitStarted,
+  dispatchRatingFeedbackPrompt,
 };

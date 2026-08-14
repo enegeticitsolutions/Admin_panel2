@@ -179,8 +179,53 @@ async function dispatchEmergencyResolved({ requestId, beneficiaryId, outcome = '
   }
 }
 
+/**
+ * 4. Dispatch EMERGENCY_ACKNOWLEDGED (NT-051)
+ */
+async function dispatchEmergencyAcknowledged({ requestId, beneficiaryId }) {
+  try {
+    const beneficiary = await prisma.beneficiary.findUnique({
+      where: { id: beneficiaryId },
+      include: {
+        subscriber: { select: { id: true, name: true, phone: true } }
+      }
+    });
+
+    if (!beneficiary) return;
+    const beneficiaryName = beneficiary.name || 'the beneficiary';
+
+    // Notify Subscriber
+    if (beneficiary.subscriber?.id) {
+      notifyUser(prisma, {
+        userId: beneficiary.subscriber.id,
+        type: 'info',
+        title: '🚨 Emergency Being Handled',
+        body: `We've received the emergency alert for ${beneficiaryName} and our team is responding. We'll update you shortly.`,
+        data: { requestId, event: 'EMERGENCY_ACKNOWLEDGED' },
+      }).catch(err => console.error('[EmergencyDispatcher] Subscriber Ack Push Error:', err.message));
+    }
+
+    // WhatsApp to Subscriber
+    const subscriberPhone = getValidPhone(beneficiary.subscriber?.phone);
+    if (subscriberPhone) {
+      notificationService.send({
+        channel: 'whatsapp',
+        event: 'EMERGENCY_ACKNOWLEDGED',
+        to: subscriberPhone,
+        variables: {
+          beneficiaryName
+        }
+      }).catch(err => console.error('[EmergencyDispatcher] Ack WhatsApp Error:', err.message));
+    }
+  } catch (err) {
+    console.error('[EmergencyDispatcher] dispatchEmergencyAcknowledged Exception:', err.message);
+  }
+}
+
+
 module.exports = {
   dispatchEmergencyTriggered,
   dispatchAmbulanceDispatched,
   dispatchEmergencyResolved,
+  dispatchEmergencyAcknowledged,
 };

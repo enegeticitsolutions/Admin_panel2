@@ -171,8 +171,143 @@ async function dispatchRosterApproved({ zoneId, date, periodType, approvedByName
   }
 }
 
+/**
+ * 4. Dispatch NEW_CC_ASSIGNED_TO_FM (NT-062)
+ */
+async function dispatchNewCCAssignedToFM({ fmUserId, fmPhone, ccName, date }) {
+  try {
+    if (fmUserId) {
+      notifyUser(prisma, {
+        userId: fmUserId,
+        type: 'info',
+        title: '👤 New Team Member',
+        body: `${ccName} has been added to your team, effective ${date}.`,
+        data: { event: 'NEW_CC_ASSIGNED_TO_FM' },
+      }).catch(err => console.error('[RosterDispatcher] FM Push Error:', err.message));
+    }
+
+    const validPhone = getValidPhone(fmPhone);
+    if (validPhone) {
+      notificationService.send({
+        channel: 'whatsapp',
+        event: 'NEW_CC_ASSIGNED_TO_FM',
+        to: validPhone,
+        variables: { ccName, date }
+      }).catch(err => console.error('[RosterDispatcher] WhatsApp Error:', err.message));
+    }
+  } catch (err) {
+    console.error('[RosterDispatcher] dispatchNewCCAssignedToFM Exception:', err.message);
+  }
+}
+
+/**
+ * 5. Dispatch CC_DEACTIVATED (NT-063)
+ */
+async function dispatchCCDeactivated({ fmUserId, omUserId, fmPhone, omPhone, ccName, lastWorkingDate, reason }) {
+  try {
+    const notifyRoles = [
+      { id: fmUserId, phone: fmPhone },
+      { id: omUserId, phone: omPhone },
+    ];
+
+    for (const role of notifyRoles) {
+      if (role.id) {
+        notifyUser(prisma, {
+          userId: role.id,
+          type: 'alert',
+          title: '🚫 Care Mitra Deactivated',
+          body: `${ccName} has been deactivated effective ${lastWorkingDate}. Reason: ${reason}. Please reassign.`,
+          data: { event: 'CC_DEACTIVATED' },
+        }).catch(err => console.error('[RosterDispatcher] Push Error:', err.message));
+      }
+
+      const validPhone = getValidPhone(role.phone);
+      if (validPhone) {
+        notificationService.send({
+          channel: 'whatsapp',
+          event: 'CC_DEACTIVATED',
+          to: validPhone,
+          variables: { ccName, lastWorkingDate, reason }
+        }).catch(err => console.error('[RosterDispatcher] WhatsApp Error:', err.message));
+      }
+    }
+  } catch (err) {
+    console.error('[RosterDispatcher] dispatchCCDeactivated Exception:', err.message);
+  }
+}
+
+/**
+ * 6. Dispatch BIRTHDAY_REMINDER (NT-064)
+ */
+async function dispatchBirthdayReminder({ ccUserId, fmUserId, ccPhone, fmPhone, beneficiaryName, date }) {
+  try {
+    const notifyRoles = [
+      { id: ccUserId, phone: ccPhone },
+      { id: fmUserId, phone: fmPhone },
+    ];
+
+    for (const role of notifyRoles) {
+      if (role.id) {
+        notifyUser(prisma, {
+          userId: role.id,
+          type: 'reminder',
+          title: '🎂 Celebration Reminder',
+          body: `Reminder: it's ${beneficiaryName}'s birthday on ${date}! Plan a small celebration during your visit.`,
+          data: { event: 'BIRTHDAY_REMINDER' },
+        }).catch(err => console.error('[RosterDispatcher] Push Error:', err.message));
+      }
+
+      const validPhone = getValidPhone(role.phone);
+      if (validPhone) {
+        notificationService.send({
+          channel: 'whatsapp',
+          event: 'BIRTHDAY_REMINDER',
+          to: validPhone,
+          variables: { beneficiaryName, date }
+        }).catch(err => console.error('[RosterDispatcher] WhatsApp Error:', err.message));
+      }
+    }
+  } catch (err) {
+    console.error('[RosterDispatcher] dispatchBirthdayReminder Exception:', err.message);
+  }
+}
+
+/**
+ * 7. Dispatch CC_PERFORMANCE_RATING (NT-065)
+ */
+async function dispatchCCPerformanceRating({ ccUserId, ccPhone, rating, beneficiaryName, comment }) {
+  try {
+    if (ccUserId) {
+      notifyUser(prisma, {
+        userId: ccUserId,
+        type: 'info',
+        title: '⭐ New Feedback Received',
+        body: `You received a ${rating}-star rating from ${beneficiaryName}'s family. Comment: "${comment}"`,
+        data: { event: 'CC_PERFORMANCE_RATING' },
+      }).catch(err => console.error('[RosterDispatcher] Push Error:', err.message));
+    }
+
+    const validPhone = getValidPhone(ccPhone);
+    if (validPhone) {
+      notificationService.send({
+        channel: 'whatsapp',
+        event: 'CC_PERFORMANCE_RATING',
+        to: validPhone,
+        variables: { rating: rating.toString(), beneficiaryName, comment }
+      }).catch(err => console.error('[RosterDispatcher] WhatsApp Error:', err.message));
+    }
+  } catch (err) {
+    console.error('[RosterDispatcher] dispatchCCPerformanceRating Exception:', err.message);
+  }
+}
+
+
 module.exports = {
   dispatchCareCompanionAssigned,
   dispatchCCReallocated,
   dispatchRosterApproved,
+  dispatchNewCCAssignedToFM,
+  dispatchCCDeactivated,
+  dispatchBirthdayReminder,
+  dispatchCCPerformanceRating,
 };

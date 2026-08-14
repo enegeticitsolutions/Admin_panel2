@@ -257,6 +257,24 @@ All 5 core domain event groups are fully implemented under `apps/admin-backend/s
 - `dispatchCCReallocated`: Alert when temporary substitute CC is assigned.
 - `dispatchRosterApproved`: Triggered from `POST /api/visits/roster/approve` to notify Field Managers and CCs.
 
+### 6. Account & Onboarding Events (`services/events/account-event.dispatcher.js`)
+- `dispatchSubscriberAccountCreated`, `dispatchBeneficiaryProfileCreated`, `dispatchCMOnboardingCleared`, etc.
+
+### 7. Mood & Happiness Score Events (`services/events/mood-event.dispatcher.js`)
+- `dispatchMoodAlert`, `dispatchWellbeingCheckRecommended`, `dispatchHappinessScoreUpdate`, `dispatchWeeklyWellbeingDigest`.
+
+### 8. Scheduling & Subscription Events (`services/events/subscription-event.dispatcher.js`)
+- `dispatchScheduleChangeRequest`, `dispatchSubscriptionRenewalReminder`, `dispatchPaymentFailed`, `dispatchSubscriptionHoursLow`, `dispatchSubscriptionHoursExhausted`, `dispatchSubscriptionTerminated`, `dispatchFreeTrialEnding`.
+
+### 9. Community & Saathi Network Events (`services/events/community-event.dispatcher.js`)
+- `dispatchSaathiInteractionRequest`, `dispatchSaathiVisitCompleted`, `dispatchHobbyCircleMessage`, `dispatchCommunityEventUpcoming`, `dispatchLegacyCircleBioPublished`.
+
+### 10. Service Requests Events (`services/events/service-request-event.dispatcher.js`)
+- `dispatchTeleconsultationRequested`, `dispatchLabTestScheduled`, `dispatchPhysiotherapyScheduled`, `dispatchMedicineOrderPlaced`.
+
+### 11. Admin & Operations Events (`services/events/admin-event.dispatcher.js`)
+- `dispatchSubscriptionPendingCSA`, `dispatchSubscriptionPendingOM`, `dispatchPartnerEnrolmentRequest`, `dispatchPartnerEnrolmentApproved`, `dispatchCCAbsenceReported`, `dispatchBGVStatusUpdate`, `dispatchWeeklyZoneUtilisation`, `dispatchInbasketMessage`.
+
 ### Mobile Client Live Refresh (`apps/mobile-app/app/_layout.tsx`)
 - Added global listener via `Notifications.addNotificationReceivedListener`.
 - Automatically executes `queryClient.invalidateQueries` for `['subscriberDashboard']` and `['beneficiaryDashboardInfo']` to instantly refresh dashboard cards upon push arrival.

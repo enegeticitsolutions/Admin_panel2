@@ -77,6 +77,49 @@ async function dispatchVitalsAlert({ readingId, beneficiaryId, vitalName, readin
   }
 }
 
+/**
+ * Dispatch EMR_VITALS_REPORT (NT-033)
+ */
+async function dispatchEMRVitalsReport({ beneficiaryId, month }) {
+  try {
+    const beneficiary = await prisma.beneficiary.findUnique({
+      where: { id: beneficiaryId },
+      include: {
+        subscriber: { select: { id: true, name: true, phone: true } }
+      }
+    });
+
+    if (!beneficiary) return;
+
+    const beneficiaryName = beneficiary.name || 'the beneficiary';
+
+    // Notify Subscriber
+    if (beneficiary.subscriber?.id) {
+      notifyUser(prisma, {
+        userId: beneficiary.subscriber.id,
+        type: 'info',
+        title: `📊 ${beneficiaryName}'s Monthly Health Summary`,
+        body: `Attached is ${beneficiaryName}'s vitals and medication adherence trend for ${month}.`,
+        data: { beneficiaryId, event: 'EMR_VITALS_REPORT' },
+      }).catch(err => console.error('[VitalsDispatcher] Subscriber EMR Push Error:', err.message));
+    }
+
+    const subscriberPhone = getValidPhone(beneficiary.subscriber?.phone);
+    if (subscriberPhone) {
+      notificationService.send({
+        channel: 'whatsapp',
+        event: 'EMR_VITALS_REPORT',
+        to: subscriberPhone,
+        variables: { beneficiaryName, month }
+      }).catch(err => console.error('[VitalsDispatcher] EMR WhatsApp Error:', err.message));
+    }
+  } catch (err) {
+    console.error('[VitalsDispatcher] dispatchEMRVitalsReport Exception:', err.message);
+  }
+}
+
+
 module.exports = {
   dispatchVitalsAlert,
+  dispatchEMRVitalsReport,
 };
