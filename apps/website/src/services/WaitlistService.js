@@ -2,9 +2,11 @@
  * WaitlistService - Object-Oriented Service Model
  * Encapsulates validation and API network calls for waitlist registrations.
  */
+import { API_BASE } from './api';
+
 export class WaitlistService {
-  constructor(apiBaseUrl = import.meta.env.VITE_API_URL || '') {
-    this.apiBaseUrl = apiBaseUrl;
+  constructor() {
+    this.apiBaseUrl = API_BASE;
   }
 
   /**
@@ -46,7 +48,7 @@ export class WaitlistService {
       email: formData.email.trim(),
     };
 
-    const response = await fetch(`${this.apiBaseUrl}/api/website/submit-form`, {
+    const response = await fetch(`${this.apiBaseUrl}/website/submit-form`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
