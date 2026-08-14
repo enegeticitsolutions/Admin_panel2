@@ -1,12 +1,14 @@
 // API Service for Website Frontend using backend routes (same as mobile app)
 
 const getApiBase = () => {
-  const envUrl = import.meta.env.VITE_API_URL;
+  let envUrl = import.meta.env.VITE_API_URL;
   if (envUrl) {
-    return envUrl.replace(/\/api\/?$/, '') + '/api';
+    // Respect the exact URL from .env (just strip trailing slash)
+    return envUrl.endsWith('/') ? envUrl.slice(0, -1) : envUrl;
   }
   return '/api';
 };
+
 
 export const API_BASE = getApiBase();
 
