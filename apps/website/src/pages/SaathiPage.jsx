@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { API_BASE } from '../services/api';
 
 const SaathiPage = () => {
   const [content, setContent] = useState(null);
@@ -29,8 +30,7 @@ const SaathiPage = () => {
 
   const fetchContent = async () => {
     try {
-      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:8001';
-      const res = await fetch(`${apiBase}/api/website/content/sathi`);
+      const res = await fetch(`${API_BASE}/website/content/sathi`);
       const data = await res.json();
       
       if (data.success) {
@@ -81,8 +81,7 @@ const SaathiPage = () => {
     const payload = { ...formData, age };
     
     try {
-      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:8001';
-      const res = await fetch(`${apiBase}/api/website/saathi-enrollment`, {
+      const res = await fetch(`${API_BASE}/website/saathi-enrollment`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
