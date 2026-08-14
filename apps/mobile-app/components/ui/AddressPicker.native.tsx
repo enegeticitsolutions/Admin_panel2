@@ -30,7 +30,7 @@ import {
   ScrollView,
   KeyboardAvoidingView,
 } from 'react-native';
-import MapView, { Region } from 'react-native-maps';
+import MapView, { Region, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -214,7 +214,9 @@ export const AddressPicker: React.FC<AddressPickerProps> = ({
       return;
     }
     try {
-      const res = await fetch(`${API_URL}/public/location/autocomplete?input=${encodeURIComponent(text)}`);
+      const res = await fetch(`${API_URL}/public/location/autocomplete?input=${encodeURIComponent(text)}`, {
+        headers: { 'x-app-secret': process.env.EXPO_PUBLIC_APP_SECRET || '' }
+      });
       const json = await res.json();
       if (json.success && Array.isArray(json.data)) {
         setSuggestions(json.data);
@@ -235,7 +237,9 @@ export const AddressPicker: React.FC<AddressPickerProps> = ({
     setSearching(true);
     
     try {
-      const res = await fetch(`${API_URL}/public/location/place-details?placeId=${placeId}`);
+      const res = await fetch(`${API_URL}/public/location/place-details?placeId=${placeId}`, {
+        headers: { 'x-app-secret': process.env.EXPO_PUBLIC_APP_SECRET || '' }
+      });
       const json = await res.json();
       if (json.success && json.data) {
         const newRegion = {
@@ -433,6 +437,7 @@ export const AddressPicker: React.FC<AddressPickerProps> = ({
       {/* Full-screen Map */}
       <MapView
         ref={mapRef}
+        provider={PROVIDER_GOOGLE}
         style={StyleSheet.absoluteFillObject}
         initialRegion={region}
         onRegionChange={onRegionChange}

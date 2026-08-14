@@ -681,46 +681,6 @@ export const getVolunteerCreditSummary = async (volunteerId: string) => {
     orderBy: { createdAt: 'desc' }
   });
 
-  // If new/test account has no transactions or 0 balance, seed initial showcase credits so the user can test the UI & redemption options immediately
-  if (txs.length === 0 && volunteer.totalCreditPoints === 0) {
-    const initialPoints = 150;
-    const initialHours = 15.0;
-    await prisma.volunteer.update({
-      where: { id: volunteerId },
-      data: {
-        totalCreditPoints: initialPoints,
-        totalCreditHours: initialHours
-      }
-    });
-    await prisma.volunteerCreditTransaction.createMany({
-      data: [
-        {
-          volunteerId,
-          type: 'earned',
-          minutesDelta: 480,
-          pointsDelta: 80,
-          balanceAfter: 80,
-          description: 'Companion Visit with Mrs. Sharma (8.0 hrs)',
-          createdAt: new Date(Date.now() - 86400000 * 3)
-        },
-        {
-          volunteerId,
-          type: 'earned',
-          minutesDelta: 420,
-          pointsDelta: 70,
-          balanceAfter: initialPoints,
-          description: 'Companion Visit with Mr. Verma (7.0 hrs)',
-          createdAt: new Date(Date.now() - 86400000 * 1)
-        }
-      ]
-    });
-    volunteer.totalCreditPoints = initialPoints;
-    volunteer.totalCreditHours = initialHours;
-    txs = await prisma.volunteerCreditTransaction.findMany({
-      where: { volunteerId },
-      orderBy: { createdAt: 'desc' }
-    });
-  }
 
   let totalEarned = 0;
   let totalRedeemed = 0;

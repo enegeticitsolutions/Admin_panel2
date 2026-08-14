@@ -17,10 +17,12 @@
       "config": {
         "googleMapsApiKey": "AIzaSyDPrFpN29FZ786mTWjIbeQvW3y6ztjx3xU"
       },
-      "bundleIdentifier": "com.rajeev-23.sathinetwork"
+      "bundleIdentifier": "com.maihoonna.sathiapp",
+      "googleServicesFile": "./GoogleService-Info.plist"
     },
     "android": {
-      "package": "com.rajeev_23.sathinetwork",
+      "package": "com.maihoonna.sathiapp",
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/icon.png",
         "backgroundColor": "#FE6700"
