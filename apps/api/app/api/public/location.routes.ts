@@ -3,6 +3,17 @@ import { ApiError } from '../../utils/ApiError';
 
 const router = Router();
 
+// Middleware to restrict access to only our mobile apps (and website if it knows the secret)
+const requireAppSecret = (req: Request, res: Response, next: NextFunction) => {
+  const secret = req.headers['x-app-secret'];
+  if (secret !== process.env.MHN_APP_SECRET) {
+    return next(new ApiError(403, 'Forbidden: Invalid App Secret'));
+  }
+  next();
+};
+
+router.use(requireAppSecret);
+
 router.get('/reverse-geocode', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { lat, lng } = req.query;

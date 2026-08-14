@@ -1,4 +1,4 @@
-package com.rajeev_23.sathinetwork
+package com.maihoonna.sathiapp
 
 import android.app.Application
 import android.content.res.Configuration

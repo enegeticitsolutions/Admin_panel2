@@ -31,7 +31,7 @@ export default ({ config }) => {
     extra: {
       ...config.extra,
       eas: {
-        projectId: "f714f4d8-66b4-4262-aa35-aad105d9fbaa",
+        projectId: "884c08eb-199b-49a2-9c0c-f6ec9ff3586b",
       },
       razorpayKeyId,
       firebase: {

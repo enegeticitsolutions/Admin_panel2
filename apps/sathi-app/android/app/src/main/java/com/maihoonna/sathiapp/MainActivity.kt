@@ -1,4 +1,4 @@
-package com.rajeev_23.sathinetwork
+package com.maihoonna.sathiapp
 import expo.modules.splashscreen.SplashScreenManager
 
 import android.os.Build

@@ -7,7 +7,7 @@
     <key>CFBundleDevelopmentRegion</key>
     <string>$(DEVELOPMENT_LANGUAGE)</string>
     <key>CFBundleDisplayName</key>
-    <string>maihoonna</string>
+    <string>sathi-network</string>
     <key>CFBundleExecutable</key>
     <string>$(EXECUTABLE_NAME)</string>
     <key>CFBundleIdentifier</key>
@@ -27,21 +27,21 @@
       <dict>
         <key>CFBundleURLSchemes</key>
         <array>
-          <string>maihoonna</string>
-          <string>com.rajeev-23.maihoonna</string>
+          <string>sathinetwork</string>
+          <string>com.maihoonna.sathiapp</string>
         </array>
       </dict>
       <dict>
         <key>CFBundleURLSchemes</key>
         <array>
-          <string>exp+maihoonna</string>
+          <string>exp+sathi-app</string>
         </array>
       </dict>
     </array>
     <key>CFBundleVersion</key>
     <string>1</string>
     <key>GMSApiKey</key>
-    <string>AIzaSyDPrFpN29FZ786mTWjIbeQvW3y6ztjx3xU</string>
+    <string>AIzaSyBIgXpRrlQ6AcqgMTUpDpHcvPOQfdwBOb0</string>
     <key>LSMinimumSystemVersion</key>
     <string>12.0</string>
     <key>LSRequiresIPhoneOS</key>
@@ -55,6 +55,8 @@
     </dict>
     <key>NSCameraUsageDescription</key>
     <string>Allow $(PRODUCT_NAME) to access your camera</string>
+    <key>NSFaceIDUsageDescription</key>
+    <string>Allow $(PRODUCT_NAME) to use Face ID</string>
     <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
     <string>MaiHoonNa needs your location to show your address on the map and find nearby care services.</string>
     <key>NSLocationAlwaysUsageDescription</key>

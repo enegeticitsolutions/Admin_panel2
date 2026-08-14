@@ -26,6 +26,8 @@ node_modules/
 **/.env
 **/.env.local
 **/.env.*.local
+**/*serviceAccountKey*.json
+**/serviceAccountKey.json
 
 ################################
 # Expo / Metro (mobile-app)
