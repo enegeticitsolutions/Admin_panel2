@@ -12,7 +12,8 @@
     "web": "expo start --web",
     "export": "CI=1 EXPO_NO_INTERACTIVE=1 BROWSER=none expo export --non-interactive",
     "build:web": "CI=1 EXPO_NO_INTERACTIVE=1 BROWSER=none expo export --platform web --non-interactive",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "eas-build-pre-build": "cp ./google-services.json ./android/app/google-services.json || true"
   },
   "dependencies": {
     "@expo-google-fonts/poppins": "^0.4.1",

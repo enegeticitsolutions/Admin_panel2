@@ -58,8 +58,11 @@ Thumbs.db
 # @end expo-cli
 
 ################################
-# Firebase Service Account Keys (NEVER commit)
+# Firebase Service Account Keys (NEVER commit - these are actual secrets)
 ################################
 serviceAccountKey.json
-GoogleService-Info.plist
-google-services.json
+# NOTE: google-services.json and GoogleService-Info.plist are NOT secrets.
+# They are client config files. Google explicitly says it's safe to commit them.
+# They MUST be committed so EAS Build can access them.
+# google-services.json   <-- intentionally NOT ignored
+# GoogleService-Info.plist  <-- intentionally NOT ignored
