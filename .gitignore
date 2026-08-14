@@ -28,6 +28,10 @@ node_modules/
 **/.env.*.local
 **/*serviceAccountKey*.json
 **/serviceAccountKey.json
+**/google-services.json
+**/*google-services*.json
+**/GoogleService-Info.plist
+**/*GoogleService-Info*.plist
 
 ################################
 # Expo / Metro (mobile-app)
