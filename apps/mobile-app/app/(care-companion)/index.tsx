@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform, ActivityIndicator, useWindowDimensions } from 'react-native';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform, ActivityIndicator, useWindowDimensions, PanResponder } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter, Stack, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -32,6 +32,7 @@ export default function DashboardScreen() {
 
     // 🚀 BACKEND-READY STATE: This exactly mimics what your API will return
     const [dashboardData, setDashboardData] = useState<any>(null);
+    const [currentVisitIndex, setCurrentVisitIndex] = useState(0);
 
     let [fontsLoaded] = useFonts({
         Poppins_400Regular, Poppins_500Medium, Poppins_600SemiBold, Poppins_700Bold,
@@ -80,7 +81,10 @@ export default function DashboardScreen() {
                     if (!response.ok) throw new Error("Dashboard API returned error");
 
                     const json = await response.json();
-                    if (isActive) setDashboardData(json.data || json);
+                    if (isActive) {
+                        setDashboardData(json.data || json);
+                        setCurrentVisitIndex(0);
+                    }
                 } catch (error) {
                     console.log("Failed to load dashboard data from backend. Loading Fallback Mocks...", error);
                     // TEMPORARY FALLBACK MOCK DATA FOR SEAMLESS USER EXPERIENCE
@@ -92,15 +96,36 @@ export default function DashboardScreen() {
                                 id: "v123",
                                 patientName: "Sameer Tandon",
                                 type: "Home Visit",
-                                address: "123 Oak Street, Apt 4B",
+                                address: "123 Oak Street, Apt 4B, Noida",
                                 time: "10:00 AM",
                                 distance: "2.3 km"
                             },
+                            upcomingVisits: [
+                                {
+                                    id: "v123",
+                                    patientName: "Sameer Tandon",
+                                    type: "Home Visit",
+                                    address: "123 Oak Street, Apt 4B, Noida",
+                                    time: "10:00 AM",
+                                    durationMinutes: 60,
+                                    distance: "2.3 km"
+                                },
+                                {
+                                    id: "v124",
+                                    patientName: "Sourav Kapoor",
+                                    type: "Home Visit",
+                                    address: "Flat No. 502, Tower B, Gaur City, Sector 4, Noida",
+                                    time: "02:30 PM",
+                                    durationMinutes: 45,
+                                    distance: "1.8 km"
+                                }
+                            ],
                             celebrations: [
                                 { id: "c1", name: "Sameer Tandon", type: "Birthday", date: "Mar 10, 2026" },
                                 { id: "c2", name: "Eleanor Davis", type: "Anniversary", date: "Mar 11, 2026" }
                             ]
                         });
+                        setCurrentVisitIndex(0);
                     }
                 } finally {
                     if (isActive) setLoading(false);
@@ -112,14 +137,43 @@ export default function DashboardScreen() {
         }, [fontsLoaded])
     );
 
+    const upcomingList: any[] = (dashboardData?.upcomingVisits && dashboardData.upcomingVisits.length > 0)
+        ? dashboardData.upcomingVisits
+        : (dashboardData?.nextVisit ? [dashboardData.nextVisit] : []);
+
+    const currentVisit = upcomingList[currentVisitIndex] || dashboardData?.nextVisit;
+    const isVisitInProgress = currentVisit?.status === 'in_progress';
+
+    // 👆 Horizontal Swipe Gesture Handler for Visit Card
+    const panResponder = useMemo(
+        () =>
+            PanResponder.create({
+                onStartShouldSetPanResponder: () => false,
+                onMoveShouldSetPanResponder: (_, gestureState) => {
+                    // Only capture horizontal swipes that exceed threshold and are predominantly horizontal
+                    return Math.abs(gestureState.dx) > 18 && Math.abs(gestureState.dx) > Math.abs(gestureState.dy) * 1.3;
+                },
+                onPanResponderRelease: (_, gestureState) => {
+                    if (gestureState.dx < -35) {
+                        // Swiped Left -> Go to next visit
+                        setCurrentVisitIndex(prev => Math.min(upcomingList.length - 1, prev + 1));
+                    } else if (gestureState.dx > 35) {
+                        // Swiped Right -> Go to previous visit
+                        setCurrentVisitIndex(prev => Math.max(0, prev - 1));
+                    }
+                },
+            }),
+        [upcomingList.length]
+    );
+
     const handleStartVisit = () => {
-        if (!dashboardData?.nextVisit) return;
+        if (!currentVisit) return;
         push({
             pathname: '/(care-companion)/visit-details' as any,
             params: {
-                visitId: dashboardData.nextVisit.id,
-                patientName: dashboardData.nextVisit.patientName,
-                type: dashboardData.nextVisit.type
+                visitId: currentVisit.id,
+                patientName: currentVisit.patientName,
+                type: currentVisit.type
             }
         });
     };
@@ -131,8 +185,6 @@ export default function DashboardScreen() {
             </View>
         );
     }
-
-    const isVisitInProgress = dashboardData?.nextVisit?.status === 'in_progress';
 
     return (
         <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
@@ -213,40 +265,87 @@ export default function DashboardScreen() {
                         </View>
                     </View>
 
-                    {/* 3. DYNAMIC NEXT VISIT CARD */}
-                    {dashboardData.nextVisit ? (
-                        <View style={styles.card}>
-                            {/* Header Row */}
+                    {/* 3. DYNAMIC UPCOMING / NEXT VISIT CARD WITH CAROUSEL SWITCHER & SWIPE GESTURE */}
+                    {currentVisit ? (
+                        <View
+                            style={styles.card}
+                            {...(upcomingList.length > 1 ? panResponder.panHandlers : {})}
+                        >
+                            {/* Header Row: Title + Left/Right Switcher + Type Badge */}
                             <View style={styles.nextVisitHeader}>
                                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                                     <Ionicons name="notifications-outline" size={20} color={DEEP_ORANGE} />
-                                    <Text style={styles.nextVisitTitle}>Next Visit</Text>
+                                    <Text style={styles.nextVisitTitle}>
+                                        {upcomingList.length > 1 ? 'Upcoming Visit' : 'Next Visit'}
+                                    </Text>
                                 </View>
-                                <View style={styles.visitBadge}>
-                                    <Text style={styles.visitBadgeText}>{dashboardData.nextVisit.type}</Text>
+
+                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                                    {/* Left & Right Switcher Buttons */}
+                                    {upcomingList.length > 1 && (
+                                        <View style={styles.switcherContainer}>
+                                            <TouchableOpacity
+                                                style={[styles.arrowBtn, currentVisitIndex === 0 && styles.arrowBtnDisabled]}
+                                                onPress={() => setCurrentVisitIndex(prev => Math.max(0, prev - 1))}
+                                                disabled={currentVisitIndex === 0}
+                                                activeOpacity={0.7}
+                                                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                                            >
+                                                <Ionicons
+                                                    name="chevron-back"
+                                                    size={16}
+                                                    color={currentVisitIndex === 0 ? '#D1D5DB' : DEEP_ORANGE}
+                                                />
+                                            </TouchableOpacity>
+
+                                            <View style={styles.counterBadge}>
+                                                <Text style={styles.counterText}>
+                                                    {currentVisitIndex + 1}/{upcomingList.length}
+                                                </Text>
+                                            </View>
+
+                                            <TouchableOpacity
+                                                style={[styles.arrowBtn, currentVisitIndex === upcomingList.length - 1 && styles.arrowBtnDisabled]}
+                                                onPress={() => setCurrentVisitIndex(prev => Math.min(upcomingList.length - 1, prev + 1))}
+                                                disabled={currentVisitIndex === upcomingList.length - 1}
+                                                activeOpacity={0.7}
+                                                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                                            >
+                                                <Ionicons
+                                                    name="chevron-forward"
+                                                    size={16}
+                                                    color={currentVisitIndex === upcomingList.length - 1 ? '#D1D5DB' : DEEP_ORANGE}
+                                                />
+                                            </TouchableOpacity>
+                                        </View>
+                                    )}
+
+                                    <View style={styles.visitBadge}>
+                                        <Text style={styles.visitBadgeText}>{currentVisit.type}</Text>
+                                    </View>
                                 </View>
                             </View>
 
                             {/* Patient Name */}
-                            <Text style={styles.patientName}>{dashboardData.nextVisit.patientName}</Text>
+                            <Text style={styles.patientName}>{currentVisit.patientName}</Text>
 
                             {/* Full Address — tappable to navigate */}
                             <TouchableOpacity
                                 style={styles.addressRow}
                                 activeOpacity={0.7}
                                 onPress={() => NavigationService.instance.navigate({
-                                    address: dashboardData.nextVisit.address,
-                                    latitude: dashboardData.nextVisit.latitude,
-                                    longitude: dashboardData.nextVisit.longitude,
-                                    label: dashboardData.nextVisit.patientName,
+                                    address: currentVisit.address,
+                                    latitude: currentVisit.latitude,
+                                    longitude: currentVisit.longitude,
+                                    label: currentVisit.patientName,
                                 })}
                             >
                                 <Ionicons name="location-outline" size={16} color={DEEP_ORANGE} style={{ marginTop: 2 }} />
                                 <View style={{ flex: 1 }}>
-                                    <Text style={styles.addressText}>{dashboardData.nextVisit.address}</Text>
-                                    {dashboardData.nextVisit.pincode ? (
+                                    <Text style={styles.addressText}>{currentVisit.address}</Text>
+                                    {currentVisit.pincode ? (
                                         <Text style={styles.addressSubText}>
-                                            {[dashboardData.nextVisit.city, dashboardData.nextVisit.pincode].filter(Boolean).join(' - ')}
+                                            {[currentVisit.city, currentVisit.pincode].filter(Boolean).join(' - ')}
                                         </Text>
                                     ) : null}
                                 </View>
@@ -257,15 +356,15 @@ export default function DashboardScreen() {
                             <View style={styles.metaRow}>
                                 <View style={styles.metaItem}>
                                     <Ionicons name="time-outline" size={16} color="#4B5563" />
-                                    <Text style={styles.metaText}>{dashboardData.nextVisit.time}</Text>
+                                    <Text style={styles.metaText}>{currentVisit.time}</Text>
                                 </View>
-                                {dashboardData.nextVisit.durationMinutes ? (
+                                {currentVisit.durationMinutes ? (
                                     <View style={styles.metaItem}>
                                         <Ionicons name="hourglass-outline" size={16} color="#4B5563" />
                                         <Text style={styles.metaText}>
-                                            {dashboardData.nextVisit.durationMinutes >= 60
-                                                ? `${Math.floor(dashboardData.nextVisit.durationMinutes / 60)}h${dashboardData.nextVisit.durationMinutes % 60 > 0 ? ` ${dashboardData.nextVisit.durationMinutes % 60}m` : ''}`
-                                                : `${dashboardData.nextVisit.durationMinutes} min`}
+                                            {currentVisit.durationMinutes >= 60
+                                                ? `${Math.floor(currentVisit.durationMinutes / 60)}h${currentVisit.durationMinutes % 60 > 0 ? ` ${currentVisit.durationMinutes % 60}m` : ''}`
+                                                : `${currentVisit.durationMinutes} min`}
                                         </Text>
                                     </View>
                                 ) : null}
@@ -278,10 +377,10 @@ export default function DashboardScreen() {
                                     style={styles.navigateBtn}
                                     activeOpacity={0.85}
                                     onPress={() => NavigationService.instance.navigate({
-                                        address: dashboardData.nextVisit.address,
-                                        latitude: dashboardData.nextVisit.latitude,
-                                        longitude: dashboardData.nextVisit.longitude,
-                                        label: dashboardData.nextVisit.patientName,
+                                        address: currentVisit.address,
+                                        latitude: currentVisit.latitude,
+                                        longitude: currentVisit.longitude,
+                                        label: currentVisit.patientName,
                                     })}
                                 >
                                     <Ionicons name="navigate-circle-outline" size={20} color={DEEP_ORANGE} />
@@ -418,10 +517,43 @@ const styles = StyleSheet.create({
     nextVisitHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
     nextVisitTitle: { fontFamily: 'Poppins_500Medium', fontSize: 15, color: '#111827' },
 
+    switcherContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#FFF7ED',
+        borderRadius: 14,
+        paddingHorizontal: 4,
+        paddingVertical: 2,
+        borderWidth: 1,
+        borderColor: '#FFEDD5',
+        gap: 2,
+    },
+    arrowBtn: {
+        width: 26,
+        height: 26,
+        borderRadius: 13,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#FFFFFF',
+    },
+    arrowBtnDisabled: {
+        backgroundColor: 'transparent',
+        opacity: 0.5,
+    },
+    counterBadge: {
+        paddingHorizontal: 4,
+    },
+    counterText: {
+        fontFamily: 'Poppins_600SemiBold',
+        fontSize: 11,
+        color: DEEP_ORANGE,
+    },
+
     patientRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
     patientName: { fontFamily: 'Poppins_600SemiBold', fontSize: 18, color: '#111827', marginBottom: 10 },
     visitBadge: { backgroundColor: DEEP_ORANGE, paddingHorizontal: 12, paddingVertical: 4, borderRadius: 6 },
     visitBadgeText: { color: '#FFFFFF', fontSize: 11, fontFamily: 'Poppins_500Medium' },
+
 
     addressRow: {
         flexDirection: 'row',

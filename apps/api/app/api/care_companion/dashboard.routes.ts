@@ -54,8 +54,8 @@ router.get('/', authenticate, async (req: Request, res: Response) => {
     const todaysVisitsCount = todaysVisits.length;
     const todaysHoursSum = todaysVisits.reduce((sum, v) => sum + (v.durationMinutes || 0), 0) / 60;
 
-    // 3. Find Next Upcoming Visit
-    const upcomingVisit = await prisma.visit.findFirst({
+    // 3. Find Upcoming Visits for Care Companion
+    const upcomingVisitsList = await prisma.visit.findMany({
       where: {
         careCompanionId: ccId,
         scheduledTime: {
@@ -68,13 +68,13 @@ router.get('/', authenticate, async (req: Request, res: Response) => {
       },
       include: {
         beneficiary: true,
-      }
+      },
+      take: 10,
     });
 
-    let nextVisit = null;
-    if (upcomingVisit) {
-      const ben = upcomingVisit.beneficiary;
-      const formattedTime = upcomingVisit.scheduledTime.toLocaleTimeString('en-US', {
+    const formatVisitItem = (v: any) => {
+      const ben = v.beneficiary;
+      const formattedTime = v.scheduledTime.toLocaleTimeString('en-US', {
         hour: 'numeric',
         minute: '2-digit',
         hour12: true,
@@ -84,12 +84,11 @@ router.get('/', authenticate, async (req: Request, res: Response) => {
         .filter(Boolean)
         .join(', ') || ben?.address || 'Address not specified';
 
-      nextVisit = {
-        id: upcomingVisit.id,
-        visitCode: upcomingVisit.visitCode || upcomingVisit.encounterId,
+      return {
+        id: v.id,
+        visitCode: v.visitCode || v.encounterId,
         patientName: ben?.name || 'Unknown Beneficiary',
-        type: upcomingVisit.notes ? 'Special Care' : 'Home Visit',
-        // Full structured address for display + navigation
+        type: v.notes ? 'Special Care' : 'Home Visit',
         address: fullAddress,
         flatPlot: ben?.flatPlot || null,
         streetArea: ben?.streetArea || null,
@@ -100,12 +99,15 @@ router.get('/', authenticate, async (req: Request, res: Response) => {
         latitude: ben?.latitude || null,
         longitude: ben?.longitude || null,
         time: formattedTime,
-        scheduledTime: upcomingVisit.scheduledTime.toISOString(),
-        durationMinutes: upcomingVisit.durationMinutes,
-        distance: '—', // Computed on-device if needed via coords
-        status: upcomingVisit.status,
+        scheduledTime: v.scheduledTime.toISOString(),
+        durationMinutes: v.durationMinutes,
+        distance: '—',
+        status: v.status,
       };
-    }
+    };
+
+    const upcomingVisits = upcomingVisitsList.map(formatVisitItem);
+    const nextVisit = upcomingVisits.length > 0 ? upcomingVisits[0] : null;
 
     // 4. Retrieve Celebrations (Birthdays of assigned primary/secondary beneficiaries)
     const celebrations = await celebrationService.getUpcomingBirthdaysForCompanion(ccId);
@@ -128,6 +130,7 @@ router.get('/', authenticate, async (req: Request, res: Response) => {
           hoursToday: Math.round(todaysHoursSum * 10) / 10,
         },
         nextVisit,
+        upcomingVisits,
         celebrations: celebrations.slice(0, config.notifications.maxCelebrationsDashboard),
       },
     });
