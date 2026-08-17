@@ -189,9 +189,9 @@ export class AuthService {
       selfBeneficiaryId = user.beneficiaryProfile.id;
     } else if (user.subscriberBeneficiaries && user.subscriberBeneficiaries.length > 0) {
       const selfBen = user.subscriberBeneficiaries.find(
-        (b: any) => (b.relationship || '').toLowerCase() === 'self' || b.userId === user.id
+        (b: any) => (b.relationship || '').toLowerCase() === 'self' || b.isSelf || b.userId === user.id
       );
-      if (selfBen && selfBen.isActive !== false) {
+      if (selfBen) {
         if (!availableRoles.includes('beneficiary')) availableRoles.push('beneficiary');
         selfBeneficiaryId = selfBen.id;
       }

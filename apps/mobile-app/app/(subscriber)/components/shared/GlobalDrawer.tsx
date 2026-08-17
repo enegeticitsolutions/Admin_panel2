@@ -33,10 +33,13 @@ const GlobalDrawer = ({ isOpen, onClose, drawerAnim, userData: _userDataProp }: 
     const userName = isLoggedIn ? (userData?.name || 'User') : 'Welcome Guest';
     const userPhone = isLoggedIn ? (userData?.phone || userData?.email || '') : 'Sign in to manage your care';
     const userRole = (userData?.role || '').toUpperCase();
-    const isSubscriber = isLoggedIn && userRole === 'SUBSCRIBER';
+    const isSubscriber = isLoggedIn && (userRole === 'SUBSCRIBER' || !userRole);
+    const hasSelfBeneficiary = (userData?.subscriberBeneficiaries || userData?.beneficiaries || []).some(
+        (b: any) => (b.relationship || '').toLowerCase() === 'self' || b.isSelf || (userData?.id && b.userId === userData.id)
+    );
     const isDualRole = isLoggedIn && (
-        availableRoles.includes('beneficiary') ||
-        isSubscriber
+        (availableRoles.includes('subscriber') && availableRoles.includes('beneficiary')) ||
+        hasSelfBeneficiary
     );
     
     // Get user initials for avatar fallback

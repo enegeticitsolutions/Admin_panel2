@@ -86,19 +86,24 @@ app.use(
       // Allow requests with no origin (mobile apps, native HTTP clients, curl, etc.)
       if (!origin) return callback(null, true);
 
-      // If allowed origin is '*', allow everything
+      // In development mode, allow local dev servers (localhost, 127.0.0.1, 192.168.x)
+      const isDev = process.env.NODE_ENV !== 'production';
+      if (isDev && (origin.includes('localhost') || origin.includes('127.0.0.1') || origin.includes('192.168.'))) {
+        return callback(null, origin);
+      }
+
+      // Check configured origins from CORS_ORIGIN environment variable
       if (config.corsOrigin === '*' || (Array.isArray(config.corsOrigin) && config.corsOrigin.includes('*'))) {
-        return callback(null, true);
+        return callback(null, origin);
       }
 
-      // Check if current origin is in the allowed list
       if (Array.isArray(config.corsOrigin) && config.corsOrigin.includes(origin)) {
-        return callback(null, true);
+        return callback(null, origin);
       }
 
-      // If literal match
-      if (config.corsOrigin === origin) return callback(null, true);
+      if (config.corsOrigin === origin) return callback(null, origin);
 
+      // Strictly reject unauthorized origins in production
       return callback(new Error(`CORS: Origin ${origin} not allowed`));
     },
     credentials: true,

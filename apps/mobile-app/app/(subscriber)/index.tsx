@@ -31,7 +31,6 @@ export default function SubscriberDashboardScreen() {
     useExitOnBack();
     const router = useRouter();
     const { availableRoles, switchRole, isSwitchingRole } = useAuth();
-    const isDualRole = availableRoles.includes('subscriber') && availableRoles.includes('beneficiary');
 
     const [userData, setUserData] = useState<any>(null);
     const [drawerOpen, setDrawerOpen] = useState(false);
@@ -205,6 +204,11 @@ export default function SubscriberDashboardScreen() {
     const beneficiaries = dashboard?.beneficiaries || [];
     const recentUpdates = dashboard?.recentUpdates || [];
     const unlinkedSubs = (dashboard?.activeSubscriptions || []).filter((sub: any) => !sub.beneficiaryId);
+
+    const hasSelfBeneficiary = (beneficiaries || userData?.subscriberBeneficiaries || []).some(
+        (b: any) => (b.relationship || '').toLowerCase() === 'self' || b.isSelf || (userData?.id && b.userId === userData.id)
+    );
+    const isDualRole = (availableRoles.includes('subscriber') && availableRoles.includes('beneficiary')) || hasSelfBeneficiary;
 
     const firstName = (userData?.name || 'there').split(' ')[0];
     const happinessScore = stats.happinessScore !== undefined && stats.happinessScore !== null ? `${stats.happinessScore}%` : '--';
@@ -409,13 +413,11 @@ export default function SubscriberDashboardScreen() {
                                         });
                                     } else if (isExpired) {
                                         router.push('/(setup)/subscription-packages');
-                                    } else if (isSelf && isDualRole) {
-                                        handleSwitchToBeneficiary();
                                     } else if (isSelected) {
-                                        // Second tap on already-selected active card → open profile
+                                        // Tap on active card → open beneficiary profile details
                                         router.push(`/(subscriber)/beneficiary-profile?id=${b.id}`);
                                     } else {
-                                        // First tap → select and refetch data for this beneficiary
+                                        // Select beneficiary and update dashboard view
                                         setSelectedBeneficiaryId(b.id);
                                         AsyncStorage.setItem('selectedBeneficiaryId', b.id);
                                     }
@@ -677,13 +679,12 @@ const styles = StyleSheet.create({
     statsGrid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
-        columnGap: CARD_GAP,
-        rowGap: CARD_GAP,
+        gap: CARD_GAP,
         zIndex: 1,
     },
     statsGridBottom: {
         flexDirection: 'row',
-        columnGap: CARD_GAP,
+        gap: CARD_GAP,
         paddingHorizontal: HORIZONTAL_PADDING,
         paddingTop: scale(14),
         paddingBottom: scale(20),
