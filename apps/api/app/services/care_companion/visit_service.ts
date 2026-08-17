@@ -55,7 +55,7 @@ export const getBeneficiaryVisits = async (beneficiaryId: string, limit = 50) =>
 };
 
 export const getCareCompanionVisits = async (ccId: string, date?: string) => {
-  const where: Prisma.VisitWhereInput = { careCompanionId: ccId };
+  const where: Prisma.VisitWhereInput = { careCompanionId: ccId, is3rdParty: false };
   if (date) {
     const d = new Date(date);
     const start = new Date(d.setHours(0, 0, 0, 0));
@@ -176,11 +176,11 @@ export const updateVisitDetails = async (data: {
     if (data.vitalsList && Array.isArray(data.vitalsList)) {
       await tx.vitalReading.deleteMany({ where: { visitId: visit.id } });
 
-      const careCompanion = await tx.careCompanion.findUnique({
+      const careCompanion = existingVisit.careCompanionId ? await tx.careCompanion.findUnique({
         where: { id: existingVisit.careCompanionId },
         select: { userId: true }
-      });
-      const capturedById = careCompanion?.userId || existingVisit.careCompanionId;
+      }) : null;
+      const capturedById = careCompanion?.userId || existingVisit.careCompanionId || 'SYSTEM';
 
       for (const reading of data.vitalsList) {
         const def = await tx.vitalDefinition.findUnique({ where: { id: reading.vitalDefinitionId } });
@@ -266,11 +266,11 @@ export const updateVisitDetails = async (data: {
     }
 
     if ((data as any).medicationsList && Array.isArray((data as any).medicationsList)) {
-      const careCompanion = await tx.careCompanion.findUnique({
+      const careCompanion = existingVisit.careCompanionId ? await tx.careCompanion.findUnique({
         where: { id: existingVisit.careCompanionId },
         select: { userId: true }
-      });
-      const recordedBy = careCompanion?.userId || existingVisit.careCompanionId;
+      }) : null;
+      const recordedBy = careCompanion?.userId || existingVisit.careCompanionId || 'SYSTEM';
 
       for (const item of (data as any).medicationsList) {
         const validUUIDRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -350,11 +350,11 @@ export const checkOut = async (data: {
       data: visitUpdateData,
     });
 
-    const careCompanion = await tx.careCompanion.findUnique({
+    const careCompanion = existingVisit.careCompanionId ? await tx.careCompanion.findUnique({
       where: { id: existingVisit.careCompanionId },
       select: { userId: true }
-    });
-    const careCompanionUserId = careCompanion?.userId || existingVisit.careCompanionId;
+    }) : null;
+    const careCompanionUserId = careCompanion?.userId || existingVisit.careCompanionId || 'SYSTEM';
     const capturedById = careCompanionUserId;
 
     // 4. Create Vital Readings if present
@@ -458,7 +458,7 @@ export const checkOut = async (data: {
               {
                 reservationId: reservation.id,
                 reason: `Visit Checkout Completed. Encounter: ${visit.encounterId}`,
-                performedByUserId: existingVisit.careCompanionId,
+                performedByUserId: existingVisit.careCompanionId || undefined,
               },
               tx
             );
@@ -571,11 +571,11 @@ export const checkOut = async (data: {
 
     // 7. Create Medication Adherence records if present
     if ((data as any).medicationsList && Array.isArray((data as any).medicationsList)) {
-      const careCompanion = await tx.careCompanion.findUnique({
+      const careCompanion = existingVisit.careCompanionId ? await tx.careCompanion.findUnique({
         where: { id: existingVisit.careCompanionId },
         select: { userId: true }
-      });
-      const recordedBy = careCompanion?.userId || existingVisit.careCompanionId;
+      }) : null;
+      const recordedBy = careCompanion?.userId || existingVisit.careCompanionId || 'SYSTEM';
 
       for (const item of (data as any).medicationsList) {
         // Skip fake medication IDs sent by frontend fallbacks

@@ -119,7 +119,14 @@ export default function OpsManagerFieldView() {
   const handleScheduleVisit = async (beneficiaryId: string, ccId: string, scheduledTime: string, durationMinutes: number, benefitId?: string) => {
     setSubmittingId(beneficiaryId);
     try {
-      await visitApi.create({ beneficiaryId, careCompanionId: ccId, scheduledTime, durationMinutes, benefitId });
+      await visitApi.create({
+        beneficiaryId,
+        careCompanionId: ccId === 'THIRD_PARTY' ? null : ccId,
+        is3rdParty: ccId === 'THIRD_PARTY',
+        scheduledTime,
+        durationMinutes,
+        benefitId,
+      });
       toast.success(`✅ Visit scheduled successfully!`);
     } catch (e: any) {
       toast.error(e.message || 'Scheduling failed');

@@ -126,7 +126,7 @@ router.post('/:visitId', authenticate, (req: any, res: any, next: any) => {
   try {
     // Fetch visit + CC (for authorisation check)
     const visit = await prisma.visit.findUnique({ where: { id: visitId } });
-    if (!visit) return res.status(404).json({ success: false, message: 'Visit not found.' });
+    if (!visit || !visit.careCompanionId) return res.status(404).json({ success: false, message: 'Visit not found or unassigned.' });
 
     // Resolve the CC's userId for authorisation
     const cc = await prisma.careCompanion.findUnique({
@@ -192,7 +192,7 @@ router.delete('/:visitId', authenticate, async (req: AuthRequest, res: Response)
 
   try {
     const visit = await prisma.visit.findUnique({ where: { id: visitId } });
-    if (!visit) return res.status(404).json({ success: false, message: 'Visit not found.' });
+    if (!visit || !visit.careCompanionId) return res.status(404).json({ success: false, message: 'Visit not found or unassigned.' });
 
     const cc = await prisma.careCompanion.findUnique({
       where: { id: visit.careCompanionId },

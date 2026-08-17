@@ -272,7 +272,7 @@ export default function BeneficiaryList({
   const [conflicts, setConflicts] = useState<Record<string, string | null>>({});
 
   const checkConflict = async (benId: string, state: any) => {
-    if (!state.ccId || !state.date || !state.time || !state.duration) {
+    if (!state.ccId || state.ccId === 'THIRD_PARTY' || !state.date || !state.time || !state.duration) {
       setConflicts(prev => ({ ...prev, [benId]: null }));
       return;
     }
@@ -287,6 +287,13 @@ export default function BeneficiaryList({
 
   // ── Custom CC Dropdown component ───────────────────────────────────────────
   function CCTypeFlag({ ccType }: { ccType?: string }) {
+    if (ccType === '3rd_party') {
+      return (
+        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wide bg-purple-100 text-purple-700 border border-purple-200">
+          🏢 External
+        </span>
+      );
+    }
     const isNurse = ccType?.toLowerCase() === 'nurse';
     return (
       <span
@@ -313,7 +320,15 @@ export default function BeneficiaryList({
   }) {
     const [open, setOpen] = useState(false);
     const ref = useRef<HTMLDivElement>(null);
-    const selected = options.find(cc => cc.id === value);
+    const THIRD_PARTY_OPTION = {
+      id: 'THIRD_PARTY',
+      name: '🏢 3rd Party / External Service',
+      ccType: '3rd_party',
+      isAvailable: true,
+      primaryBeneficiariesCount: 0,
+    };
+
+    const selected = value === 'THIRD_PARTY' ? THIRD_PARTY_OPTION : options.find(cc => cc.id === value);
 
     useEffect(() => {
       const handler = (e: MouseEvent) => {
@@ -323,7 +338,10 @@ export default function BeneficiaryList({
       return () => document.removeEventListener('mousedown', handler);
     }, []);
 
-    const getAvailabilityStatus = (cc: typeof options[0]) => {
+    const getAvailabilityStatus = (cc: { id: string; isAvailable?: boolean }) => {
+      if (cc.id === 'THIRD_PARTY') {
+        return { isAvailable: true, label: 'External', reason: null };
+      }
       if (!cc.isAvailable) {
         return { isAvailable: false, label: 'Offline', reason: 'Care Companion is marked as unavailable' };
       }
@@ -361,6 +379,8 @@ export default function BeneficiaryList({
         return 0;
       });
     }, [options, ben.primaryCcId, ben.secondaryCcId, availabilities]);
+
+    const displayOptions = useMemo(() => [THIRD_PARTY_OPTION, ...sortedOptions], [sortedOptions]);
 
     function RelationshipFlag({ ccId }: { ccId: string }) {
       const isPrimary = ccId === ben.primaryCcId;
@@ -426,10 +446,10 @@ export default function BeneficiaryList({
         {/* Dropdown list */}
         {open && (
           <div className="absolute z-30 top-full mt-1.5 left-0 right-0 bg-white border border-[#E7DED6] rounded-xl shadow-xl max-h-60 overflow-y-auto">
-            {sortedOptions.length === 0 ? (
+            {displayOptions.length === 0 ? (
               <div className="px-4 py-3 text-xs text-gray-400 font-bold">No CCs in this team</div>
             ) : (
-              sortedOptions.map(cc => {
+              displayOptions.map(cc => {
                 const status = getAvailabilityStatus(cc);
                 const isSelected = cc.id === value;
                 return (
@@ -458,9 +478,9 @@ export default function BeneficiaryList({
                       <RelationshipFlag ccId={cc.id} />
                     </span>
                     <div className="flex items-center gap-1.5 flex-shrink-0">
-                      {cc.primaryBeneficiariesCount > 0 && (
+                      {((cc as any).primaryBeneficiariesCount || 0) > 0 && (
                         <span className="text-[9px] font-black text-gray-400">
-                          {cc.primaryBeneficiariesCount}P
+                          {(cc as any).primaryBeneficiariesCount}P
                         </span>
                       )}
                       <span

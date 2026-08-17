@@ -897,9 +897,11 @@ model Visit {
   encounterId               String      @unique
   visitCode                 String?     @unique // Human-readable ID: e.g. VK7XM4RP
   beneficiaryId             String
-  careCompanionId           String
+  careCompanionId           String?
   appointmentId             String?     @unique
   benefitId                 String? // The benefit selected for this visit — determines deduction rule (visits vs hours)
+  is3rdParty                Boolean     @default(false)
+  thirdPartyNotes           String?
   scheduledTime             DateTime
   checkInTime               DateTime?
   checkOutTime              DateTime?
@@ -954,7 +956,7 @@ model Visit {
   packageHoursLog            PackageHoursLog?
   appointment                Appointment?          @relation(fields: [appointmentId], references: [id])
   beneficiary                Beneficiary           @relation(fields: [beneficiaryId], references: [id], onDelete: Cascade)
-  careCompanion              CareCompanion         @relation(fields: [careCompanionId], references: [id])
+  careCompanion              CareCompanion?        @relation(fields: [careCompanionId], references: [id])
   benefit                    Benefit?              @relation(fields: [benefitId], references: [id])
   vitalReadings              VitalReading[]
 

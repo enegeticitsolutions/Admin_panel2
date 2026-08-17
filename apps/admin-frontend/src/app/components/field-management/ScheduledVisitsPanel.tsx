@@ -23,12 +23,56 @@ interface CCOption {
   name: string;
 }
 
+// ── In-app confirmation modal ───────────────────────────────────────────────
+interface ConfirmModalState {
+  open: boolean;
+  title: string;
+  message: string;
+  confirmLabel: string;
+  confirmColor: string;
+  onConfirm: () => void;
+}
+
 export default function ScheduledVisitsPanel({ defaultFmUserId, hideFmSelector }: ScheduledVisitsPanelProps) {
   const [visits, setVisits] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [viewingVisitId, setViewingVisitId] = useState<string | null>(null);
+
+  // ── Confirmation modal ─────────────────────────────────────────────────────
+  const [confirmModal, setConfirmModal] = useState<ConfirmModalState>({
+    open: false, title: '', message: '', confirmLabel: 'Confirm', confirmColor: 'bg-[#1D4ED8]', onConfirm: () => {}
+  });
+  const openConfirm = (opts: Omit<ConfirmModalState, 'open'>) => setConfirmModal({ open: true, ...opts });
+  const closeConfirm = () => setConfirmModal(prev => ({ ...prev, open: false }));
+
+  // ── Complete Visit form modal ──────────────────────────────────────────────
+  const [completeForm, setCompleteForm] = useState<{ open: boolean; visitId: string; durationMinutes: number; unitLabel: string; hoursConsumed: string; note: string; submitting: boolean }>({
+    open: false, visitId: '', durationMinutes: 60, unitLabel: 'hour', hoursConsumed: '1', note: '', submitting: false
+  });
+  const openCompleteForm = (visit: any) => setCompleteForm({
+    open: true,
+    visitId: visit.id,
+    durationMinutes: visit.durationMinutes || 60,
+    unitLabel: visit.benefit?.unitLabel || 'unit',
+    hoursConsumed: visit.durationMinutes ? String(visit.durationMinutes / 60) : '1',
+    note: '',
+    submitting: false,
+  });
+  const closeCompleteForm = () => setCompleteForm(prev => ({ ...prev, open: false }));
+  const submitCompleteForm = async () => {
+    setCompleteForm(prev => ({ ...prev, submitting: true }));
+    try {
+      await visitApi.updateStatus(completeForm.visitId, 'completed', completeForm.note, parseFloat(completeForm.hoursConsumed) || 1);
+      toast.success('Visit marked as COMPLETED and benefit units deducted successfully');
+      closeCompleteForm();
+      fetchVisits();
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to mark visit as completed');
+      setCompleteForm(prev => ({ ...prev, submitting: false }));
+    }
+  };
 
   // ── Filter state ────────────────────────────────────────────────────────────
   const [fieldManagers, setFieldManagers] = useState<FMOption[]>([]);
@@ -176,18 +220,64 @@ export default function ScheduledVisitsPanel({ defaultFmUserId, hideFmSelector }
   }, [fetchVisits]);
 
   // ── Cancel a visit ──────────────────────────────────────────────────────────
-  const handleCancel = async (visitId: string) => {
-    if (!window.confirm('Are you sure you want to cancel this visit?')) return;
-    setCancellingId(visitId);
-    try {
-      await visitApi.cancel(visitId);
-      toast.success('Visit cancelled successfully');
-      setVisits(prev => prev.filter(v => v.id !== visitId));
-    } catch (e: any) {
-      toast.error(e.message || 'Failed to cancel visit');
-    } finally {
-      setCancellingId(null);
+  const handleCancel = (visitId: string) => {
+    openConfirm({
+      title: 'Cancel Visit',
+      message: 'Are you sure you want to cancel this visit? This action cannot be undone.',
+      confirmLabel: 'Yes, Cancel Visit',
+      confirmColor: 'bg-red-600 hover:bg-red-700',
+      onConfirm: async () => {
+        closeConfirm();
+        setCancellingId(visitId);
+        try {
+          await visitApi.cancel(visitId);
+          toast.success('Visit cancelled successfully');
+          setVisits(prev => prev.filter(v => v.id !== visitId));
+        } catch (e: any) {
+          toast.error(e.message || 'Failed to cancel visit');
+        } finally {
+          setCancellingId(null);
+        }
+      }
+    });
+  };
+
+  // ── Update visit status (completed / missed / cancelled) ─────────────────────
+  const handleUpdateStatus = (visitId: string, status: 'completed' | 'missed' | 'cancelled', visit?: any) => {
+    // For COMPLETED, open the detailed form instead of confirm popup
+    if (status === 'completed' && visit) {
+      openCompleteForm(visit);
+      return;
     }
+    const configs = {
+      missed: {
+        title: '✕ Mark as Missed',
+        message: 'Are you sure you want to mark this visit as MISSED? No package units will be deducted.',
+        confirmLabel: 'Yes, Mark Missed',
+        confirmColor: 'bg-rose-600 hover:bg-rose-700',
+      },
+      cancelled: {
+        title: 'Cancel Visit',
+        message: 'Are you sure you want to cancel this visit?',
+        confirmLabel: 'Yes, Cancel',
+        confirmColor: 'bg-red-600 hover:bg-red-700',
+      },
+    };
+    const cfg = (configs as any)[status];
+    if (!cfg) return;
+    openConfirm({
+      ...cfg,
+      onConfirm: async () => {
+        closeConfirm();
+        try {
+          await visitApi.updateStatus(visitId, status);
+          toast.success(`Visit marked as ${status.toUpperCase()} successfully`);
+          fetchVisits();
+        } catch (e: any) {
+          toast.error(e.message || `Failed to update visit status to ${status}`);
+        }
+      }
+    });
   };
 
   // ── Open Edit modal ─────────────────────────────────────────────────────────
@@ -487,17 +577,43 @@ export default function ScheduledVisitsPanel({ defaultFmUserId, hideFmSelector }
                         </div>
                         <div className="min-w-0">
                           <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">Care Companion</p>
-                          <p className="text-sm font-bold text-gray-800 truncate">{visit.careCompanion?.name || 'Unknown'}</p>
-                          {visit.careCompanion?.team?.fieldManager && (
-                            <p className="text-[9px] text-gray-400 font-bold">FM: {visit.careCompanion.team.fieldManager.name}</p>
+                          {visit.is3rdParty || !visit.careCompanion ? (
+                            <span className="inline-flex items-center gap-1 text-xs font-black text-purple-700 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-200">
+                              🏢 3rd Party Service
+                            </span>
+                          ) : (
+                            <>
+                              <p className="text-sm font-bold text-gray-800 truncate">{visit.careCompanion.name}</p>
+                              {visit.careCompanion.team?.fieldManager && (
+                                <p className="text-[9px] text-gray-400 font-bold">FM: {visit.careCompanion.team.fieldManager.name}</p>
+                              )}
+                            </>
                           )}
                         </div>
                       </div>
                     </div>
                   </div>
 
+                  {/* Quick Action Buttons — only for 3rd-party visits */}
+                  {visit.status === 'scheduled' && (visit.is3rdParty || !visit.careCompanion) && (
+                    <div className="mt-3 pt-3 border-t border-[#F4EAE3] flex items-center justify-between gap-2 flex-wrap">
+                      <button
+                        onClick={() => handleUpdateStatus(visit.id, 'completed', visit)}
+                        className="flex-1 px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[10px] font-black uppercase tracking-wider transition-colors flex items-center justify-center gap-1 shadow-xs"
+                      >
+                        <ShieldCheck size={12} /> Complete
+                      </button>
+                      <button
+                        onClick={() => handleUpdateStatus(visit.id, 'missed')}
+                        className="flex-1 px-2.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-[10px] font-black uppercase tracking-wider transition-colors flex items-center justify-center gap-1 shadow-xs"
+                      >
+                        <ShieldAlert size={12} /> Missed
+                      </button>
+                    </div>
+                  )}
+
                   {/* Footer: status + actions */}
-                  <div className="mt-4 pt-4 border-t border-[#E7DED6] flex justify-between items-center">
+                  <div className="mt-3 pt-3 border-t border-[#E7DED6] flex justify-between items-center">
                     <span className={`px-2 py-1 rounded text-[10px] font-black uppercase tracking-widest ${
                       visit.status === 'scheduled' ? 'bg-amber-100 text-amber-700' :
                       visit.status === 'completed' ? 'bg-green-100 text-green-700' :
@@ -525,7 +641,8 @@ export default function ScheduledVisitsPanel({ defaultFmUserId, hideFmSelector }
                         <Eye size={12} />
                       </button>
 
-                      {visit.status === 'scheduled' && (
+                      {/* Edit & Cancel — only for 3rd-party visits (CC visits managed in CC app) */}
+                      {visit.status === 'scheduled' && (visit.is3rdParty || !visit.careCompanion) && (
                         <>
                           {/* Edit button */}
                           <button
@@ -794,6 +911,138 @@ export default function ScheduledVisitsPanel({ defaultFmUserId, hideFmSelector }
           visitId={viewingVisitId}
           onClose={() => setViewingVisitId(null)}
         />
+      )}
+
+      {/* ── In-App Confirmation Modal ─────────────────────────────────────── */}
+      {confirmModal.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4" onClick={closeConfirm}>
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+          <div
+            className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 border border-[#E7DED6] animate-in fade-in zoom-in-95"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Close */}
+            <button onClick={closeConfirm} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors">
+              <X size={16} />
+            </button>
+
+            {/* Icon */}
+            <div className="flex flex-col items-center text-center gap-3 pt-1">
+              <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-1 ${
+                confirmModal.confirmColor.includes('emerald') ? 'bg-emerald-50' :
+                confirmModal.confirmColor.includes('rose') ? 'bg-rose-50' : 'bg-red-50'
+              }`}>
+                {confirmModal.confirmColor.includes('emerald')
+                  ? <ShieldCheck size={22} className="text-emerald-600" />
+                  : confirmModal.confirmColor.includes('rose')
+                    ? <ShieldAlert size={22} className="text-rose-600" />
+                    : <AlertTriangle size={22} className="text-red-600" />
+                }
+              </div>
+              <h3 className="text-base font-black text-gray-800">{confirmModal.title}</h3>
+              <p className="text-sm text-gray-500 leading-relaxed">{confirmModal.message}</p>
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={closeConfirm}
+                className="flex-1 py-2.5 rounded-xl border border-[#E7DED6] text-sm font-black text-gray-500 hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmModal.onConfirm}
+                className={`flex-1 py-2.5 rounded-xl text-sm font-black text-white transition-colors ${confirmModal.confirmColor}`}
+              >
+                {confirmModal.confirmLabel}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {completeForm.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4" onClick={closeCompleteForm}>
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+          <div
+            className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 border border-[#E7DED6]"
+            onClick={e => e.stopPropagation()}
+          >
+            <button onClick={closeCompleteForm} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
+              <X size={16} />
+            </button>
+
+            {/* Header */}
+            <div className="flex items-center gap-3 mb-5">
+              <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center">
+                <ShieldCheck size={20} className="text-emerald-600" />
+              </div>
+              <div>
+                <h3 className="text-base font-black text-gray-800">Complete Visit</h3>
+                <p className="text-xs text-gray-400 font-medium">Fill in the completion details before confirming</p>
+              </div>
+            </div>
+
+            {/* Info banner */}
+            <div className="mb-5 p-3 rounded-xl bg-emerald-50 border border-emerald-100 text-xs text-emerald-700 font-bold flex items-start gap-2">
+              <ShieldCheck size={13} className="mt-0.5 flex-shrink-0" />
+              <span>Marking this visit as <strong>COMPLETED</strong> will deduct the specified units from the beneficiary's package balance.</span>
+            </div>
+
+            {/* Hours / Units consumed */}
+            <div className="mb-4">
+              <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5">
+                {completeForm.unitLabel === 'hour' ? 'Hours Consumed' : `Units Consumed (${completeForm.unitLabel})`}
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  min="0.25"
+                  step="0.25"
+                  max={24}
+                  value={completeForm.hoursConsumed}
+                  onChange={e => setCompleteForm(prev => ({ ...prev, hoursConsumed: e.target.value }))}
+                  className="flex-1 px-3 py-2.5 rounded-xl border border-[#E7DED6] text-sm font-bold focus:outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-200"
+                />
+                <span className="text-xs text-gray-400 font-bold capitalize">{completeForm.unitLabel}(s)</span>
+              </div>
+              <p className="mt-1 text-[10px] text-gray-400 font-medium">Scheduled duration: {completeForm.durationMinutes} min ({(completeForm.durationMinutes / 60).toFixed(2)} hrs)</p>
+            </div>
+
+            {/* Notes */}
+            <div className="mb-5">
+              <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5">Completion Note (optional)</label>
+              <textarea
+                rows={3}
+                placeholder="Add any notes about how the visit went..."
+                value={completeForm.note}
+                onChange={e => setCompleteForm(prev => ({ ...prev, note: e.target.value }))}
+                className="w-full px-3 py-2.5 rounded-xl border border-[#E7DED6] text-sm font-medium placeholder-gray-300 focus:outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-200 resize-none"
+              />
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-3">
+              <button
+                onClick={closeCompleteForm}
+                className="flex-1 py-2.5 rounded-xl border border-[#E7DED6] text-sm font-black text-gray-500 hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={submitCompleteForm}
+                disabled={completeForm.submitting || !completeForm.hoursConsumed || parseFloat(completeForm.hoursConsumed) <= 0}
+                className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-black transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {completeForm.submitting ? (
+                  <><Loader2 size={13} className="animate-spin" /> Saving...</>
+                ) : (
+                  <><ShieldCheck size={13} /> Confirm Complete</>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

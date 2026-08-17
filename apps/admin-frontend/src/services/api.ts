@@ -1067,10 +1067,16 @@ export const visitApi = {
     form.append('image', file);
     return apiJson(`/visits/${id}/upload-image`, { method: 'POST', body: form });
   },
-  async create(data: { beneficiaryId: string; careCompanionId: string; scheduledTime: string; durationMinutes: number; benefitId?: string }): Promise<any> {
+  async create(data: { beneficiaryId: string; careCompanionId?: string | null; is3rdParty?: boolean; thirdPartyNotes?: string; scheduledTime: string; durationMinutes: number; benefitId?: string }): Promise<any> {
     return apiJson('/visits', {
       method: 'POST',
       body: JSON.stringify(data),
+    });
+  },
+  async updateStatus(id: string, status: 'completed' | 'missed' | 'cancelled', note?: string, hoursConsumed?: number): Promise<any> {
+    return apiJson(`/visits/${id}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status, note, hoursConsumed })
     });
   },
   async cancel(id: string): Promise<any> {

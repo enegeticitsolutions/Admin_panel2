@@ -89,9 +89,13 @@ router.post('/', async (req, res) => {
     scheduledTime,
     durationMinutes,
     benefitId,
+    is3rdParty,
+    thirdPartyNotes,
   } = req.body;
 
-  if (!beneficiaryId || !careCompanionId || !scheduledTime || !durationMinutes || !benefitId) {
+  const isThirdPartyVisit = is3rdParty === true || careCompanionId === 'THIRD_PARTY';
+
+  if (!beneficiaryId || (!careCompanionId && !isThirdPartyVisit) || !scheduledTime || !durationMinutes || !benefitId) {
     return res.status(400).json({ success: false, message: 'Missing required fields (benefit type is mandatory)' });
   }
 
@@ -101,10 +105,12 @@ router.post('/', async (req, res) => {
   }
 
   try {
-    // 1. Check CC Availability
-    const availability = await checkCCAvailability(careCompanionId, startTime, durationMinutes);
-    if (!availability.isAvailable) {
-      return res.status(409).json({ success: false, message: availability.reason });
+    // 1. Check CC Availability (only for internal CC visits)
+    if (!isThirdPartyVisit && careCompanionId) {
+      const availability = await checkCCAvailability(careCompanionId, startTime, durationMinutes);
+      if (!availability.isAvailable) {
+        return res.status(409).json({ success: false, message: availability.reason });
+      }
     }
 
     const result = await prisma.$transaction(async (tx) => {
@@ -114,11 +120,13 @@ router.post('/', async (req, res) => {
           encounterId: `V-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
           visitCode: generateVisitCode(),
           beneficiaryId,
-          careCompanionId,
+          careCompanionId: isThirdPartyVisit ? null : careCompanionId,
+          is3rdParty: isThirdPartyVisit,
+          thirdPartyNotes: thirdPartyNotes || null,
           scheduledTime: startTime,
           durationMinutes,
           status: 'scheduled',
-          benefitId: benefitId || null,   // ← stored as proper FK, not in notes
+          benefitId: benefitId || null,
         },
         include: {
           beneficiary: { select: { name: true, userId: true, subscriberId: true } },
@@ -965,6 +973,101 @@ router.put('/:id', async (req, res) => {
     res.json({ success: true, data: result });
   } catch (err) {
     console.error('PUT /visits/:id error:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PATCH /api/visits/:id/status - Update visit status (completed, missed, cancelled)
+// Deducts package benefit balance when marked COMPLETED
+// ─────────────────────────────────────────────────────────────────────────────
+router.patch('/:id/status', async (req, res) => {
+  const { id } = req.params;
+  const { status, note, hoursConsumed } = req.body;
+
+  const normalizedStatus = String(status || '').toLowerCase().trim();
+  if (!['completed', 'missed', 'cancelled'].includes(normalizedStatus)) {
+    return res.status(400).json({ success: false, message: "Status must be 'completed', 'missed', or 'cancelled'" });
+  }
+
+  try {
+    const visit = await prisma.visit.findUnique({
+      where: { id },
+      include: {
+        beneficiary: { select: { id: true, name: true, userId: true, subscriberId: true } },
+        careCompanion: { select: { id: true, name: true, userId: true } },
+        benefit: true,
+      }
+    });
+
+    if (!visit) {
+      return res.status(404).json({ success: false, message: 'Visit not found' });
+    }
+
+    const result = await prisma.$transaction(async (tx) => {
+      let updateData = { status: normalizedStatus };
+      if (normalizedStatus === 'completed') {
+        updateData.checkOutTime = new Date();
+      }
+      if (note) {
+        updateData.notes = visit.notes ? `${visit.notes}\n[Admin note: ${note}]` : `[Admin note: ${note}]`;
+      }
+
+      const updatedVisit = await tx.visit.update({
+        where: { id },
+        data: updateData,
+        include: {
+          beneficiary: { select: { id: true, name: true } },
+          careCompanion: { select: { id: true, name: true } },
+          benefit: true,
+        }
+      });
+
+      // Deduction logic when marked COMPLETED
+      if (normalizedStatus === 'completed' && visit.benefitId && visit.beneficiaryId) {
+        const existingLog = await tx.packageHoursLog.findUnique({ where: { visitId: id } });
+        if (!existingLog) {
+          const activeSub = await tx.subscription.findFirst({
+            where: { beneficiaryId: visit.beneficiaryId, isActive: true },
+            include: { benefitBalances: { where: { benefitId: visit.benefitId } } }
+          });
+
+          if (activeSub && activeSub.benefitBalances && activeSub.benefitBalances.length > 0) {
+            const bal = activeSub.benefitBalances[0];
+            // Use provided hoursConsumed or fall back to 1 unit
+            const units = parseFloat(hoursConsumed) || 1;
+            const balanceBefore = bal.availableUnits;
+            const balanceAfter = Math.max(0, bal.availableUnits - units);
+
+            await tx.subscriptionBenefitBalance.update({
+              where: { id: bal.id },
+              data: {
+                usedUnits: { increment: units },
+                availableUnits: balanceAfter
+              }
+            });
+
+            await tx.packageHoursLog.create({
+              data: {
+                subscriptionId: activeSub.id,
+                beneficiaryId: visit.beneficiaryId,
+                visitId: id,
+                hoursConsumed: units,
+                balanceBefore,
+                balanceAfter,
+                description: note || `Completed visit for ${visit.benefit?.name || 'benefit'}`,
+              }
+            });
+          }
+        }
+      }
+
+      return updatedVisit;
+    });
+
+    res.json({ success: true, message: `Visit status updated to ${normalizedStatus}`, data: result });
+  } catch (err) {
+    console.error('PATCH /visits/:id/status error:', err);
     res.status(500).json({ success: false, message: err.message });
   }
 });
