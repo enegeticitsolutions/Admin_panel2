@@ -13,7 +13,7 @@ router.post('/saathi-enrollment', async (req: Request, res: Response) => {
   console.log('📩 [Saathi Enrollment] Received payload:', req.body);
 
   try {
-    const { firstName, lastName, email, phone, gender, state, city, pincode, area, whyJoin, age } = req.body;
+    const { firstName, lastName, email, phone, gender, state, city, pincode, area, whyJoin, age, interests } = req.body;
 
     if (!firstName || !phone || !state || !city) {
       return res.status(400).json({
@@ -38,6 +38,7 @@ router.post('/saathi-enrollment', async (req: Request, res: Response) => {
           streetArea: area || null,
           whyJoin: whyJoin || null,
           age: age ? parseInt(age, 10) : null,
+          interests: Array.isArray(interests) ? interests : [],
           applicationStatus: 'SUBMITTED',
         },
       });

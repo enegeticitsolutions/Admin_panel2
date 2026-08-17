@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 import { API_BASE } from '../services/api';
 
 const SaathiPage = () => {
@@ -18,7 +20,8 @@ const SaathiPage = () => {
     pincode: '',
     area: '',
     whyJoin: '',
-    dob: ''
+    dob: '',
+    interests: []
   });
   
   const [agreementChecked, setAgreementChecked] = useState(false);
@@ -51,8 +54,48 @@ const SaathiPage = () => {
     fetchContent();
   }, []);
 
+  // Pincode auto-fetch effect
+  useEffect(() => {
+    const fetchLocation = async () => {
+      if (formData.pincode && formData.pincode.length === 6) {
+        try {
+          const res = await fetch(`https://api.postalpincode.in/pincode/${formData.pincode}`);
+          const data = await res.json();
+          if (data && data[0] && data[0].Status === 'Success') {
+            const postOffices = data[0].PostOffice;
+            const state = postOffices[0].State;
+            const city = postOffices[0].District;
+            
+            setFormData(prev => ({
+              ...prev,
+              state: state,
+              city: city
+            }));
+          }
+        } catch (err) {
+          console.error(err);
+        }
+      }
+    };
+    
+    fetchLocation();
+  }, [formData.pincode]);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
+    
+    if (name === 'phone') {
+      const numericValue = value.replace(/\D/g, '').slice(0, 10);
+      setFormData(prev => ({ ...prev, [name]: numericValue }));
+      return;
+    }
+
+    if (name === 'pincode') {
+      const numericValue = value.replace(/\D/g, '').slice(0, 6);
+      setFormData(prev => ({ ...prev, pincode: numericValue }));
+      return;
+    }
+    
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
@@ -60,6 +103,17 @@ const SaathiPage = () => {
     e.preventDefault();
     if (!agreementChecked) {
       setSubmitMessage({ type: 'error', text: 'You must agree to the background verification to proceed.' });
+      return;
+    }
+
+    if (formData.phone && formData.phone.length !== 10) {
+      setSubmitMessage({ type: 'error', text: 'Please enter a valid 10-digit phone number.' });
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (formData.email && !emailRegex.test(formData.email)) {
+      setSubmitMessage({ type: 'error', text: 'Please enter a valid email address.' });
       return;
     }
 
@@ -92,7 +146,7 @@ const SaathiPage = () => {
         setSubmitMessage({ type: 'success', text: "Thank you! Your application has been submitted successfully." });
         setFormData({
           firstName: '', lastName: '', email: '', phone: '', gender: '',
-          state: '', city: '', pincode: '', area: '', whyJoin: '', dob: ''
+          state: '', city: '', pincode: '', area: '', whyJoin: '', dob: '', interests: []
         });
         setAgreementChecked(false);
         fetchContent();
@@ -637,6 +691,8 @@ const SaathiPage = () => {
                     required
                     type="email"
                     name="email"
+                    pattern="[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}"
+                    title="Please enter a valid email address"
                     placeholder="you@email.com"
                     value={formData.email}
                     onChange={handleChange}
@@ -645,99 +701,143 @@ const SaathiPage = () => {
                 </div>
                 <div className="saathi-form-group">
                   <label className="saathi-form-label">Phone Number *</label>
-                  <input
-                    required
-                    type="tel"
-                    name="phone"
-                    placeholder="+91 98765 43210"
-                    value={formData.phone}
-                    onChange={handleChange}
-                    className="saathi-form-input"
-                  />
+                  <div style={{ display: 'flex', alignItems: 'center' }} className="saathi-form-input">
+                    <span style={{ marginRight: '8px', color: '#666' }}>+91</span>
+                    <input
+                      required
+                      type="tel"
+                      name="phone"
+                      pattern="[0-9]{10}"
+                      title="Please enter a valid 10-digit phone number"
+                      placeholder="9876543210"
+                      value={formData.phone}
+                      onChange={handleChange}
+                      style={{ border: 'none', outline: 'none', background: 'transparent', flex: 1, color: 'inherit' }}
+                    />
+                  </div>
                 </div>
               </div>
 
-              {/* Row 3: Aadhaar No. & Date of Birth */}
+              {/* Row 3: Gender & Date of Birth */}
               <div className="saathi-form-row">
                 <div className="saathi-form-group">
-                  <label className="saathi-form-label">Aadhaar No. *</label>
-                  <input
-                    required
-                    type="text"
-                    name="aadhaarNo"
-                    placeholder="XXXX XXXX XXXX"
-                    value={formData.aadhaarNo || ''}
+                  <label className="saathi-form-label">Gender</label>
+                  <select
+                    name="gender"
+                    value={formData.gender}
                     onChange={handleChange}
                     className="saathi-form-input"
-                  />
+                  >
+                    <option value="">Select Gender</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
+                  </select>
                 </div>
                 <div className="saathi-form-group">
                   <label className="saathi-form-label">Date of Birth *</label>
-                  <input
+                  <DatePicker
+                    selected={formData.dob ? new Date(formData.dob) : null}
+                    onChange={(date) => {
+                      // Format to YYYY-MM-DD
+                      const dateString = date ? new Date(date.getTime() - (date.getTimezoneOffset() * 60000)).toISOString().split('T')[0] : '';
+                      const event = { target: { name: 'dob', value: dateString } };
+                      handleChange(event);
+                    }}
+                    dateFormat="dd/MM/yyyy"
+                    placeholderText="dd/mm/yyyy"
+                    className="saathi-form-input w-full"
+                    wrapperClassName="w-full"
+                    showYearDropdown
+                    scrollableYearDropdown
+                    yearDropdownItemNumber={100}
+                    maxDate={new Date()}
                     required
-                    type="date"
-                    name="dob"
-                    value={formData.dob}
-                    onChange={handleChange}
-                    className="saathi-form-input"
                   />
                 </div>
               </div>
 
-              {/* Row 4: Area / Sector & Occupation */}
+              {/* Row 4: Pincode & Area */}
               <div className="saathi-form-row">
                 <div className="saathi-form-group">
-                  <label className="saathi-form-label">Area / Sector *</label>
+                  <label className="saathi-form-label">Pincode</label>
                   <input
-                    required
+                    type="text"
+                    name="pincode"
+                    placeholder="e.g. 122011"
+                    value={formData.pincode}
+                    onChange={handleChange}
+                    className="saathi-form-input"
+                  />
+                </div>
+                <div className="saathi-form-group">
+                  <label className="saathi-form-label">Area / Sector</label>
+                  <input
                     type="text"
                     name="area"
-                    placeholder="e.g. Sector 55, Gurugram"
+                    placeholder="e.g. Sector 55"
                     value={formData.area}
                     onChange={handleChange}
                     className="saathi-form-input"
                   />
                 </div>
+              </div>
+
+              {/* Row 5: City & State */}
+              <div className="saathi-form-row">
                 <div className="saathi-form-group">
-                  <label className="saathi-form-label">Occupation</label>
+                  <label className="saathi-form-label">City *</label>
                   <input
+                    required
                     type="text"
-                    name="occupation"
-                    placeholder="Student / Working / Retired"
-                    value={formData.occupation || ''}
+                    name="city"
+                    placeholder="e.g. Gurugram"
+                    value={formData.city}
+                    onChange={handleChange}
+                    className="saathi-form-input"
+                  />
+                </div>
+                <div className="saathi-form-group">
+                  <label className="saathi-form-label">State *</label>
+                  <input
+                    required
+                    type="text"
+                    name="state"
+                    placeholder="e.g. Haryana"
+                    value={formData.state}
                     onChange={handleChange}
                     className="saathi-form-input"
                   />
                 </div>
               </div>
 
-              {/* Row 5: Availability */}
+              {/* Row 6: Interests */}
               <div className="saathi-form-group" style={{ marginBottom: '16px' }}>
-                <label className="saathi-form-label">Availability *</label>
+                <label className="saathi-form-label">Areas of Interest</label>
                 <div className="saathi-pills-row">
-                  {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => {
-                    const isSelected = (formData.availability || []).includes(day);
+                  {['Cooking', 'Music', 'Traveling', 'Yoga/Exercise', 'Reading', 'Sports', 'Art', 'Technology', 'Gardening', 'Movies'].map(interest => {
+                    const isSelected = (formData.interests || []).includes(interest);
                     return (
                       <button
                         type="button"
-                        key={day}
+                        key={interest}
                         onClick={() => {
-                          const current = formData.availability || [];
-                          const updated = current.includes(day)
-                            ? current.filter(d => d !== day)
-                            : [...current, day];
-                          setFormData(prev => ({ ...prev, availability: updated }));
+                          const current = formData.interests || [];
+                          const updated = current.includes(interest)
+                            ? current.filter(i => i !== interest)
+                            : [...current, interest];
+                          setFormData(prev => ({ ...prev, interests: updated }));
                         }}
                         className={`saathi-pill-btn ${isSelected ? 'saathi-pill-btn--active' : ''}`}
                       >
-                        {day}
+                        {interest}
                       </button>
                     );
                   })}
                 </div>
               </div>
 
-              {/* Row 6: Why do you want to be a Saathi? */}
+              {/* Row 7: Why do you want to be a Saathi? */}
               <div className="saathi-form-group" style={{ marginBottom: '24px' }}>
                 <label className="saathi-form-label">Why do you want to be a Saathi? *</label>
                 <textarea
