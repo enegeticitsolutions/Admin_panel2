@@ -332,17 +332,17 @@ router.post('/activate', authenticate, async (req: Request, res: Response) => {
     const userId = authReq.userId;
     const { beneficiaryId, beneficiaryData, medicalData, emergencyContacts } = req.body;
 
-    if (!beneficiaryId || !beneficiaryData) {
+    if (!beneficiaryId) {
       return res.status(400).json({
         success: false,
-        message: 'beneficiaryId and beneficiaryData are required'
+        message: 'beneficiaryId is required'
       });
     }
 
     const result = await subscriptionService.activateSubscription(
       userId as string,
       beneficiaryId,
-      beneficiaryData,
+      beneficiaryData || {},
       medicalData,
       emergencyContacts
     );

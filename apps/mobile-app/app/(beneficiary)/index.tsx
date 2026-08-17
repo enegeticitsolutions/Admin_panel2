@@ -24,6 +24,7 @@ import NotificationBell from '@/components/shared/NotificationBell';
 import { useExitOnBack } from '@/hooks/useExitOnBack';
 import { triggerEmergencyAlert } from '@/services/emergencyTrigger';
 import { sanitizeImageUri } from '@/utils/sanitizeImageUri';
+import { useAuth } from '@/contexts/AuthContext';
 
 const MOCK_BENEFICIARY_ID = '8340d860-2641-479c-b26a-8b9a71bcec29';
 
@@ -71,6 +72,18 @@ export default function BeneficiaryDashboard() {
     const availableGridWidth = contentWidth - 32; // account for mainContent paddingHorizontal: 16 (16 * 2)
     const actionCardWidth = Math.floor((availableGridWidth - ((numColumns - 1) * 16)) / numColumns);
     useExitOnBack();
+
+    const { availableRoles, switchRole, isSwitchingRole } = useAuth();
+    const isDualRole = availableRoles.includes('subscriber') && availableRoles.includes('beneficiary');
+
+    const handleSwitchToSubscriber = async () => {
+        try {
+            await switchRole('subscriber');
+            router.replace('/(subscriber)');
+        } catch (err: any) {
+            Alert.alert('Switch Failed', err?.message || 'Could not switch to subscriber view.');
+        }
+    };
 
     const [triggeringEmergency, setTriggeringEmergency] = useState(false);
     const [locationStatus, setLocationStatus] = useState<'idle' | 'locating' | 'done'>('idle');
@@ -299,8 +312,28 @@ export default function BeneficiaryDashboard() {
                                 </Text>
                             </View>
 
-                            <View style={styles.notificationWrapper}>
-                                <NotificationBell />
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                                {isDualRole && (
+                                    <TouchableOpacity
+                                        style={styles.switchHeaderPill}
+                                        onPress={handleSwitchToSubscriber}
+                                        disabled={isSwitchingRole}
+                                        activeOpacity={0.8}
+                                    >
+                                        {isSwitchingRole ? (
+                                            <ActivityIndicator size="small" color="#FF6A00" />
+                                        ) : (
+                                            <>
+                                                <Ionicons name="swap-horizontal" size={14} color="#FF6A00" style={{ marginRight: 4 }} />
+                                                <Text style={styles.switchHeaderPillText}>Subscriber View</Text>
+                                            </>
+                                        )}
+                                    </TouchableOpacity>
+                                )}
+
+                                <View style={styles.notificationWrapper}>
+                                    <NotificationBell />
+                                </View>
                             </View>
                         </View>
 
@@ -937,5 +970,23 @@ const styles = StyleSheet.create({
         color: '#B91C1C',
         flex: 1,
         lineHeight: 16,
+    },
+    switchHeaderPill: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#FFFFFF',
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderRadius: 20,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
+    },
+    switchHeaderPillText: {
+        fontFamily: 'Poppins-SemiBold',
+        fontSize: 12,
+        color: '#FF6A00',
     },
 });

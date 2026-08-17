@@ -173,7 +173,7 @@ router.post('/admin-enroll', async (req, res) => {
           data: {
             phone: subscriberPhone,
             name: subscriberName,
-            role: sameAsSubscriber ? 'beneficiary' : 'subscriber',
+            role: 'subscriber',
             password: dummyHash,
             isActive: true,
             location: subscriberAddress
@@ -191,11 +191,7 @@ router.post('/admin-enroll', async (req, res) => {
         if (subscriberUser.name !== subscriberName) updateData.name = subscriberName;
         if (subscriberUser.location !== newLocation) updateData.location = newLocation;
         
-        if (sameAsSubscriber) {
-          if (subscriberUser.role !== 'beneficiary') {
-            updateData.role = 'beneficiary';
-          }
-        } else if (subscriberUser.role === 'prospect') {
+        if (subscriberUser.role === 'prospect') {
           updateData.role = 'subscriber';
         }
 
@@ -255,7 +251,7 @@ router.post('/admin-enroll', async (req, res) => {
             pincode: beneficiaryPincode,
             city: beneficiaryCity,
             state: beneficiaryState,
-            relationship: relationship,
+            relationship: sameAsSubscriber ? 'Self' : (relationship || 'Family'),
             primaryPhysicianName: primaryPhysicianName,
             primaryPhysicianPhone: primaryPhysicianPhone,
             hobbiesInterests: hobbiesInterests,

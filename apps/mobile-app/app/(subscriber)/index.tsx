@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Image, Platform, Animated, Dimensions, Modal, ActivityIndicator, ImageBackground } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Image, Platform, Animated, Dimensions, Modal, ActivityIndicator, ImageBackground, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
@@ -30,6 +30,8 @@ const CARD_GAP = scale(12);
 export default function SubscriberDashboardScreen() {
     useExitOnBack();
     const router = useRouter();
+    const { availableRoles, switchRole, isSwitchingRole } = useAuth();
+    const isDualRole = availableRoles.includes('subscriber') && availableRoles.includes('beneficiary');
 
     const [userData, setUserData] = useState<any>(null);
     const [drawerOpen, setDrawerOpen] = useState(false);
@@ -40,6 +42,15 @@ export default function SubscriberDashboardScreen() {
     const [linkModalVisible, setLinkModalVisible] = useState(false);
     const [selectedUnlinkedSubId, setSelectedUnlinkedSubId] = useState<string | null>(null);
     const [isLinking, setIsLinking] = useState(false);
+
+    const handleSwitchToBeneficiary = async () => {
+        try {
+            await switchRole('beneficiary');
+            router.replace('/(beneficiary)');
+        } catch (err: any) {
+            Alert.alert('Switch Failed', err?.message || 'Could not switch to beneficiary profile.');
+        }
+    };
 
     useEffect(() => {
         if (highlightBen) {
@@ -377,7 +388,8 @@ export default function SubscriberDashboardScreen() {
                     beneficiaries.map((b: any, i: number) => {
                         const isSelected = b.id === selectedBeneficiaryId;
                         const isExpired = b.packageStatus === 'expired' || b.isExpired;
-                        const isPending = b.verificationStatus === 'pending';
+                        const isPending = b.verificationStatus === 'pending' || b.packageStatus === 'pending' || b.packageStatus === 'none' || b.isActive === false;
+                        const isSelf = (b.relationship || '').toLowerCase() === 'self' || b.isSelf;
 
                         return (
                             <TouchableOpacity
@@ -385,7 +397,9 @@ export default function SubscriberDashboardScreen() {
                                 style={[
                                     styles.benCard, 
                                     isSelected && !isPending && !isExpired && styles.benCardActive,
-                                    isExpired && styles.benCardExpired
+                                    isPending && styles.benCardPending,
+                                    isExpired && styles.benCardExpired,
+                                    isSelf && !isPending && styles.benCardSelf
                                 ]}
                                 onPress={() => {
                                     if (isPending) {
@@ -395,6 +409,8 @@ export default function SubscriberDashboardScreen() {
                                         });
                                     } else if (isExpired) {
                                         router.push('/(setup)/subscription-packages');
+                                    } else if (isSelf && isDualRole) {
+                                        handleSwitchToBeneficiary();
                                     } else if (isSelected) {
                                         // Second tap on already-selected active card → open profile
                                         router.push(`/(subscriber)/beneficiary-profile?id=${b.id}`);
@@ -411,10 +427,48 @@ export default function SubscriberDashboardScreen() {
                                 />
 
                                 <View style={styles.benDetails}>
-                                    <Text style={styles.benName}>{b.name}</Text>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                                        <Text style={styles.benName}>{b.name}</Text>
+                                        {isSelf && (
+                                            <View style={styles.selfTagBadge}>
+                                                <Text style={styles.selfTagText}>Self</Text>
+                                            </View>
+                                        )}
+                                    </View>
                                     <Text style={styles.benMeta}>{getDisplayAge(b)}{b.relationship ? ` • ${b.relationship}` : ''}</Text>
+
+                                    {/* ── Status Badges ── */}
+                                    {isPending ? (
+                                        <View style={styles.inactiveBadge}>
+                                            <Ionicons name="alert-circle" size={13} color="#D97706" style={{ marginRight: 4 }} />
+                                            <Text style={styles.inactiveBadgeText}>Inactive - Review detail and set as active</Text>
+                                        </View>
+                                    ) : isExpired ? (
+                                        <View style={styles.expiredBadge}>
+                                            <Ionicons name="time-outline" size={13} color="#DC2626" style={{ marginRight: 4 }} />
+                                            <Text style={styles.expiredBadgeText}>Expired - Tap to renew package</Text>
+                                        </View>
+                                    ) : null}
                                 </View>
-                                <Ionicons name="chevron-forward" size={20} color="#A3A3A3" />
+
+                                {isSelf && isDualRole && !isPending ? (
+                                    <TouchableOpacity
+                                        style={styles.switchCareBtn}
+                                        onPress={handleSwitchToBeneficiary}
+                                        disabled={isSwitchingRole}
+                                    >
+                                        {isSwitchingRole ? (
+                                            <ActivityIndicator size="small" color="#FFFFFF" />
+                                        ) : (
+                                            <>
+                                                <Ionicons name="swap-horizontal" size={13} color="#FFFFFF" style={{ marginRight: 3 }} />
+                                                <Text style={styles.switchCareBtnText}>Switch UI</Text>
+                                            </>
+                                        )}
+                                    </TouchableOpacity>
+                                ) : (
+                                    <Ionicons name="chevron-forward" size={20} color={isPending ? "#D97706" : "#A3A3A3"} />
+                                )}
                             </TouchableOpacity>
                         );
                     })
@@ -889,4 +943,70 @@ const styles = StyleSheet.create({
         borderWidth: 1, borderColor: '#FE6700', backgroundColor: '#FFF5ED'
     },
     modalAddNewText: { fontSize: scale(15), fontWeight: '600', color: '#FE6700' },
+
+    // ── Self Beneficiary Card Styles ──
+    benCardSelf: {
+        backgroundColor: '#FFF7ED',
+        borderColor: '#FFD7BC',
+        borderWidth: 1.5,
+    },
+    selfTagBadge: {
+        backgroundColor: '#FF6700',
+        paddingHorizontal: scale(6),
+        paddingVertical: scale(2),
+        borderRadius: scale(6),
+    },
+    selfTagText: {
+        color: '#FFFFFF',
+        fontSize: scale(10),
+        fontWeight: '700',
+    },
+    switchCareBtn: {
+        backgroundColor: '#FE6700',
+        paddingHorizontal: scale(10),
+        paddingVertical: scale(6),
+        borderRadius: scale(8),
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    switchCareBtnText: {
+        color: '#FFFFFF',
+        fontSize: scale(11),
+        fontWeight: '700',
+    },
+    benCardPending: {
+        backgroundColor: '#FFFDF5',
+        borderColor: '#FDE68A',
+        borderWidth: 1.5,
+    },
+    inactiveBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#FEF3C7',
+        paddingHorizontal: scale(8),
+        paddingVertical: scale(4),
+        borderRadius: scale(6),
+        marginTop: scale(6),
+        alignSelf: 'flex-start',
+    },
+    inactiveBadgeText: {
+        color: '#92400E',
+        fontSize: scale(11),
+        fontWeight: '600',
+    },
+    expiredBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#FEE2E2',
+        paddingHorizontal: scale(8),
+        paddingVertical: scale(4),
+        borderRadius: scale(6),
+        marginTop: scale(6),
+        alignSelf: 'flex-start',
+    },
+    expiredBadgeText: {
+        color: '#991B1B',
+        fontSize: scale(11),
+        fontWeight: '600',
+    },
 });

@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Animated, Modal, Dimensions, ScrollView, Platform, Image, Linking } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Animated, Modal, Dimensions, ScrollView, Platform, Image, Linking, Alert, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, usePathname } from 'expo-router';
@@ -28,12 +28,16 @@ const GlobalDrawer = ({ isOpen, onClose, drawerAnim, userData: _userDataProp }: 
     const pathname = usePathname();
     const logoutWithConfirm = useLogoutWithConfirm();
     const insets = useSafeAreaInsets();
-    const { user: authUser, isLoggedIn } = useAuth();
+    const { user: authUser, isLoggedIn, availableRoles, isSwitchingRole, switchRole } = useAuth();
     const userData = authUser || _userDataProp;
     const userName = isLoggedIn ? (userData?.name || 'User') : 'Welcome Guest';
     const userPhone = isLoggedIn ? (userData?.phone || userData?.email || '') : 'Sign in to manage your care';
     const userRole = (userData?.role || '').toUpperCase();
     const isSubscriber = isLoggedIn && userRole === 'SUBSCRIBER';
+    const isDualRole = isLoggedIn && (
+        availableRoles.includes('beneficiary') ||
+        isSubscriber
+    );
     
     // Get user initials for avatar fallback
     const initials = userName
@@ -48,6 +52,20 @@ const GlobalDrawer = ({ isOpen, onClose, drawerAnim, userData: _userDataProp }: 
         setTimeout(() => {
             push(path as any);
         }, 260);
+    };
+
+    // ─── Dual-role handler ───────────────────────────────────────────────────
+    const handleSwitchToBeneficiary = async () => {
+        onClose();
+        setTimeout(async () => {
+            try {
+                await switchRole('beneficiary');
+                // AuthContext role change triggers automatic re-route via index.tsx
+                router.replace('/(beneficiary)');
+            } catch (err: any) {
+                Alert.alert('Switch Failed', err?.message || 'Could not switch profile. Please try again.');
+            }
+        }, 300);
     };
 
     return (
@@ -104,6 +122,38 @@ const GlobalDrawer = ({ isOpen, onClose, drawerAnim, userData: _userDataProp }: 
                     >
                         {isLoggedIn ? (
                             <>
+                                {/* ── Dual-Role Switch Card (only for self-subscriber/beneficiary) ── */}
+                                {isDualRole && (
+                                    <TouchableOpacity
+                                        style={styles.switchRoleCard}
+                                        onPress={handleSwitchToBeneficiary}
+                                        activeOpacity={0.85}
+                                        disabled={isSwitchingRole}
+                                    >
+                                        <LinearGradient
+                                            colors={['#FF6B35', '#FF5C00']}
+                                            start={{ x: 0, y: 0 }}
+                                            end={{ x: 1, y: 0 }}
+                                            style={styles.switchRoleGradient}
+                                        >
+                                            <View style={styles.switchRoleLeft}>
+                                                <View style={styles.switchRoleIconBox}>
+                                                    {isSwitchingRole ? (
+                                                        <ActivityIndicator size="small" color="#FF5C00" />
+                                                    ) : (
+                                                        <Ionicons name="heart-outline" size={18} color="#FF5C00" />
+                                                    )}
+                                                </View>
+                                                <View>
+                                                    <Text style={styles.switchRoleTitle}>Switch to My Care Profile</Text>
+                                                    <Text style={styles.switchRoleSub}>Daily meds, visits & SOS</Text>
+                                                </View>
+                                            </View>
+                                            <Ionicons name="swap-horizontal-outline" size={20} color="#FFFFFF" />
+                                        </LinearGradient>
+                                    </TouchableOpacity>
+                                )}
+
                                 <Text style={styles.sectionLabel}>MENU</Text>
                                 <DrawerItem 
                                     label="Dashboard" 
@@ -417,6 +467,46 @@ const styles = StyleSheet.create({
     drawerItemTextActive: {
         color: '#EA580C',
         fontWeight: '700',
+    },
+
+    // ── Dual-role Switch Card ─────────────────────────────────────────────────
+    switchRoleCard: {
+        marginHorizontal: 14,
+        marginTop: 8,
+        marginBottom: 4,
+        borderRadius: 14,
+        overflow: 'hidden',
+    },
+    switchRoleGradient: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: 14,
+        paddingVertical: 12,
+    },
+    switchRoleLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flex: 1,
+    },
+    switchRoleIconBox: {
+        width: 34,
+        height: 34,
+        borderRadius: 10,
+        backgroundColor: '#FFFFFF',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 10,
+    },
+    switchRoleTitle: {
+        fontSize: 13,
+        fontWeight: '700',
+        color: '#FFFFFF',
+    },
+    switchRoleSub: {
+        fontSize: 10,
+        color: 'rgba(255,255,255,0.8)',
+        marginTop: 1,
     },
 
     drawerFooter: {

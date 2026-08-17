@@ -45,11 +45,48 @@ export default function BeneficiaryInfoScreen() {
 
     // Track original phone so we don't falsely block it during verification
     const [originalPhone, setOriginalPhone] = useState<string>('');
+    const [isSameAsSubscriber, setIsSameAsSubscriber] = useState(false);
+    const [subscriberProfile, setSubscriberProfile] = useState<any>(null);
 
     useEffect(() => {
-        AsyncStorage.getItem('userData').then(data => {
-            if (data) setUserData(JSON.parse(data));
-        });
+        const loadSubscriberData = async () => {
+            try {
+                const data = await AsyncStorage.getItem('userData');
+                let parsedUser = data ? JSON.parse(data) : null;
+                if (parsedUser) setUserData(parsedUser);
+
+                let subDataFromParams: any = null;
+                if (params.subscriberData) {
+                    try {
+                        subDataFromParams = JSON.parse(params.subscriberData as string);
+                    } catch (e) {}
+                }
+
+                // Attempt to fetch fresh profile from API
+                const token = await AsyncStorage.getItem('userToken');
+                if (token) {
+                    try {
+                        const res = await fetch(`${API_URL}/subscriber/profile`, {
+                            headers: { Authorization: `Bearer ${token}` }
+                        });
+                        const json = await res.json();
+                        if (json.success && json.data) {
+                            parsedUser = { ...parsedUser, ...json.data };
+                            setUserData(parsedUser);
+                        }
+                    } catch (err) {}
+                }
+
+                setSubscriberProfile({
+                    ...parsedUser,
+                    ...subDataFromParams
+                });
+            } catch (e) {
+                console.error('Error loading subscriber data:', e);
+            }
+        };
+
+        loadSubscriberData();
 
         if (isVerificationFlow && beneficiaryId) {
             setIsLoadingDetails(true);
@@ -103,7 +140,90 @@ export default function BeneficiaryInfoScreen() {
                 }
             });
         }
-    }, [isVerificationFlow, beneficiaryId]);
+    }, [isVerificationFlow, beneficiaryId, params.subscriberData]);
+
+    const handleToggleSameAsSubscriber = () => {
+        const nextState = !isSameAsSubscriber;
+        setIsSameAsSubscriber(nextState);
+
+        if (nextState) {
+            let subData: any = {};
+            if (params.subscriberData) {
+                try {
+                    subData = JSON.parse(params.subscriberData as string);
+                } catch (e) {}
+            }
+            const source = {
+                ...userData,
+                ...subscriberProfile,
+                ...subData,
+            };
+
+            let formattedDob = '';
+            const rawDob = source.dateOfBirth || source.dob;
+            if (rawDob) {
+                try {
+                    const d = new Date(rawDob);
+                    if (!isNaN(d.getTime())) {
+                        const day = d.getDate().toString().padStart(2, '0');
+                        const month = (d.getMonth() + 1).toString().padStart(2, '0');
+                        const year = d.getFullYear();
+                        formattedDob = `${day}/${month}/${year}`;
+                    } else if (typeof rawDob === 'string' && rawDob.includes('/')) {
+                        formattedDob = rawDob;
+                    }
+                } catch (e) {}
+            }
+
+            const cleanPhone = (source.phone || '').replace(/\D/g, '').slice(-10);
+            const capitalize = (s: string) => s ? (s.charAt(0).toUpperCase() + s.slice(1).toLowerCase()) : '';
+            const fullAddr = source.address || source.location || [source.flatPlot, source.streetArea, source.city, source.state].filter(Boolean).join(', ');
+
+            setBeneficiaryForm({
+                fullName: source.fullName || source.name || '',
+                dob: formattedDob || beneficiaryForm.dob,
+                gender: capitalize(source.gender) || beneficiaryForm.gender || 'Male',
+                maritalStatus: capitalize(source.maritalStatus) || beneficiaryForm.maritalStatus || 'Single',
+                relationship: 'Self',
+                phone: cleanPhone,
+                address: fullAddr,
+                flatPlot: source.flatPlot || '',
+                streetArea: source.streetArea || '',
+                landmark: source.landmark || '',
+                city: source.city || '',
+                state: source.state || '',
+                pincode: source.pincode || '',
+                latitude: Number(source.latitude) || 0,
+                longitude: Number(source.longitude) || 0,
+            });
+
+            if (source.profilePhoto || source.photo) {
+                setPickedPhotoUri(source.profilePhoto || source.photo);
+            }
+
+            if (phoneError) setPhoneError(null);
+            if (dobError) setDobError(null);
+        } else {
+            setBeneficiaryForm({
+                fullName: '',
+                dob: '',
+                gender: '',
+                maritalStatus: '',
+                relationship: '',
+                phone: '',
+                address: '',
+                flatPlot: '',
+                streetArea: '',
+                landmark: '',
+                city: '',
+                state: '',
+                pincode: '',
+                latitude: 0,
+                longitude: 0,
+            });
+            setPickedPhotoUri(null);
+        }
+    };
 
     const openDrawer = () => {
         setDrawerOpen(true);
@@ -191,24 +311,26 @@ export default function BeneficiaryInfoScreen() {
         }
         const cleaned = phoneStr.replace(/\D/g, '').slice(-10);
 
-        // Block subscriber from using their own phone as beneficiary phone
-        const subscriberPhone = (userData?.phone || '').replace(/\D/g, '').slice(-10);
-        if (subscriberPhone && cleaned === subscriberPhone) {
-            setPhoneError("You cannot use your own phone number as the beneficiary's phone.");
-            return false;
-        }
-
-        // In verification flow, the beneficiary's own phone already exists — skip uniqueness check for it
+        // In verification flow or when matching subscriber's own phone, allow it!
         if (isVerificationFlow && originalPhone && cleaned === originalPhone) {
             setPhoneError(null);
             return true;
         }
+
+        const subscriberPhone = (userData?.phone || '').replace(/\D/g, '').slice(-10);
+        if (subscriberPhone && cleaned === subscriberPhone) {
+            setPhoneError(null);
+            return true;
+        }
+
         try {
             const res = await fetch(`${API_URL}/public/check-enrollment?phone=${phoneStr}`);
             const data = await res.json();
             if (data.success && data.data.exists) {
-                setPhoneError("This phone number is already registered. Please use a different number.");
-                return false;
+                if (data.data.enrolled) {
+                    setPhoneError("This phone number is already enrolled in an active package. Please use a different number.");
+                    return false;
+                }
             }
         } catch (e) {
             console.error('Phone validation error:', e);
@@ -327,6 +449,36 @@ export default function BeneficiaryInfoScreen() {
 
                     <View style={styles.formCard}>
                         <Text style={styles.sectionTitle}>Beneficiary Information</Text>
+
+                        {/* Same as Subscriber Toggle — hidden when activating pre-existing beneficiaries */}
+                        {!isVerificationFlow && (
+                            <TouchableOpacity
+                                style={[
+                                    styles.sameAsSubscriberBox,
+                                    isSameAsSubscriber && styles.sameAsSubscriberBoxActive
+                                ]}
+                                onPress={handleToggleSameAsSubscriber}
+                                activeOpacity={0.8}
+                            >
+                                <View style={styles.sameAsSubscriberLeft}>
+                                    <View style={[styles.checkboxBox, isSameAsSubscriber && styles.checkboxBoxActive]}>
+                                        {isSameAsSubscriber && <Ionicons name="checkmark" size={14} color="#FFFFFF" />}
+                                    </View>
+                                    <View style={{ flex: 1, marginLeft: 10 }}>
+                                        <Text style={styles.sameAsSubscriberTitle}>Same as Subscriber</Text>
+                                        <Text style={styles.sameAsSubscriberSub}>
+                                            {isSameAsSubscriber ? 'Details auto-filled from your profile' : 'Tap to auto-fill details for self'}
+                                        </Text>
+                                    </View>
+                                </View>
+                                <View style={[styles.selfPill, isSameAsSubscriber && styles.selfPillActive]}>
+                                    <Ionicons name="person-outline" size={12} color={isSameAsSubscriber ? '#FFFFFF' : '#FF5C00'} style={{ marginRight: 3 }} />
+                                    <Text style={[styles.selfPillText, isSameAsSubscriber && styles.selfPillTextActive]}>
+                                        Self
+                                    </Text>
+                                </View>
+                            </TouchableOpacity>
+                        )}
 
                         {/* Profile Photo Upload UI */}
                         <Text style={styles.label}>Profile Photo</Text>
@@ -681,7 +833,76 @@ const styles = StyleSheet.create({
         shadowRadius: 6,
         elevation: 5
     },
-    sectionTitle: { fontFamily: 'Poppins_400Regular', fontSize: 20, lineHeight: 28, color: '#000000', marginBottom: 18 },
+    sectionTitle: { fontFamily: 'Poppins_400Regular', fontSize: 20, lineHeight: 28, color: '#000000', marginBottom: 14 },
+    sameAsSubscriberBox: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        backgroundColor: '#FFF7ED',
+        borderWidth: 1.5,
+        borderColor: '#FFEDD5',
+        borderRadius: 12,
+        paddingHorizontal: 14,
+        paddingVertical: 12,
+        marginBottom: 20,
+    },
+    sameAsSubscriberBoxActive: {
+        backgroundColor: '#FFF1E6',
+        borderColor: '#FF5C00',
+    },
+    sameAsSubscriberLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flex: 1,
+    },
+    checkboxBox: {
+        width: 22,
+        height: 22,
+        borderRadius: 6,
+        borderWidth: 2,
+        borderColor: '#D1D5DB',
+        backgroundColor: '#FFFFFF',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    checkboxBoxActive: {
+        backgroundColor: '#FF5C00',
+        borderColor: '#FF5C00',
+    },
+    sameAsSubscriberTitle: {
+        fontFamily: 'Poppins_600SemiBold',
+        fontSize: 14,
+        color: '#111827',
+    },
+    sameAsSubscriberSub: {
+        fontFamily: 'Poppins_400Regular',
+        fontSize: 11,
+        color: '#6B7280',
+        marginTop: 1,
+    },
+    selfPill: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 12,
+        backgroundColor: '#FFFFFF',
+        borderWidth: 1,
+        borderColor: '#FFEDD5',
+        marginLeft: 8,
+    },
+    selfPillActive: {
+        backgroundColor: '#FF5C00',
+        borderColor: '#FF5C00',
+    },
+    selfPillText: {
+        fontFamily: 'Poppins_600SemiBold',
+        fontSize: 11,
+        color: '#FF5C00',
+    },
+    selfPillTextActive: {
+        color: '#FFFFFF',
+    },
 
     label: { fontFamily: 'Poppins_400Regular', fontSize: 14, lineHeight: 20, color: '#000000', marginBottom: 12 },
     rowLabel: { minHeight: 40 },

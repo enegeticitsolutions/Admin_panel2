@@ -190,22 +190,9 @@ export const purchaseSubscription = async (
   let dobDate: Date | null = null;
 
   if (beneficiaryData) {
-    // Fetch subscriber's own phone to prevent self-linking
-    const subscriberUser = await prisma.user.findUnique({ where: { id: userId }, select: { phone: true } });
-    const subscriberPhone = subscriberUser?.phone || '';
-
     let beneficiaryPhone = '';
     if (beneficiaryData.phone) {
       beneficiaryPhone = beneficiaryData.phone.replace(/\D/g, '').slice(-10);
-      // Block subscriber from using their own number
-      if (beneficiaryPhone === subscriberPhone) {
-        throw new Error('You cannot use your own phone number as the beneficiary phone. Please use a different number.');
-      }
-      // Block any number already registered in the system
-      const existingUser = await prisma.user.findUnique({ where: { phone: beneficiaryPhone } });
-      if (existingUser) {
-        throw new Error('This phone number is already registered. Please use a different number.');
-      }
     }
     if (!beneficiaryPhone) {
       throw new Error('Beneficiary phone number is required.');
@@ -213,24 +200,38 @@ export const purchaseSubscription = async (
 
     dobDate = parseDob(beneficiaryData.dob);
 
-    // Hash devPassword if provided (default '654321' set on frontend)
-    let passwordHash: string | undefined = undefined;
-    if (beneficiaryData.devPassword) {
-      const salt = await bcrypt.genSalt(10);
-      passwordHash = await bcrypt.hash(String(beneficiaryData.devPassword), salt);
-    }
+    const existingUser = await prisma.user.findUnique({ where: { phone: beneficiaryPhone } });
 
-    newBeneficiaryUser = await prisma.user.create({
-      data: {
-        id: generateUUID(),
-        phone: beneficiaryPhone,
-        name: beneficiaryData.name,
-        role: 'beneficiary',
-        age: calculateAge(dobDate, beneficiaryData.age),
-        dateOfBirth: dobDate,
-        ...(passwordHash ? { password: passwordHash } : {})
+    if (existingUser) {
+      // Reuse existing user (e.g. subscriber enrolling for self or existing account)
+      newBeneficiaryUser = await prisma.user.update({
+        where: { id: existingUser.id },
+        data: {
+          name: beneficiaryData.name || existingUser.name,
+          age: calculateAge(dobDate, beneficiaryData.age) || existingUser.age,
+          dateOfBirth: dobDate || existingUser.dateOfBirth,
+        }
+      });
+    } else {
+      // Hash devPassword if provided (default '654321' set on frontend)
+      let passwordHash: string | undefined = undefined;
+      if (beneficiaryData.devPassword) {
+        const salt = await bcrypt.genSalt(10);
+        passwordHash = await bcrypt.hash(String(beneficiaryData.devPassword), salt);
       }
-    });
+
+      newBeneficiaryUser = await prisma.user.create({
+        data: {
+          id: generateUUID(),
+          phone: beneficiaryPhone,
+          name: beneficiaryData.name,
+          role: 'beneficiary',
+          age: calculateAge(dobDate, beneficiaryData.age),
+          dateOfBirth: dobDate,
+          ...(passwordHash ? { password: passwordHash } : {})
+        }
+      });
+    }
   }
 
   // Calculate pricing & validate coupon
@@ -691,27 +692,14 @@ export const linkBeneficiaryToSubscription = async (
   const dobDate = parseDob(beneficiaryData.dob);
 
   // 2. Find or create beneficiary user
-  // Fetch subscriber's own phone to prevent self-linking
-  const subscriberSelf = await prisma.user.findUnique({ where: { id: userId }, select: { phone: true } });
-  const subscriberPhone = subscriberSelf?.phone || '';
-
   let beneficiaryUser: any = null;
   let beneficiaryPhone = '';
   if (beneficiaryData.phone) {
-    const rawBenPhone = beneficiaryData.phone.replace(/\D/g, '').slice(-10);
-    if (rawBenPhone) {
-      // Block subscriber from using their own number
-      if (rawBenPhone === subscriberPhone) {
-        throw new Error('You cannot use your own phone number as the beneficiary phone. Please use a different number.');
-      }
-      beneficiaryPhone = rawBenPhone;
+    beneficiaryPhone = beneficiaryData.phone.replace(/\D/g, '').slice(-10);
+    if (beneficiaryPhone) {
       const existingUser = await prisma.user.findUnique({ where: { phone: beneficiaryPhone } });
-      // Only reuse if this is a different user (already a beneficiary account)
-      if (existingUser && existingUser.id !== userId) {
+      if (existingUser) {
         beneficiaryUser = existingUser;
-      } else if (existingUser) {
-        // Phone belongs to some other registered user — reject it
-        throw new Error('This phone number is already registered. Please use a different number.');
       }
     }
   }
@@ -1005,8 +993,8 @@ export const activateSubscription = async (
   medicalData?: any,
   emergencyContactsRaw?: any
 ) => {
-  // 1. Find the inactive subscription for this beneficiary
-  const existingSub = await prisma.subscription.findFirst({
+  // 1. Find subscription for this beneficiary (or any subscription for this subscriber)
+  let existingSub = await prisma.subscription.findFirst({
     where: { beneficiaryId, isActive: false },
     orderBy: { createdAt: 'desc' },
     include: {
@@ -1020,7 +1008,33 @@ export const activateSubscription = async (
   });
 
   if (!existingSub) {
-    throw new Error('No inactive pre-arranged subscription found for this beneficiary.');
+    existingSub = await prisma.subscription.findFirst({
+      where: { beneficiaryId },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        package: true,
+        packageVersion: {
+          include: {
+            versionBenefits: true
+          }
+        }
+      }
+    });
+  }
+
+  if (!existingSub) {
+    existingSub = await prisma.subscription.findFirst({
+      where: { subscriberId: userId },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        package: true,
+        packageVersion: {
+          include: {
+            versionBenefits: true
+          }
+        }
+      }
+    });
   }
 
   const dobDate = parseDob(beneficiaryData.dob);
@@ -1224,24 +1238,76 @@ export const activateSubscription = async (
       }
     }
 
-    // F. Activate Subscription
-    const start = new Date();
-    const end = new Date(start);
-    const months = existingSub.packageVersion?.durationMonths || existingSub.package?.durationMonths || 1;
-    end.setMonth(end.getMonth() + months);
+    // F. Activate Subscription (or create fallback subscription if none existed)
+    let subscription: any = null;
+    let pVersion: any = existingSub?.packageVersion || null;
+    let start = new Date();
+    let end = new Date(start);
 
-    const subscription = await tx.subscription.update({
-      where: { id: existingSub.id },
-      data: {
-        isActive: true,
-        startDate: start,
-        endDate: end,
+    if (existingSub) {
+      if (!pVersion && existingSub.packageType) {
+        pVersion = await tx.packageVersion.findFirst({
+          where: { packageCode: existingSub.packageType, isLatest: true },
+          include: { versionBenefits: true }
+        });
       }
-    });
+
+      const months = pVersion?.durationMonths || existingSub.packageVersion?.durationMonths || existingSub.package?.durationMonths || 1;
+      end.setMonth(end.getMonth() + months);
+
+      subscription = await tx.subscription.update({
+        where: { id: existingSub.id },
+        data: {
+          beneficiaryId,
+          packageVersionId: pVersion?.id || existingSub.packageVersionId || null,
+          isActive: true,
+          startDate: start,
+          endDate: end,
+        },
+        include: {
+          packageVersion: {
+            include: { versionBenefits: true }
+          }
+        }
+      });
+    } else {
+      const defaultPackage = await tx.subscriptionPackage.findFirst({ where: { isActive: true } });
+      const pkgType = defaultPackage?.type || 'silver';
+
+      pVersion = await tx.packageVersion.findFirst({
+        where: { packageCode: pkgType, isLatest: true },
+        include: { versionBenefits: true }
+      });
+
+      const months = pVersion?.durationMonths || defaultPackage?.durationMonths || 1;
+      end.setMonth(end.getMonth() + months);
+
+      subscription = await tx.subscription.create({
+        data: {
+          id: generateUUID(),
+          subscriberId: userId,
+          beneficiaryId,
+          packageType: pkgType,
+          packageVersionId: pVersion?.id || null,
+          duration: 'monthly' as any,
+          startDate: start,
+          endDate: end,
+          isActive: true,
+          visitsTotal: defaultPackage?.visitsPerWeek ? defaultPackage.visitsPerWeek * 4 : 4,
+          hoursTotal: defaultPackage?.hoursPerMonth || 0,
+        },
+        include: {
+          packageVersion: {
+            include: { versionBenefits: true }
+          }
+        }
+      });
+    }
+
+    const versionObj = pVersion || subscription?.packageVersion || existingSub?.packageVersion;
 
     // G. Create Benefit Balances if they don't exist
-    const versionObj = existingSub.packageVersion;
-    if (versionObj?.versionBenefits && versionObj.versionBenefits.length > 0) {
+    if (subscription && versionObj?.versionBenefits && versionObj.versionBenefits.length > 0) {
       await tx.subscriptionBenefitBalance.createMany({
         data: versionObj.versionBenefits.map((vb: any) => ({
           subscriptionId: subscription.id,
@@ -1258,35 +1324,38 @@ export const activateSubscription = async (
     }
 
     // H. Create Payment record
-    const invoiceNumber = `ADM-ACT-${Date.now()}`;
-    await tx.payment.create({
-      data: {
-        invoiceNumber,
-        subscriberId: userId,
-        beneficiaryId,
-        subscriptionId: subscription.id,
-        packageType: subscription.packageType,
-        packageVersionId: versionObj?.id || null,
-        snapshotPackageName: versionObj?.name || 'Prepaid Care Package',
-        snapshotBasePrice: versionObj?.basePrice || 0,
-        snapshotBenefits: versionObj?.versionBenefits?.map((vb: any) => ({
-          name: vb.snapshotName,
-          units: vb.unitsIncluded,
-          unitLabel: vb.snapshotUnitLabel
-        })) || [],
-        baseAmount: versionObj?.basePrice || 0,
-        amountPaid: versionObj?.basePrice || 0,
-        discountAmount: 0,
-        paymentMethod: 'csa_prepaid',
-        paymentStatus: 'success',
-        planStartDate: start,
-        planEndDate: end,
-        paidAt: new Date(),
-        enrolledAt: new Date(),
-        isSubscriptionActive: true,
-        gatewayName: 'csa_consent_activation',
-      }
-    });
+    let invoiceNumber: string | null = null;
+    if (subscription) {
+      invoiceNumber = `ADM-ACT-${Date.now()}`;
+      await tx.payment.create({
+        data: {
+          invoiceNumber,
+          subscriberId: userId,
+          beneficiaryId,
+          subscriptionId: subscription.id,
+          packageType: subscription.packageType || 'silver',
+          packageVersionId: versionObj?.id || subscription.packageVersionId || null,
+          snapshotPackageName: versionObj?.name || 'Prepaid Care Package',
+          snapshotBasePrice: versionObj?.basePrice || 0,
+          snapshotBenefits: versionObj?.versionBenefits?.map((vb: any) => ({
+            name: vb.snapshotName,
+            units: vb.unitsIncluded,
+            unitLabel: vb.snapshotUnitLabel
+          })) || [],
+          baseAmount: versionObj?.basePrice || 0,
+          amountPaid: versionObj?.basePrice || 0,
+          discountAmount: 0,
+          paymentMethod: 'csa_prepaid',
+          paymentStatus: 'success',
+          planStartDate: start,
+          planEndDate: end,
+          paidAt: new Date(),
+          enrolledAt: new Date(),
+          isSubscriptionActive: true,
+          gatewayName: 'csa_consent_activation',
+        }
+      });
+    }
 
     // I. Log Activity
     await tx.activityLog.create({
@@ -1296,7 +1365,7 @@ export const activateSubscription = async (
         type: 'SUBSCRIPTION',
         action: 'ACTIVATED',
         details: {
-          subscriptionId: subscription.id,
+          subscriptionId: subscription?.id || null,
           beneficiaryId,
           invoiceNumber
         } as any

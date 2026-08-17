@@ -202,12 +202,15 @@ export default function CheckoutScreen() {
         return packageRegionIds.length === 0 || packageRegionIds.includes(serviceRegionId);
     }, [fullPackage, serviceChecked, serviceAvailable, serviceRegionId, preValidatedRegionId]);
 
+    const isVerificationFlow = params.isVerificationFlow === 'true';
+
     const isLocationReady = React.useMemo(() => {
+        if (isVerificationFlow) return true; // Always ready during verification/activation flow
         if (!fullPackage) return false;
         if (fullPackage.isGlobal) return true;
         if (preValidatedRegionId) return true; // Pre-validated from packages screen
         return serviceAvailable && isPackageAvailable;
-    }, [fullPackage, serviceAvailable, isPackageAvailable, preValidatedRegionId]);
+    }, [fullPackage, serviceAvailable, isPackageAvailable, preValidatedRegionId, isVerificationFlow]);
 
     // 🛑 UI STATE
     const [promoCode, setPromoCode] = useState('');
@@ -253,13 +256,11 @@ export default function CheckoutScreen() {
             } else {
                 throw new Error(result.message || 'Failed to load pricing');
             }
-        } catch (err: any) {
-            console.error('[Checkout Preview Error]', err);
-            throw err;
+        } catch (error) {
+            console.error('[Checkout Preview Error]:', error);
         }
     };
 
-    const isVerificationFlow = params.isVerificationFlow === 'true';
     const beneficiaryId = params.beneficiaryId as string;
     const pendingDetailsRaw = params.pendingDetails as string;
 
@@ -294,18 +295,24 @@ export default function CheckoutScreen() {
 
         let targetPkgId = packageId;
 
-        if (isVerificationFlow && pendingDetailsRaw) {
+        if (isVerificationFlow) {
             setPricingLoading(true);
             try {
-                const b = JSON.parse(pendingDetailsRaw);
-                const sub = b.subscriptions?.[0];
-                const pkg = sub?.packageVersion || sub?.package;
-                if (pkg) {
-                    targetPkgId = pkg.id || pkg.type;
+                let pkgName = 'Care Plan';
+                let pkgPrice = 1000;
+                if (pendingDetailsRaw) {
+                    const b = JSON.parse(pendingDetailsRaw);
+                    const sub = b?.subscriptions?.[0];
+                    const pkg = sub?.packageVersion || sub?.package;
+                    if (pkg) {
+                        targetPkgId = pkg.id || pkg.type;
+                        pkgName = pkg.name || pkgName;
+                        pkgPrice = pkg.basePrice || pkgPrice;
+                    }
                 }
                 setPricing({
-                    packageName: pkg?.name || 'Care Plan',
-                    basePrice: pkg?.basePrice || 0,
+                    packageName: pkgName,
+                    basePrice: pkgPrice,
                     discountApplied: 0,
                     tax: 0,
                     total: 0, // No payment in verification flow

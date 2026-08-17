@@ -97,4 +97,21 @@ router.post('/verify-email-otp', asyncHandler(async (req: Request, res: Response
   res.json(new ApiResponse(200, result, result.message));
 }));
 
+/**
+ * POST /api/auth/switch-role
+ *
+ * Allows a dual-role user (subscriber who is also their own beneficiary) to
+ * switch active session role without logging out. Requires a valid JWT.
+ * Body: { targetRole: 'subscriber' | 'beneficiary' }
+ */
+router.post('/switch-role', authenticate, asyncHandler(async (req: Request, res: Response) => {
+  const { targetRole } = req.body;
+  if (!targetRole || !['subscriber', 'beneficiary'].includes(targetRole)) {
+    res.status(400).json(new ApiResponse(400, null, "targetRole must be 'subscriber' or 'beneficiary'"));
+    return;
+  }
+  const result = await authService.switchRole((req as any).userId, targetRole as 'subscriber' | 'beneficiary');
+  res.json(new ApiResponse(200, result, result.message));
+}));
+
 export default router;

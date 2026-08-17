@@ -79,24 +79,41 @@ export const createBeneficiary = async (data: {
   dob?: string;
 }) => {
   const phone = data.phone.replace(/\D/g, '').slice(-10);
-  // Check if user with this phone already exists
-  const existingUser = await prisma.user.findUnique({ where: { phone } });
-  if (existingUser) {
-    throw new Error("A user with this phone number already exists.");
-  }
-
   const dobDate = parseDob(data.dob);
 
-  const user = await prisma.user.create({
-    data: {
-      id: generateUUID(),
-      phone, // Use normalized 10-digit phone
-      name: data.name,
-      role: 'beneficiary',
-      age: data.age,
-      dateOfBirth: dobDate
-    },
+  let user = await prisma.user.findUnique({ where: { phone } });
+  if (!user) {
+    user = await prisma.user.create({
+      data: {
+        id: generateUUID(),
+        phone,
+        name: data.name,
+        role: 'beneficiary',
+        age: data.age,
+        dateOfBirth: dobDate
+      },
+    });
+  }
+
+  const existingBeneficiary = await prisma.beneficiary.findUnique({
+    where: { userId: user.id }
   });
+
+  if (existingBeneficiary) {
+    return prisma.beneficiary.update({
+      where: { id: existingBeneficiary.id },
+      data: {
+        subscriberId: data.subscriberId,
+        name: data.name,
+        photo: data.photo || existingBeneficiary.photo,
+        age: data.age,
+        dateOfBirth: dobDate,
+        gender: (data.gender.toLowerCase() === 'male' ? 'male' : data.gender.toLowerCase() === 'female' ? 'female' : 'prefer_not_to_say') as any,
+        address: data.address,
+        isActive: true,
+      }
+    });
+  }
 
   return prisma.beneficiary.create({
     data: {
