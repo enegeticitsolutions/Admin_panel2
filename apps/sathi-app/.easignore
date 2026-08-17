@@ -28,11 +28,10 @@ node_modules/
 **/.env.*.local
 **/*serviceAccountKey*.json
 **/serviceAccountKey.json
-# NOTE: google-services.json and GoogleService-Info.plist are NOT secrets.
-# They are safe to commit per Google's own documentation.
-# They are committed so EAS Build can include them in Android/iOS builds.
-# **/google-services.json   <-- intentionally NOT ignored
-# **/GoogleService-Info.plist  <-- intentionally NOT ignored
+# 0
+**/*google-services*.json
+# 0
+**/*GoogleService-Info*.plist
 
 ################################
 # Expo / Metro (mobile-app)
@@ -72,3 +71,9 @@ node_modules/
 Thumbs.db
 .idea/
 .vscode/
+!google-services.json
+!GoogleService-Info.plist
+
+!android/app/google-services.json
+
+!ios/maihoonna/GoogleService-Info.plist

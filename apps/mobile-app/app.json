@@ -8,7 +8,7 @@
     "updates": {
       "enabled": false
     },
-    "icon": "./assets/images/adaptive-icon.png",
+    "icon": "./assets/images/icon.png",
     "scheme": "maihoonna",
     "userInterfaceStyle": "automatic",
     "ios": {
@@ -17,6 +17,7 @@
         "googleMapsApiKey": "AIzaSyDPrFpN29FZ786mTWjIbeQvW3y6ztjx3xU"
       },
       "bundleIdentifier": "com.maihoonna.app",
+      "icon": "./assets/images/icon.png",
       "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
         "NSLocationAlwaysAndWhenInUseUsageDescription": "MaiHoonNa uses your location to share it with your care team when you trigger an SOS Emergency Alert.",
