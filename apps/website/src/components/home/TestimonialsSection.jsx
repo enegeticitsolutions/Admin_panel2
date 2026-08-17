@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 const testimonials = [
   {
@@ -32,6 +32,15 @@ const testimonials = [
  */
 const TestimonialsSection = () => {
   const [activeTestimonial, setActiveTestimonial] = useState(0);
+  const [isHovered, setIsHovered] = useState(false);
+
+  useEffect(() => {
+    if (isHovered) return;
+    const timer = setInterval(() => {
+      setActiveTestimonial((prev) => (prev === testimonials.length - 1 ? 0 : prev + 1));
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [isHovered]);
 
   return (
     <section className="testimonial">
@@ -41,7 +50,11 @@ const TestimonialsSection = () => {
       </div>
 
       <div className="testimonial-card-container">
-        <div className="testimonial-card">
+        <div 
+          className="testimonial-card"
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
+        >
           {/* Left Side: Portrait */}
           <div
             className="testimonial-portrait"

@@ -249,7 +249,7 @@ export default function SubscriberDashboardScreen() {
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: scale(16) }}>
                     <NotificationBell />
                     <TouchableOpacity onPress={openDrawer} style={styles.headerIconBtn}>
-                        <Ionicons name="menu-outline" size={scale(28)} color="#111827" />
+                        <Ionicons name="menu-outline" size={scale(28)} color="#FFFFFF" />
                     </TouchableOpacity>
                 </View>
             </View>
@@ -268,32 +268,33 @@ export default function SubscriberDashboardScreen() {
                 >
                     <Text style={styles.heroGreeting}>Hi {firstName}</Text>
 
-                    {/* Row 1 — sits inside the orange image */}
-                    <View style={styles.statsGrid}>
-                        {/* Happiness Score */}
-                        <View style={styles.statCard}>
-                            <View style={styles.statTopRow}>
-                                <View style={styles.statEmojiCircle}>
-                                    <Text style={styles.statEmoji}>😊</Text>
-                                </View>
-                                <Text style={styles.statValue}>{happinessScore}</Text>
-                            </View>
-                            <Text style={styles.statLabel}>Happiness Score</Text>
-                        </View>
-
-                        {/* Visits This Week */}
-                        <View style={styles.statCard}>
-                            <View style={styles.statTopRow}>
-                                <View style={styles.statIconCirclePink}>
-                                    <MaterialCommunityIcons name="account-heart" size={24} color="#FE6700" />
-                                </View>
-                                <Text style={styles.statValue}>{visitsTotal}</Text>
-                            </View>
-                            <Text style={styles.statLabel}>Visits This Week</Text>
-                            <Text style={styles.statSub}>{visitsCompleted} completed</Text>
-                        </View>
-                    </View>
                 </ImageBackground>
+
+                {/* Row 1 — overlapping the orange image */}
+                <View style={styles.statsGrid}>
+                    {/* Happiness Score */}
+                    <View style={styles.statCard}>
+                        <View style={styles.statTopRow}>
+                            <View style={styles.statEmojiCircle}>
+                                <Text style={styles.statEmoji}>😊</Text>
+                            </View>
+                            <Text style={styles.statValue}>{happinessScore}</Text>
+                        </View>
+                        <Text style={styles.statLabel}>Happiness Score</Text>
+                    </View>
+
+                    {/* Visits This Week */}
+                    <View style={styles.statCard}>
+                        <View style={styles.statTopRow}>
+                            <View style={styles.statIconCirclePink}>
+                                <MaterialCommunityIcons name="account-heart" size={24} color="#E7000B" />
+                            </View>
+                            <Text style={styles.statValue}>{visitsTotal}</Text>
+                        </View>
+                        <Text style={styles.statLabel}>Visits This Week</Text>
+                        <Text style={styles.statSub}>{visitsCompleted} completed</Text>
+                    </View>
+                </View>
 
                 {/* Row 2 — outside orange banner, on white background */}
                 <View style={styles.statsGridBottom}>
@@ -301,7 +302,7 @@ export default function SubscriberDashboardScreen() {
                     <View style={styles.statCard}>
                         <View style={styles.statTopRow}>
                             <View style={styles.statIconCircleBlue}>
-                                <Ionicons name="hourglass-outline" size={24} color="#2563FF" />
+                                <Ionicons name="hourglass-outline" size={24} color="#155DFC" />
                             </View>
                             <Text style={styles.statValue}>{formatHours(activeHours)}</Text>
                         </View>
@@ -311,7 +312,7 @@ export default function SubscriberDashboardScreen() {
 
                     {/* Total Care Plans */}
                     <TouchableOpacity activeOpacity={0.85} onPress={() => router.push('/package-utilization')}>
-                        <LinearGradient colors={['#FE6700', '#E95200']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.statCard, { overflow: 'hidden' }]}>
+                        <LinearGradient colors={['#FF6900', '#F54900']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.statCard, { overflow: 'hidden' }]}>
                             <View style={styles.statTopRow}>
                                 <View style={styles.planIconCircle}>
                                     <Ionicons name="ribbon-outline" size={23} color="#333333" />
@@ -623,8 +624,8 @@ export default function SubscriberDashboardScreen() {
 }
 
 const styles = StyleSheet.create({
-    safeArea: { flex: 1, backgroundColor: '#FAF5F0' },
-    centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FAF5F0' },
+    safeArea: { flex: 1, backgroundColor: '#FFF0E6' },
+    centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FFF0E6' },
 
     /* ── Dashboard Header ── */
     dashHeader: {
@@ -646,17 +647,19 @@ const styles = StyleSheet.create({
     /* ── Hero Banner ── */
     heroBanner: {
         paddingHorizontal: HORIZONTAL_PADDING,
-        paddingTop: scale(14),
-        paddingBottom: scale(20),
+        paddingTop: scale(4),
+        paddingBottom: scale(100),
         marginBottom: 0,
         overflow: 'hidden',
-        borderBottomLeftRadius: scale(24),
-        borderBottomRightRadius: scale(24),
+        borderBottomLeftRadius: scale(15),
+        borderBottomRightRadius: scale(15),
+        backgroundColor: '#FE6700',
     },
     heroBannerImage: {
         ...require('react-native').StyleSheet.absoluteFillObject,
         width: undefined,
         height: undefined,
+        opacity: 0.68,
     },
     heroCurve: {
         // Removed — no longer needed with overflow:hidden approach
@@ -669,7 +672,7 @@ const styles = StyleSheet.create({
     },
     heroGreeting: {
         fontSize: scale(18),
-        fontWeight: '700',
+        fontWeight: '600',
         color: '#FFFFFF',
         marginBottom: scale(12),
         zIndex: 1,
@@ -681,6 +684,8 @@ const styles = StyleSheet.create({
         flexWrap: 'wrap',
         gap: CARD_GAP,
         zIndex: 1,
+        paddingHorizontal: HORIZONTAL_PADDING,
+        marginTop: scale(-80),
     },
     statsGridBottom: {
         flexDirection: 'row',
@@ -694,35 +699,36 @@ const styles = StyleSheet.create({
         width: (width - HORIZONTAL_PADDING * 2 - CARD_GAP) / 2,
         minHeight: scale(110),
         backgroundColor: '#FFFFFF',
-        borderRadius: scale(14),
+        borderRadius: scale(16),
         paddingHorizontal: scale(14),
-        paddingVertical: scale(14),
-        justifyContent: 'space-between',
+        paddingTop: scale(18),
+        paddingBottom: scale(14),
+        justifyContent: 'flex-start',
         ...Platform.select({
-            ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.12, shadowRadius: 10 },
-            android: { elevation: 5 },
+            ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 6 },
+            android: { elevation: 3 },
         }),
     },
-    statTopRow: { flexDirection: 'row', alignItems: 'center', marginBottom: scale(6) },
+    statTopRow: { flexDirection: 'row', alignItems: 'center', marginBottom: scale(8) },
     statEmojiCircle: {
-        width: scale(38), height: scale(38), borderRadius: scale(10), backgroundColor: '#FFE8CE',
-        alignItems: 'center', justifyContent: 'center', marginRight: scale(10),
+        width: scale(38), height: scale(38), borderRadius: scale(10), backgroundColor: '#FFEDD4',
+        alignItems: 'center', justifyContent: 'center', marginRight: scale(8),
     },
     statEmoji: { fontSize: scale(22) },
     statIconCirclePink: {
-        width: scale(38), height: scale(38), borderRadius: scale(10), backgroundColor: '#FFE1E6',
-        alignItems: 'center', justifyContent: 'center', marginRight: scale(10),
+        width: scale(38), height: scale(38), borderRadius: scale(10), backgroundColor: '#FFE2E2',
+        alignItems: 'center', justifyContent: 'center', marginRight: scale(8),
     },
     statIconCircleBlue: {
-        width: scale(38), height: scale(38), borderRadius: scale(10), backgroundColor: '#DDEBFF',
-        alignItems: 'center', justifyContent: 'center', marginRight: scale(10),
+        width: scale(38), height: scale(38), borderRadius: scale(10), backgroundColor: '#DBEAFE',
+        alignItems: 'center', justifyContent: 'center', marginRight: scale(8),
     },
     planIconCircle: {
         width: scale(40), height: scale(40), borderRadius: scale(20), backgroundColor: '#FFFFFF',
-        alignItems: 'center', justifyContent: 'center', marginRight: scale(10),
+        alignItems: 'center', justifyContent: 'center', marginRight: scale(8),
     },
     statIcon: {},
-    statValue: { fontSize: scale(22), fontWeight: '700', color: '#111111' },
+    statValue: { fontSize: scale(20), fontWeight: '700', color: '#111111' },
     statLabel: { fontSize: scale(13), color: '#4B5563', marginBottom: scale(2) },
     statSub: { fontSize: scale(11), color: '#A3A3A3' },
     addMoreText: { fontSize: scale(12), color: '#FFFFFF', marginTop: scale(4) },
@@ -742,7 +748,11 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingHorizontal: scale(14),
         paddingVertical: scale(7),
-        borderRadius: scale(20),
+        borderRadius: scale(28),
+        ...Platform.select({
+            ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4 },
+            android: { elevation: 3 },
+        }),
     },
     addBtnText: { color: '#FFF', fontSize: scale(13), fontWeight: '600' },
     viewAllText: { fontSize: scale(13), fontWeight: '500', color: '#FE6700' },
@@ -838,8 +848,8 @@ const styles = StyleSheet.create({
     assistanceSub: { fontSize: scale(13), color: '#4B5563', lineHeight: scale(19) },
     assistanceActions: { flexDirection: 'row', alignItems: 'center' },
     callbackBtn: {
-        flex: 1, flexDirection: 'row', borderWidth: 1, borderColor: '#FE6700', borderRadius: scale(12),
-        height: scale(48), alignItems: 'center', justifyContent: 'center',
+        flex: 1, flexDirection: 'row', borderWidth: 1, borderColor: '#FE6700', borderRadius: scale(24),
+        height: scale(48), alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF',
     },
     callbackText: { color: '#FE6700', fontWeight: '600', fontSize: scale(14) },
     whatsappBtn: {
@@ -849,14 +859,16 @@ const styles = StyleSheet.create({
     },
     viewVolunteersBtn: {
         position: 'absolute',
-        right: scale(-10),
+        right: 0,
         top: '30%',
         backgroundColor: '#FE6700',
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: scale(18),
+        paddingLeft: scale(18),
+        paddingRight: scale(12),
         paddingVertical: scale(12),
-        borderRadius: scale(25),
+        borderTopLeftRadius: scale(25),
+        borderBottomLeftRadius: scale(25),
         ...Platform.select({
             ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8 },
             android: { elevation: 8 },

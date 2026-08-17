@@ -233,7 +233,7 @@ const SaathiPage = () => {
 
             <div className="saathi-hero__stat-item">
               <span className="saathi-hero__stat-number">
-                {liveStats.totalHours > 0 ? `${liveStats.totalHours}+` : "8,200+"}
+                {liveStats.totalHours > 0 ? `${parseFloat(liveStats.totalHours).toFixed(1)}+` : "8,200+"}
               </span>
               <span className="saathi-hero__stat-label">Hours given</span>
             </div>
