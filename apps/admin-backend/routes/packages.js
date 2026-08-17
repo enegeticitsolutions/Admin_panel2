@@ -514,18 +514,100 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-// DELETE /api/packages/:id — hard delete
+// DELETE /api/packages/:id — delete package or archive if linked to subscriptions
 router.delete('/:id', async (req, res) => {
+  const { id } = req.params;
   try {
-    await prisma.$transaction(async (tx) => {
-      await tx.packageBenefit.deleteMany({ where: { packageId: req.params.id } });
-      await tx.packageDiscount.deleteMany({ where: { packageId: req.params.id } });
-      await tx.subscriptionPackage.delete({ where: { id: req.params.id } });
+    const pkg = await prisma.subscriptionPackage.findUnique({
+      where: { id },
+      include: {
+        _count: {
+          select: {
+            subscriptions: true,
+          },
+        },
+      },
     });
-    res.json({ success: true, message: 'Package deleted' });
-  } catch (err) {
-    if (err.code === 'P2025')
+
+    if (!pkg) {
       return res.status(404).json({ success: false, message: 'Package not found' });
+    }
+
+    // Check if there are active or historical subscriptions/payments linked to this package
+    const [linkedSubscriptions, linkedPayments] = await Promise.all([
+      prisma.subscription.count({ where: { packageType: pkg.type } }),
+      prisma.payment.count({ where: { packageType: pkg.type } }),
+    ]);
+
+    if (linkedSubscriptions > 0 || linkedPayments > 0) {
+      // Cannot hard delete because existing subscriptions/payments depend on this package type.
+      // Deactivate (soft delete) instead to preserve referential integrity.
+      await prisma.subscriptionPackage.update({
+        where: { id },
+        data: { isActive: false },
+      });
+      return res.json({
+        success: true,
+        message: 'Package is linked to existing subscriptions/payments and has been deactivated/archived.',
+        softDeleted: true,
+      });
+    }
+
+    // If no subscriptions are linked, perform safe complete cleanup
+    await prisma.$transaction(async (tx) => {
+      // 1. Delete package regions associations
+      await tx.subscriptionPackageRegion.deleteMany({ where: { packageId: id } });
+
+      // 2. Delete package benefits
+      await tx.packageBenefit.deleteMany({ where: { packageId: id } });
+
+      // 3. Delete package discounts
+      await tx.packageDiscount.deleteMany({ where: { packageId: id } });
+
+      // 4. Delete package versions and version benefits if present
+      const versions = await tx.packageVersion.findMany({
+        where: { packageCode: pkg.type },
+        select: { id: true },
+      });
+      if (versions.length > 0) {
+        const versionIds = versions.map((v) => v.id);
+        await tx.packageVersionBenefit.deleteMany({
+          where: { packageVersionId: { in: versionIds } },
+        });
+        await tx.packageVersion.deleteMany({
+          where: { id: { in: versionIds } },
+        });
+      }
+
+      // 5. Delete the subscription package
+      await tx.subscriptionPackage.delete({ where: { id } });
+    });
+
+    res.json({ success: true, message: 'Package deleted successfully' });
+  } catch (err) {
+    console.error('DELETE package error:', err);
+    if (err.code === 'P2025') {
+      return res.status(404).json({ success: false, message: 'Package not found' });
+    }
+    if (err.code === 'P2003') {
+      // Foreign key constraint fallback
+      try {
+        await prisma.subscriptionPackage.update({
+          where: { id },
+          data: { isActive: false },
+        });
+        return res.json({
+          success: true,
+          message: 'Package is in use by existing records and has been deactivated.',
+          softDeleted: true,
+        });
+      } catch (updateErr) {
+        return res.status(400).json({
+          success: false,
+          message: 'Cannot delete package as it is currently in use.',
+        });
+      }
+    }
     res.status(500).json({ success: false, message: 'Cannot delete package, it may be in use.' });
   }
 });

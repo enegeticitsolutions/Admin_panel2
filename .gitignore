@@ -3,6 +3,8 @@
 .claude
 MOBILE_TESTING_SETUP.md
 sync-app.ps1
+scripts/
+
 
 # Backend seed/scratch files
 apps/admin-backend/prisma/seed-beneficiary-subscriber.js

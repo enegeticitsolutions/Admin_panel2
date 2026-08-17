@@ -282,13 +282,17 @@ export default function SubscriptionsPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm('Are you sure you want to permanently delete this package?')) return;
+    if (!window.confirm('Are you sure you want to delete this package?')) return;
     try {
-      await packageApi.delete(id);
-      toast.success('Package deleted');
+      const res: any = await packageApi.delete(id);
+      if (res?.softDeleted) {
+        toast.info(res.message || 'Package is in use and has been archived (deactivated).');
+      } else {
+        toast.success(res?.message || 'Package deleted successfully');
+      }
       await loadData();
-    } catch (error) {
-      toast.error('Failed to delete package. It may be in use.');
+    } catch (error: any) {
+      toast.error(error?.message || 'Failed to delete package. It may be in use.');
     }
   };
 

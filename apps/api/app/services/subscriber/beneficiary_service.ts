@@ -380,6 +380,16 @@ export const getBeneficiaryProfile = async (beneficiaryId: string) => {
         include: {
           user: true
         }
+      },
+      vitalReadings: {
+        include: {
+          vitalDefinition: true
+        }
+      },
+      medicationAdherenceRecords: {
+        include: {
+          medication: true
+        }
       }
     },
     orderBy: { scheduledTime: 'desc' },
@@ -587,8 +597,93 @@ export const getBeneficiaryProfile = async (beneficiaryId: string) => {
         durationText = `Duration: ${durationHours} hour${durationHours !== 1 ? 's' : ''}`;
       }
 
+      // Extract vital readings
+      const vitalsList: any[] = [];
+      (v.vitalReadings || []).forEach((r: any) => {
+        const def = r.vitalDefinition;
+        if (!def) return;
+        let valStr = '';
+        if (def.dataType === 'dual_numeric') {
+          if (r.valueNumeric != null && r.valueNumeric2 != null) {
+            valStr = `${r.valueNumeric}/${r.valueNumeric2} ${def.unit || 'mmHg'}`.trim();
+          }
+        } else if (def.dataType === 'numeric') {
+          if (r.valueNumeric != null) {
+            valStr = `${r.valueNumeric} ${def.unit || ''}`.trim();
+          }
+        } else if (def.dataType === 'boolean') {
+          const isTrue = r.valueBoolean === true || String(r.valueText).toLowerCase() === 'yes';
+          valStr = isTrue ? (def.booleanTrueLabel || 'Yes') : (def.booleanFalseLabel || 'No');
+        } else if (def.dataType === 'text') {
+          if (r.valueText) valStr = r.valueText;
+        }
+
+        if (valStr) {
+          vitalsList.push({
+            id: def.id,
+            name: def.name,
+            code: def.code,
+            value: valStr,
+            unit: def.unit || ''
+          });
+        }
+      });
+
+      const bpReading = vitalsList.find(vl => vl.code === 'BP' || vl.name?.toLowerCase().includes('blood pressure'));
+      const hrReading = vitalsList.find(vl => vl.code === 'PULSE' || vl.code === 'HEART_RATE' || vl.name?.toLowerCase().includes('heart rate') || vl.name?.toLowerCase().includes('pulse'));
+      const bsReading = vitalsList.find(vl => vl.code === 'BLOOD_GLUCOSE' || vl.name?.toLowerCase().includes('sugar') || vl.name?.toLowerCase().includes('glucose'));
+
+      // Extract medication adherence records
+      const medicationsList = (v.medicationAdherenceRecords || []).map((mar: any) => ({
+        id: mar.medicationId,
+        name: mar.medication?.name || 'Medication',
+        dosage: mar.medication?.dosage || null,
+        instructions: mar.medication?.instructions || null,
+        taken: mar.taken === true
+      }));
+
+      // Check-in & Check-out formatting
+      const checkInTimeFormatted = v.checkInTime ? new Date(v.checkInTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }) : null;
+      const checkOutTimeFormatted = v.checkOutTime ? new Date(v.checkOutTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }) : null;
+
+      let checkInType = 'Standard Check-in';
+      if (v.checkInTime) {
+        if (v.isGeoVerified) {
+          checkInType = `Auto Geofence (Verified${v.geoDistanceMeters != null ? ` • ${v.geoDistanceMeters}m` : ''})`;
+        } else if (v.manualCheckInReason) {
+          checkInType = 'Manual Check-in (Flagged)';
+        }
+      }
+
+      let checkOutType = 'Standard Check-out';
+      if (v.checkOutTime) {
+        if (v.manualCheckOutReason) {
+          checkOutType = 'Manual Check-out';
+        } else if (v.isGeoVerified) {
+          checkOutType = 'Auto Geofence (Verified)';
+        }
+      }
+
+      // Photos extraction
+      const photos = (() => {
+        const raw = (v as any).imageUrls;
+        if (!raw) return [];
+        if (Array.isArray(raw)) return raw;
+        if (typeof raw === 'string') {
+          try {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) return parsed;
+          } catch {
+            return raw.split(',').map((s: string) => s.trim()).filter(Boolean);
+          }
+        }
+        return [];
+      })();
+
       return {
         id: v.id,
+        encounterId: v.encounterId || v.visitCode || `ENC-${v.id.slice(0, 8).toUpperCase()}`,
+        status: v.status,
         companionName: v.careCompanion?.name,
         companionPhoto: v.careCompanion?.photo,
         companionPhone: v.careCompanion?.user?.phone || null,
@@ -598,10 +693,24 @@ export const getBeneficiaryProfile = async (beneficiaryId: string) => {
         rating: v.subscriberRating ?? null,          // subscriber's rating of the CC
         beneficiaryRating: v.beneficiaryRating ?? null, // beneficiary's rating of the CC
         activities: v.activitiesDone || [],
-        bp: null,
-        heartRate: null,
-        bloodSugar: null,
-        notes: v.visitSummary || v.notes
+        bp: bpReading?.value || null,
+        heartRate: hrReading?.value || null,
+        bloodSugar: bsReading?.value || null,
+        notes: v.visitSummary || v.notes,
+        // Detailed fields for Subscriber encounter modal
+        checkInTime: checkInTimeFormatted,
+        checkInType,
+        isGeoVerified: v.isGeoVerified === true,
+        geoDistanceMeters: v.geoDistanceMeters ?? null,
+        manualCheckInReason: v.manualCheckInReason || null,
+        checkOutTime: checkOutTimeFormatted,
+        checkOutType,
+        manualCheckOutReason: v.manualCheckOutReason || null,
+        mood: v.mood ? (v.mood.charAt(0).toUpperCase() + v.mood.slice(1).toLowerCase()) : 'Neutral',
+        medicationAdherence: v.medicationAdherence,
+        medications: medicationsList,
+        vitals: vitalsList,
+        photos
       };
     })
   };

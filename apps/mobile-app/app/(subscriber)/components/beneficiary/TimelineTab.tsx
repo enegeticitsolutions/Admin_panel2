@@ -8,23 +8,9 @@ import { sanitizeImageUri } from '@/utils/sanitizeImageUri';
 import { ConnectContactButton } from '@/components/shared/ConnectContactModal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_URL } from '@/constants/api';
+import { VisitDetailsModal, VisitDetailData } from './VisitDetailsModal';
 
-interface VisitProps {
-    id: string;
-    companionName: string;
-    companionPhoto?: string;
-    companionPhone?: string | null;
-    dateStr: string;
-    duration: string;
-    rated: boolean;
-    rating?: number | null;
-    beneficiaryRating?: number | null;
-    activities: string[];
-    bp?: string;
-    heartRate?: string;
-    bloodSugar?: string;
-    notes?: string;
-}
+export interface VisitProps extends VisitDetailData {}
 
 // ── Inline star-rating modal for subscriber ────────────────────────────────
 const RatingModal = ({
@@ -107,6 +93,7 @@ const RatingModal = ({
 export const TimelineTab = ({ visits: initialVisits }: { visits: VisitProps[] }) => {
     const [visits, setVisits] = useState<VisitProps[]>(initialVisits);
     const [ratingModalVisit, setRatingModalVisit] = useState<VisitProps | null>(null);
+    const [selectedDetailVisit, setSelectedDetailVisit] = useState<VisitProps | null>(null);
     const [submitting, setSubmitting] = useState(false);
 
     // Sync if parent updates visits
@@ -145,6 +132,9 @@ export const TimelineTab = ({ visits: initialVisits }: { visits: VisitProps[] })
                 )
             );
             setRatingModalVisit(null);
+            if (selectedDetailVisit && selectedDetailVisit.id === visitId) {
+                setSelectedDetailVisit(prev => prev ? { ...prev, rated: true, rating } : null);
+            }
         } catch (e) {
             Alert.alert('Error', 'Network error. Please check your connection.');
         } finally {
@@ -161,6 +151,31 @@ export const TimelineTab = ({ visits: initialVisits }: { visits: VisitProps[] })
         );
     }
 
+    const formatDisplayDate = (rawDateStr?: string) => {
+        if (!rawDateStr) return 'Recent visit';
+        const parts = rawDateStr.split('•');
+        const datePart = parts[0]?.trim();
+        const timePart = parts[1]?.trim();
+
+        let prettyDate = datePart;
+        if (datePart && datePart.includes('-')) {
+            const d = new Date(datePart);
+            if (!isNaN(d.getTime())) {
+                prettyDate = d.toLocaleDateString('en-GB', {
+                    day: 'numeric',
+                    month: 'short',
+                    year: 'numeric',
+                });
+            }
+        }
+
+        if (timePart) {
+            const cleanTime = timePart.replace(/-/g, '–');
+            return `${prettyDate} • ${cleanTime}`;
+        }
+        return prettyDate;
+    };
+
     return (
         <View style={styles.container}>
             {/* Rating Modal */}
@@ -172,8 +187,25 @@ export const TimelineTab = ({ visits: initialVisits }: { visits: VisitProps[] })
                 submitting={submitting}
             />
 
+            {/* Visit Details Full Encounter Modal */}
+            <VisitDetailsModal
+                visible={!!selectedDetailVisit}
+                visit={selectedDetailVisit}
+                onClose={() => setSelectedDetailVisit(null)}
+                onRatePress={() => {
+                    if (selectedDetailVisit) {
+                        setRatingModalVisit(selectedDetailVisit);
+                    }
+                }}
+            />
+
             {visits.map((visit, i) => (
-                <View key={visit.id || i} style={styles.visitCard}>
+                <TouchableOpacity
+                    key={visit.id || i}
+                    style={styles.visitCard}
+                    activeOpacity={0.88}
+                    onPress={() => setSelectedDetailVisit(visit)}
+                >
                     {/* Header: Avatar, Info, Status/Rate */}
                     <View style={styles.visitHeader}>
                         <Image
@@ -191,14 +223,17 @@ export const TimelineTab = ({ visits: initialVisits }: { visits: VisitProps[] })
                                     photo={visit.companionPhoto}
                                 />
                             </View>
-                            <Text style={styles.visitDate}>{visit.dateStr || 'Recent visit'}</Text>
+                            <Text style={styles.visitDate}>{formatDisplayDate(visit.dateStr)}</Text>
                             <Text style={styles.visitDuration}>{visit.duration || '1.5 hours'}</Text>
                         </View>
 
                         {/* Subscriber Rating */}
                         {visit.rated && visit.rating ? (
                             <TouchableOpacity
-                                onPress={() => setRatingModalVisit(visit)}
+                                onPress={(e) => {
+                                    e.stopPropagation?.();
+                                    setRatingModalVisit(visit);
+                                }}
                                 style={styles.ratedBox}
                                 hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
                             >
@@ -218,7 +253,10 @@ export const TimelineTab = ({ visits: initialVisits }: { visits: VisitProps[] })
                         ) : (
                             <TouchableOpacity
                                 style={styles.rateButton}
-                                onPress={() => setRatingModalVisit(visit)}
+                                onPress={(e) => {
+                                    e.stopPropagation?.();
+                                    setRatingModalVisit(visit);
+                                }}
                             >
                                 <Ionicons name="star-outline" size={13} color="#FFF" style={{ marginRight: 4 }} />
                                 <Text style={styles.rateButtonText}>Rate</Text>
@@ -284,12 +322,21 @@ export const TimelineTab = ({ visits: initialVisits }: { visits: VisitProps[] })
 
                     {/* Notes Section */}
                     {!!visit.notes ? (
-                        <View style={{ marginTop: 4 }}>
+                        <View style={{ marginTop: 4, marginBottom: 12 }}>
                             <Text style={styles.visitSectionLabel}>Notes:</Text>
-                            <Text style={styles.visitNotes}>{visit.notes}</Text>
+                            <Text style={styles.visitNotes} numberOfLines={2}>{visit.notes}</Text>
                         </View>
                     ) : null}
-                </View>
+
+                    {/* Tap for Encounter Report CTA */}
+                    <View style={styles.cardCtaRow}>
+                        <View style={styles.cardCtaBadge}>
+                            <Ionicons name="document-text-outline" size={13} color="#0369A1" style={{ marginRight: 4 }} />
+                            <Text style={styles.cardCtaText}>View Full Visit Encounter Details</Text>
+                        </View>
+                        <Ionicons name="chevron-forward" size={16} color="#0369A1" />
+                    </View>
+                </TouchableOpacity>
             ))}
         </View>
     );
@@ -313,10 +360,12 @@ const styles = StyleSheet.create({
     emptyTabText: { fontSize: 14, color: '#9CA3AF', marginTop: 10 },
 
     visitCard: {
-        backgroundColor: '#E5E5E5',
-        borderRadius: 7,
+        backgroundColor: '#F3F4F6',
+        borderRadius: 14,
         padding: 16,
-        marginBottom: 27,
+        marginBottom: 20,
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
     },
 
     visitHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
@@ -375,6 +424,28 @@ const styles = StyleSheet.create({
     vitalValue: { fontSize: 14, fontWeight: '800', color: '#111111' },
 
     visitNotes: { fontSize: 15, color: '#333333', lineHeight: 21, fontWeight: '400' },
+
+    // Tap Encounter CTA
+    cardCtaRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        backgroundColor: '#EFF6FF',
+        borderRadius: 10,
+        paddingHorizontal: 12,
+        paddingVertical: 9,
+        borderWidth: 1,
+        borderColor: '#BFDBFE',
+    },
+    cardCtaBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    cardCtaText: {
+        fontSize: 12,
+        fontWeight: '700',
+        color: '#0369A1',
+    },
 
     // ── Rating Modal ──────────────────────────────────────────
     modalOverlay: {
