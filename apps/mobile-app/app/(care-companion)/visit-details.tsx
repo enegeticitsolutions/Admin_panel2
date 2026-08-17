@@ -13,6 +13,7 @@ import { CompanionBackButton } from '../../components/care-companion/CompanionBa
 import { VisitImageGallery } from '../../components/care-companion/VisitImageGallery';
 import { useNavigationStack } from '@/contexts/NavigationStackContext';
 import { useAndroidBackHandler } from '@/hooks/useAndroidBackHandler';
+import { NavigationService } from '@/utils/NavigationService';
 
 const DEEP_ORANGE = '#FE6700';
 const LIGHT_BEIGE = '#FAF3EB';
@@ -516,7 +517,14 @@ export default function VisitDetailsScreen() {
     }
 
     const { visit, beneficiary } = visitDetail || {};
-    const fullAddress = beneficiary ? [beneficiary.flatPlot, beneficiary.streetArea, beneficiary.city].filter(Boolean).join(', ') : 'No Address Stored';
+    const fullAddress = NavigationService.instance.formatAddress({
+        flatPlot: beneficiary?.flatPlot,
+        streetArea: beneficiary?.streetArea,
+        landmark: beneficiary?.landmark,
+        city: beneficiary?.city,
+        state: beneficiary?.state,
+        pincode: beneficiary?.pincode,
+    });
     const isCheckedIn = visit?.status === 'in_progress' || visit?.status === 'completed';
     const isCompleted = visit?.status === 'completed';
 
@@ -565,7 +573,31 @@ export default function VisitDetailsScreen() {
                                 <Text style={styles.cardTitle}>Encounter Verification</Text>
                             </View>
 
-                            {/* Post-check-in status */}
+                            {/* Beneficiary Address + Navigate Button */}
+                            {!isCompleted && (
+                                <TouchableOpacity
+                                    style={styles.addressNavigateRow}
+                                    activeOpacity={0.75}
+                                    onPress={() => NavigationService.instance.navigate({
+                                        address: fullAddress,
+                                        latitude: beneficiary?.latitude,
+                                        longitude: beneficiary?.longitude,
+                                        label: beneficiary?.name || 'Beneficiary',
+                                    })}
+                                >
+                                    <View style={styles.addressNavigateLeft}>
+                                        <Ionicons name="home-outline" size={15} color="#FE6700" />
+                                        <View style={{ flex: 1 }}>
+                                            <Text style={styles.addressNavText}>{fullAddress}</Text>
+                                        </View>
+                                    </View>
+                                    <View style={styles.navigatePill}>
+                                        <Ionicons name="navigate-circle-outline" size={16} color="#FE6700" />
+                                        <Text style={styles.navigatePillText}>Navigate</Text>
+                                    </View>
+                                </TouchableOpacity>
+                            )}
+
                             {isCheckedIn ? (
                                 <View style={[
                                     styles.statusRow,
@@ -1142,6 +1174,32 @@ const styles = StyleSheet.create({
     statusText: { fontFamily: 'Poppins_500Medium', fontSize: 14, marginLeft: 8, flexShrink: 1 },
     outOfRangeBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
     outOfRangeText: { fontFamily: 'Poppins_600SemiBold', fontSize: 11 },
+
+    addressNavigateRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        backgroundColor: '#FFF7ED',
+        borderRadius: 10,
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+        marginBottom: 14,
+        borderWidth: 1,
+        borderColor: '#FFEDD5',
+        gap: 8,
+    },
+    addressNavigateLeft: { flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 },
+    addressNavText: { fontFamily: 'Poppins_400Regular', color: '#374151', fontSize: 12, lineHeight: 16, flexShrink: 1 },
+    navigatePill: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        backgroundColor: '#FE6700',
+        borderRadius: 8,
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+    },
+    navigatePillText: { fontFamily: 'Poppins_600SemiBold', color: '#FFFFFF', fontSize: 11 },
 
     proximityRow: {
         flexDirection: 'row', alignItems: 'center', gap: 8,

@@ -13,6 +13,7 @@ import NotificationBell from '@/components/shared/NotificationBell';
 import { useExitOnBack } from '@/hooks/useExitOnBack';
 import { useNavigationStack } from '@/contexts/NavigationStackContext';
 import { useAndroidBackHandler } from '@/hooks/useAndroidBackHandler';
+import { NavigationService } from '@/utils/NavigationService';
 
 const DEEP_ORANGE = '#FE6700';
 const LIGHT_ORANGE = '#F97316';
@@ -215,36 +216,88 @@ export default function DashboardScreen() {
                     {/* 3. DYNAMIC NEXT VISIT CARD */}
                     {dashboardData.nextVisit ? (
                         <View style={styles.card}>
+                            {/* Header Row */}
                             <View style={styles.nextVisitHeader}>
-                                <Ionicons name="notifications-outline" size={20} color={DEEP_ORANGE} />
-                                <Text style={styles.nextVisitTitle}>Next Visit</Text>
-                            </View>
-
-                            <View style={styles.patientRow}>
-                                <Text style={styles.patientName}>{dashboardData.nextVisit.patientName}</Text>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                                    <Ionicons name="notifications-outline" size={20} color={DEEP_ORANGE} />
+                                    <Text style={styles.nextVisitTitle}>Next Visit</Text>
+                                </View>
                                 <View style={styles.visitBadge}>
                                     <Text style={styles.visitBadgeText}>{dashboardData.nextVisit.type}</Text>
                                 </View>
                             </View>
 
-                            <Text style={styles.addressText}>{dashboardData.nextVisit.address}</Text>
+                            {/* Patient Name */}
+                            <Text style={styles.patientName}>{dashboardData.nextVisit.patientName}</Text>
 
+                            {/* Full Address — tappable to navigate */}
+                            <TouchableOpacity
+                                style={styles.addressRow}
+                                activeOpacity={0.7}
+                                onPress={() => NavigationService.instance.navigate({
+                                    address: dashboardData.nextVisit.address,
+                                    latitude: dashboardData.nextVisit.latitude,
+                                    longitude: dashboardData.nextVisit.longitude,
+                                    label: dashboardData.nextVisit.patientName,
+                                })}
+                            >
+                                <Ionicons name="location-outline" size={16} color={DEEP_ORANGE} style={{ marginTop: 2 }} />
+                                <View style={{ flex: 1 }}>
+                                    <Text style={styles.addressText}>{dashboardData.nextVisit.address}</Text>
+                                    {dashboardData.nextVisit.pincode ? (
+                                        <Text style={styles.addressSubText}>
+                                            {[dashboardData.nextVisit.city, dashboardData.nextVisit.pincode].filter(Boolean).join(' - ')}
+                                        </Text>
+                                    ) : null}
+                                </View>
+                                <Ionicons name="chevron-forward" size={14} color="#9CA3AF" />
+                            </TouchableOpacity>
+
+                            {/* Time & Duration Row */}
                             <View style={styles.metaRow}>
                                 <View style={styles.metaItem}>
-                                    <Ionicons name="time-outline" size={18} color="#4B5563" />
+                                    <Ionicons name="time-outline" size={16} color="#4B5563" />
                                     <Text style={styles.metaText}>{dashboardData.nextVisit.time}</Text>
                                 </View>
-                                <View style={styles.metaItem}>
-                                    <Ionicons name="location-outline" size={18} color="#4B5563" />
-                                    <Text style={styles.metaText}>{dashboardData.nextVisit.distance}</Text>
-                                </View>
+                                {dashboardData.nextVisit.durationMinutes ? (
+                                    <View style={styles.metaItem}>
+                                        <Ionicons name="hourglass-outline" size={16} color="#4B5563" />
+                                        <Text style={styles.metaText}>
+                                            {dashboardData.nextVisit.durationMinutes >= 60
+                                                ? `${Math.floor(dashboardData.nextVisit.durationMinutes / 60)}h${dashboardData.nextVisit.durationMinutes % 60 > 0 ? ` ${dashboardData.nextVisit.durationMinutes % 60}m` : ''}`
+                                                : `${dashboardData.nextVisit.durationMinutes} min`}
+                                        </Text>
+                                    </View>
+                                ) : null}
                             </View>
 
-                            <TouchableOpacity style={styles.primaryActionBtn} onPress={handleStartVisit}>
-                                <Text style={styles.primaryActionBtnText}>
-                                    {isVisitInProgress ? "Continue Visit" : "Start Visit"}
-                                </Text>
-                            </TouchableOpacity>
+                            {/* Action Buttons Row */}
+                            <View style={styles.actionBtnsRow}>
+                                {/* Navigate Button */}
+                                <TouchableOpacity
+                                    style={styles.navigateBtn}
+                                    activeOpacity={0.85}
+                                    onPress={() => NavigationService.instance.navigate({
+                                        address: dashboardData.nextVisit.address,
+                                        latitude: dashboardData.nextVisit.latitude,
+                                        longitude: dashboardData.nextVisit.longitude,
+                                        label: dashboardData.nextVisit.patientName,
+                                    })}
+                                >
+                                    <Ionicons name="navigate-circle-outline" size={20} color={DEEP_ORANGE} />
+                                    <Text style={styles.navigateBtnText}>Navigate</Text>
+                                </TouchableOpacity>
+
+                                {/* Start Visit Button */}
+                                <TouchableOpacity
+                                    style={[styles.primaryActionBtn, { flex: 1 }]}
+                                    onPress={handleStartVisit}
+                                >
+                                    <Text style={styles.primaryActionBtnText}>
+                                        {isVisitInProgress ? 'Continue Visit' : 'Start Visit'}
+                                    </Text>
+                                </TouchableOpacity>
+                            </View>
                         </View>
                     ) : (
                         <View style={styles.card}>
@@ -362,19 +415,46 @@ const styles = StyleSheet.create({
     },
 
     // --- Next Visit Card ---
-    nextVisitHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
-    nextVisitTitle: { fontFamily: 'Poppins_500Medium', fontSize: 15, color: '#111827', marginLeft: 8 },
+    nextVisitHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
+    nextVisitTitle: { fontFamily: 'Poppins_500Medium', fontSize: 15, color: '#111827' },
 
     patientRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-    patientName: { fontFamily: 'Poppins_600SemiBold', fontSize: 18, color: '#111827' },
+    patientName: { fontFamily: 'Poppins_600SemiBold', fontSize: 18, color: '#111827', marginBottom: 10 },
     visitBadge: { backgroundColor: DEEP_ORANGE, paddingHorizontal: 12, paddingVertical: 4, borderRadius: 6 },
     visitBadgeText: { color: '#FFFFFF', fontSize: 11, fontFamily: 'Poppins_500Medium' },
 
-    addressText: { fontFamily: 'Poppins_400Regular', color: '#4B5563', fontSize: 14, marginBottom: 16 },
+    addressRow: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        gap: 6,
+        backgroundColor: '#FFF7ED',
+        borderRadius: 10,
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+        marginBottom: 14,
+        borderWidth: 1,
+        borderColor: '#FFEDD5',
+    },
+    addressText: { fontFamily: 'Poppins_400Regular', color: '#374151', fontSize: 13, lineHeight: 18 },
+    addressSubText: { fontFamily: 'Poppins_400Regular', color: '#9CA3AF', fontSize: 11, marginTop: 2 },
 
-    metaRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
-    metaItem: { flexDirection: 'row', alignItems: 'center', marginRight: 24 },
-    metaText: { fontFamily: 'Poppins_400Regular', color: '#111827', marginLeft: 6, fontSize: 13 },
+    metaRow: { flexDirection: 'row', alignItems: 'center', gap: 16, marginBottom: 16 },
+    metaItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+    metaText: { fontFamily: 'Poppins_400Regular', color: '#111827', fontSize: 13 },
+
+    actionBtnsRow: { flexDirection: 'row', gap: 10 },
+    navigateBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        backgroundColor: '#FFF7ED',
+        borderWidth: 1.5,
+        borderColor: DEEP_ORANGE,
+        borderRadius: 12,
+        paddingHorizontal: 16,
+        paddingVertical: 14,
+    },
+    navigateBtnText: { fontFamily: 'Poppins_600SemiBold', color: DEEP_ORANGE, fontSize: 14 },
 
     primaryActionBtn: {
         backgroundColor: DEEP_ORANGE, borderRadius: 12, paddingVertical: 14, alignItems: 'center',

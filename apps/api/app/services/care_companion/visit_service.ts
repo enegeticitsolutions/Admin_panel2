@@ -699,17 +699,28 @@ export const getCareCompanionSchedule = async (userId: string) => {
       hour12: true,
     });
 
-    const fullAddress = [ben?.flatPlot, ben?.streetArea, ben?.city]
+    const fullAddress = [ben?.flatPlot, ben?.streetArea, ben?.landmark, ben?.city]
       .filter(Boolean)
-      .join(', ') || 'Address not specified';
+      .join(', ') || ben?.address || 'Address not specified';
 
     return {
       id: v.id,
       visitCode: v.visitCode,
       patientName: ben?.name || 'Unknown Beneficiary',
+      // Full structured address for display + 1-tap navigation
       address: fullAddress,
+      flatPlot: ben?.flatPlot || null,
+      streetArea: ben?.streetArea || null,
+      landmark: ben?.landmark || null,
+      city: ben?.city || null,
+      state: ben?.state || null,
+      pincode: ben?.pincode || null,
+      latitude: ben?.latitude || null,
+      longitude: ben?.longitude || null,
       time: formattedTime,
-      distance: '2.1 km',
+      scheduledTime: v.scheduledTime.toISOString(),
+      durationMinutes: v.durationMinutes,
+      distance: null,
       type: v.notes ? 'Special Care' : 'Home Visit',
       status: v.status,
       tabType,

@@ -80,17 +80,29 @@ router.get('/', authenticate, async (req: Request, res: Response) => {
         hour12: true,
       });
 
-      const fullAddress = [ben?.flatPlot, ben?.streetArea, ben?.city]
+      const fullAddress = [ben?.flatPlot, ben?.streetArea, ben?.landmark, ben?.city]
         .filter(Boolean)
-        .join(', ') || 'Address not specified';
+        .join(', ') || ben?.address || 'Address not specified';
 
       nextVisit = {
         id: upcomingVisit.id,
+        visitCode: upcomingVisit.visitCode || upcomingVisit.encounterId,
         patientName: ben?.name || 'Unknown Beneficiary',
         type: upcomingVisit.notes ? 'Special Care' : 'Home Visit',
+        // Full structured address for display + navigation
         address: fullAddress,
+        flatPlot: ben?.flatPlot || null,
+        streetArea: ben?.streetArea || null,
+        landmark: ben?.landmark || null,
+        city: ben?.city || null,
+        state: ben?.state || null,
+        pincode: ben?.pincode || null,
+        latitude: ben?.latitude || null,
+        longitude: ben?.longitude || null,
         time: formattedTime,
-        distance: '1.8 km', // Realistic mock distance
+        scheduledTime: upcomingVisit.scheduledTime.toISOString(),
+        durationMinutes: upcomingVisit.durationMinutes,
+        distance: '—', // Computed on-device if needed via coords
         status: upcomingVisit.status,
       };
     }

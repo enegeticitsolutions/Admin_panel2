@@ -12,6 +12,7 @@ import { useFonts, Poppins_400Regular, Poppins_500Medium, Poppins_600SemiBold, P
 import { CompanionBottomNav } from '../../components/care-companion/CompanionBottomNav';
 import { useNavigationStack } from '@/contexts/NavigationStackContext';
 import { useAndroidBackHandler } from '@/hooks/useAndroidBackHandler';
+import { NavigationService } from '@/utils/NavigationService';
 
 const DEEP_ORANGE = '#FE6700';
 const LIGHT_BEIGE = '#FAF3EB';
@@ -220,6 +221,7 @@ export default function ScheduleScreen() {
               const statusF = STATUS_FILTERS.find(sf => sf.key === visit.status);
               return (
                 <View key={visit.id} style={styles.card}>
+                  {/* Card Header: Name + Status Badge */}
                   <View style={styles.cardHeader}>
                     <View style={{ flex: 1 }}>
                       <Text style={styles.patientName}>{visit.patientName}</Text>
@@ -232,31 +234,76 @@ export default function ScheduleScreen() {
                     </View>
                   </View>
 
-                  <Text style={styles.addressText}>{visit.address}</Text>
+                  {/* Tappable Address Row */}
+                  <TouchableOpacity
+                    style={styles.addressRow}
+                    activeOpacity={0.7}
+                    onPress={() => NavigationService.instance.navigate({
+                      address: visit.address,
+                      latitude: visit.latitude,
+                      longitude: visit.longitude,
+                      label: visit.patientName,
+                    })}
+                  >
+                    <Ionicons name="location-outline" size={15} color={DEEP_ORANGE} style={{ marginTop: 1 }} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.addressText}>{visit.address}</Text>
+                      {(visit.city || visit.pincode) ? (
+                        <Text style={styles.addressSubText}>
+                          {[visit.city, visit.pincode].filter(Boolean).join(' - ')}
+                        </Text>
+                      ) : null}
+                    </View>
+                    <Ionicons name="chevron-forward" size={13} color="#9CA3AF" />
+                  </TouchableOpacity>
 
+                  {/* Meta Row: Time + Duration */}
                   <View style={styles.metaRow}>
                     <View style={styles.metaItem}>
-                      <Ionicons name="time-outline" size={18} color="#4B5563" />
+                      <Ionicons name="time-outline" size={16} color="#4B5563" />
                       <Text style={styles.metaText}>{visit.time}</Text>
                     </View>
-                    <View style={styles.metaItem}>
-                      <Ionicons name="location-outline" size={18} color="#4B5563" />
-                      <Text style={styles.metaText}>{visit.distance}</Text>
+                    {visit.durationMinutes ? (
+                      <View style={styles.metaItem}>
+                        <Ionicons name="hourglass-outline" size={16} color="#4B5563" />
+                        <Text style={styles.metaText}>
+                          {visit.durationMinutes >= 60
+                            ? `${Math.floor(visit.durationMinutes / 60)}h${visit.durationMinutes % 60 > 0 ? ` ${visit.durationMinutes % 60}m` : ''}`
+                            : `${visit.durationMinutes} min`}
+                        </Text>
+                      </View>
+                    ) : null}
+                    <View style={styles.tagBadge}>
+                      <Text style={styles.tagText}>{visit.type}</Text>
                     </View>
                   </View>
 
-                  <View style={styles.tagBadge}>
-                    <Text style={styles.tagText}>{visit.type}</Text>
+                  {/* Action Buttons: Navigate + Start/Resume/View */}
+                  <View style={styles.actionBtnsRow}>
+                    {visit.status !== 'completed' && visit.status !== 'cancelled' && visit.status !== 'missed' ? (
+                      <TouchableOpacity
+                        style={styles.navigateBtn}
+                        activeOpacity={0.85}
+                        onPress={() => NavigationService.instance.navigate({
+                          address: visit.address,
+                          latitude: visit.latitude,
+                          longitude: visit.longitude,
+                          label: visit.patientName,
+                        })}
+                      >
+                        <Ionicons name="navigate-circle-outline" size={18} color={DEEP_ORANGE} />
+                        <Text style={styles.navigateBtnText}>Navigate</Text>
+                      </TouchableOpacity>
+                    ) : null}
+                    <TouchableOpacity
+                      style={[styles.primaryActionBtn, { flex: 1 }, visit.status === 'completed' && { backgroundColor: '#6B7280', shadowColor: '#6B7280' }]}
+                      onPress={() => handleStartVisit(visit.id)}
+                    >
+                      <Text style={styles.primaryActionBtnText}>
+                        {visit.status === 'completed' ? 'View Details' : visit.status === 'in_progress' ? 'Resume Visit' : 'Start Visit'}
+                      </Text>
+                    </TouchableOpacity>
                   </View>
-
-                  <TouchableOpacity
-                    style={[styles.primaryActionBtn, visit.status === 'completed' && { backgroundColor: '#6B7280', shadowColor: '#6B7280' }]}
-                    onPress={() => handleStartVisit(visit.id)}
-                  >
-                    <Text style={styles.primaryActionBtnText}>
-                      {visit.status === 'completed' ? 'View Details' : visit.status === 'in_progress' ? 'Resume Visit' : 'Start Visit'}
-                    </Text>
-                  </TouchableOpacity>
                 </View>
               );
             })
@@ -409,19 +456,48 @@ const styles = StyleSheet.create({
   statusBadge: { backgroundColor: SOFT_PEACH, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
   statusBadgeText: { color: DEEP_ORANGE, fontSize: 11, fontFamily: 'Poppins_500Medium' },
 
-  addressText: { fontFamily: 'Poppins_400Regular', color: '#4B5563', fontSize: 14, marginBottom: 16 },
-  metaRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
-  metaItem: { flexDirection: 'row', alignItems: 'center', marginRight: 24 },
-  metaText: { fontFamily: 'Poppins_400Regular', color: '#111827', marginLeft: 6, fontSize: 13 },
+  addressRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 6,
+    backgroundColor: '#FFF7ED',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#FFEDD5',
+  },
+  addressText: { fontFamily: 'Poppins_400Regular', color: '#374151', fontSize: 13, lineHeight: 18 },
+  addressSubText: { fontFamily: 'Poppins_400Regular', color: '#9CA3AF', fontSize: 11, marginTop: 2 },
 
-  tagBadge: { borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4, alignSelf: 'flex-start', marginBottom: 20 },
-  tagText: { color: '#374151', fontSize: 12, fontFamily: 'Poppins_500Medium' },
+  metaRow: { flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 14 },
+  metaItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  metaText: { fontFamily: 'Poppins_400Regular', color: '#111827', fontSize: 13 },
+
+  tagBadge: { borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 },
+  tagText: { color: '#374151', fontSize: 11, fontFamily: 'Poppins_500Medium' },
+
+  actionBtnsRow: { flexDirection: 'row', gap: 10 },
+  navigateBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#FFF7ED',
+    borderWidth: 1.5,
+    borderColor: DEEP_ORANGE,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  navigateBtnText: { fontFamily: 'Poppins_600SemiBold', color: DEEP_ORANGE, fontSize: 13 },
 
   primaryActionBtn: {
     backgroundColor: DEEP_ORANGE, borderRadius: 12, paddingVertical: 14, alignItems: 'center',
     shadowColor: DEEP_ORANGE, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 6, elevation: 4,
   },
   primaryActionBtnText: { color: '#FFFFFF', fontSize: 14, fontFamily: 'Poppins_600SemiBold' },
+
 
   // ─── Filter Sheet ───
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' },
