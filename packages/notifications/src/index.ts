@@ -28,6 +28,18 @@ export async function sendWhatsApp(message: WhatsAppMessage) {
   return whatsAppChannel.send(message);
 }
 
+export async function sendWhatsAppOTP(to: string, otp: string) {
+  return whatsAppChannel.send({
+    to,
+    templateName: process.env.MSG91_WHATSAPP_OTP_TEMPLATE || 'otp',
+    variables: [otp],
+    components: {
+      body_1: { type: 'text', value: otp },
+      button_1: { subtype: 'url', type: 'text', value: otp },
+    },
+  });
+}
+
 export async function sendEmail(to: string, subject: string, body: string) {
   console.log(`[NotificationPackage:Email] Sending email to ${to} | Subject: ${subject}`);
   return { success: true, messageId: `mock-email-${Date.now()}` };

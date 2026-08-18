@@ -24,20 +24,25 @@ export class Msg91Provider extends OtpProvider {
     const cleanPhone = phone.replace(/\D/g, '').slice(-10);
     const recipient = `91${cleanPhone}`;
 
-    const integratedNumber = process.env.MSG91_WHATSAPP_NUMBER || '918527070049';
-    const templateName = process.env.MSG91_WHATSAPP_OTP_TEMPLATE || 'testing_2';
-    const namespace = process.env.MSG91_WHATSAPP_NAMESPACE || 'bf28acb3_8719_4168_9ed4_bc225dcfe30d';
+    const integratedNumber = process.env.MSG91_WHATSAPP_NUMBER || '';
+    const templateName = process.env.MSG91_WHATSAPP_OTP_TEMPLATE || '';
+    const namespace = process.env.MSG91_WHATSAPP_NAMESPACE || '';
 
-    // Parse dynamic body variables from environment schema
+    // Build dynamic components for WhatsApp OTP template
     const rawVars = process.env.MSG91_WHATSAPP_BODY_VARS;
-    const varList = rawVars
-      ? rawVars.split(',').map((v) => v.trim().replace('{otp}', otpCode))
-      : [otpCode, otpCode, otpCode, otpCode];
+    const components: Record<string, any> = {};
 
-    const components: Record<string, { type: string; value: string }> = {};
-    varList.forEach((val, i) => {
-      components[`body_${i + 1}`] = { type: 'text', value: val };
-    });
+    if (rawVars) {
+      const varList = rawVars.split(',').map((v) => v.trim().replace('{otp}', otpCode));
+      varList.forEach((val, i) => {
+        components[`body_${i + 1}`] = { type: 'text', value: val };
+      });
+      // Also attach button copy code if button component exists
+      components['button_1'] = { subtype: 'url', type: 'text', value: otpCode };
+    } else {
+      components['body_1'] = { type: 'text', value: otpCode };
+      components['button_1'] = { subtype: 'url', type: 'text', value: otpCode };
+    }
 
     const payload = {
       integrated_number: integratedNumber,

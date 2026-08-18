@@ -24,8 +24,10 @@ export class Msg91WhatsAppProvider implements IWhatsAppProvider {
       const recipient = cleanPhone.startsWith('91') ? cleanPhone : `91${cleanPhone}`;
       const templateName = message.templateName || process.env.MSG91_WHATSAPP_OTP_TEMPLATE || '';
 
-      const componentsObj: Record<string, { type: string; value: string }> = {};
-      if (message.variables && message.variables.length > 0) {
+      let componentsObj: Record<string, any> = {};
+      if (message.components && Object.keys(message.components).length > 0) {
+        componentsObj = message.components;
+      } else if (message.variables && message.variables.length > 0) {
         message.variables.forEach((val, idx) => {
           componentsObj[`body_${idx + 1}`] = { type: 'text', value: val };
         });

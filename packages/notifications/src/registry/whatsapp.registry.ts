@@ -5,7 +5,7 @@ export interface WhatsAppTemplateConfig {
 
 export const WhatsAppRegistry: Record<string, WhatsAppTemplateConfig> = {
   // Onboarding & Account
-  OTP_LOGIN_SIGNUP: { template: 'otp_login_signup', body: ['otpCode'] },
+  OTP_LOGIN_SIGNUP: { template: 'otp', body: ['otpCode'] },
   SUBSCRIBER_ACCOUNT_CREATED: { template: 'subscriber_account_created', body: ['subscriberName'] },
   SUBSCRIPTION_REQUEST_SUBMITTED: { template: 'subscription_request_submitted', body: ['subscriberName', 'beneficiaryName', 'packageName'] },
   SUBSCRIPTION_ACTIVATED: { template: 'subscription_approved_activated', body: ['subscriberName', 'packageName', 'beneficiaryName', 'startDate'] },
