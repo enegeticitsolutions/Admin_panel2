@@ -1861,6 +1861,7 @@ model Volunteer {
   fcmToken           String?
   refreshToken       String?
   applicationStatus  VolunteerStatus     @default(SUBMITTED)
+  isActive           Boolean             @default(true)
   previousExperience String?
   whyJoin            String?
   address            String?

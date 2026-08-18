@@ -6,6 +6,7 @@ import * as sathiService from '../../services/sathi/sathi_service';
 import {
   volunteerRegisterSchema,
   volunteerLoginSchema,
+  volunteerRegisterOtpSchema
 } from '../../schemas/sathi';
 import { sendOtpSchema, verifyOtpSchema } from '../../schemas/auth';
 
@@ -31,6 +32,11 @@ const loginLimiter = rateLimit({
 
 router.post('/auth/register', loginLimiter as unknown as RequestHandler, validate(volunteerRegisterSchema), async (req: Request, res: Response) => {
   const result = await sathiService.registerVolunteer(req.body);
+  res.status(201).json(new ApiResponse(201, result, 'Volunteer registered successfully.'));
+});
+
+router.post('/auth/register-otp', loginLimiter as unknown as RequestHandler, validate(volunteerRegisterOtpSchema), async (req: Request, res: Response) => {
+  const result = await sathiService.registerVolunteerWithOtp(req.body);
   res.status(201).json(new ApiResponse(201, result, 'Volunteer registered successfully.'));
 });
 

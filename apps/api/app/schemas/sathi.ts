@@ -11,6 +11,12 @@ export const volunteerLoginSchema = Joi.object({
   password: Joi.string().required(),
 });
 
+export const volunteerRegisterOtpSchema = Joi.object({
+  phone: Joi.string().required(),
+  name: Joi.string().required(),
+  otp: Joi.string().required(),
+});
+
 export const volunteerProfileUpdateSchema = Joi.object({
   name: Joi.string().optional(),
   email: Joi.string().email().optional().allow(null, ''),

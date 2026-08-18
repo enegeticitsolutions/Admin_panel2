@@ -33,5 +33,9 @@ router.get('/dashboard', authenticate, async (req: AuthRequest, res: Response) =
   const dashboardData = await sathiService.getVolunteerDashboard(req.userId!);
   res.json(new ApiResponse(200, dashboardData));
 });
+router.delete('/profile', authenticate, async (req: AuthRequest, res: Response) => {
+  const result = await sathiService.deleteVolunteer(req.userId!);
+  res.json(new ApiResponse(200, result, 'Account deleted successfully.'));
+});
 
 export default router;

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -20,6 +20,7 @@ import { useNavigationStack } from '@/contexts/NavigationStackContext';
 import { useAndroidBackHandler } from '@/hooks/useAndroidBackHandler';
 import { AddressInputField } from '@/components/ui/AddressInputField';
 import { useAuth } from '@/contexts/AuthContext';
+import { IS_PASSWORD_LOGIN_ENABLED } from '@/constants/authMode';
 
 const { width } = Dimensions.get('window');
 const scale = (size: number) => Math.round((width / 390) * size);
@@ -48,6 +49,10 @@ export default function RegisterVolunteerScreen() {
   const [agreeGuidelines, setAgreeGuidelines] = useState(false);
   const [consentBackground, setConsentBackground] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  
+  const [step, setStep] = useState<'form' | 'otp'>('form');
+  const [otp, setOtp] = useState<string[]>(['', '', '', '', '', '']);
+  const [resendTimer, setResendTimer] = useState(0);
 
   const toggleInterest = (tag: string) => {
     if (selectedInterests.includes(tag)) {
@@ -68,9 +73,90 @@ export default function RegisterVolunteerScreen() {
     }
   };
 
+  const otpInputs = useRef<Array<TextInput | null>>([]);
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (resendTimer > 0 && step === 'otp') {
+      interval = setInterval(() => {
+        setResendTimer((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [resendTimer, step]);
+
+  const handleOtpChange = (text: string, index: number) => {
+    const newOtp = [...otp];
+    newOtp[index] = text;
+    setOtp(newOtp);
+
+    if (text !== '' && index < 5) {
+      otpInputs.current[index + 1]?.focus();
+    }
+    if (text === '' && index > 0) {
+      otpInputs.current[index - 1]?.focus();
+    }
+  };
+
+  const handleResendOtp = async () => {
+    if (resendTimer > 0) return;
+    setIsLoading(true);
+    try {
+      const response = await fetch(`${API_URL}/auth/send-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: `+91${form.phone}` }),
+      });
+      const data = await response.json();
+      if (response.ok || data.success) {
+        setResendTimer(30);
+        setOtp(['', '', '', '', '', '']);
+      } else {
+        Alert.alert('Error', data.message || 'Failed to resend OTP.');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Could not connect to the server.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    const code = otp.join('');
+    if (code.length !== 6) {
+      Alert.alert('Invalid OTP', 'Please enter the complete 6-digit OTP.');
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const registerRes = await fetch(`${API_URL}/sathi/auth/register-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: `+91${form.phone}`, name: form.name, otp: code }),
+      });
+      const registerData = await registerRes.json();
+      
+      if (registerRes.ok || registerData.success) {
+        const result = registerData.data;
+        await login(result.token, result.volunteer || result.user);
+        replace('/(sathi)/apply');
+      } else {
+        Alert.alert('Registration Failed', registerData.message || 'Failed to create volunteer account.');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Could not connect to the server.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleRegister = async () => {
-    if (!form.name || !form.phone || !form.password) {
-      Alert.alert('Required Fields', 'Full Name, Phone Number, and Password are required.');
+    if (!form.name || !form.phone) {
+      Alert.alert('Required Fields', 'Full Name and Phone Number are required.');
+      return;
+    }
+    if (IS_PASSWORD_LOGIN_ENABLED && !form.password) {
+      Alert.alert('Required Fields', 'Password is required.');
       return;
     }
     if (form.phone.length !== 10) {
@@ -81,24 +167,44 @@ export default function RegisterVolunteerScreen() {
     setIsLoading(true);
 
     try {
-      const response = await fetch(`${API_URL}/sathi/auth/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          phone: `+91${form.phone}`,
-          password: form.password,
-          name: form.name,
-        }),
-      });
+      if (IS_PASSWORD_LOGIN_ENABLED) {
+        const response = await fetch(`${API_URL}/sathi/auth/register`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            phone: `+91${form.phone}`,
+            password: form.password,
+            name: form.name,
+          }),
+        });
 
-      const data = await response.json();
+        const data = await response.json();
 
-      if (response.ok || data.success) {
-        const result = data.data;
-        await login(result.token, result.volunteer || result.user);
-        replace('/(sathi)/apply');
+        if (response.ok || data.success) {
+          const result = data.data;
+          await login(result.token, result.volunteer || result.user);
+          replace('/(sathi)/apply');
+        } else {
+          Alert.alert('Registration Failed', data.message || 'Failed to create account.');
+        }
       } else {
-        Alert.alert('Registration Failed', data.message || 'Failed to create account.');
+        const response = await fetch(`${API_URL}/auth/send-otp`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            phone: `+91${form.phone}`,
+          }),
+        });
+
+        const data = await response.json();
+
+        if (response.ok || data.success) {
+          setStep('otp');
+          setResendTimer(30);
+          setOtp(['', '', '', '', '', '']);
+        } else {
+          Alert.alert('Error', data.message || 'Failed to send OTP.');
+        }
       }
     } catch (error) {
       console.error('Registration Error:', error);
@@ -121,84 +227,135 @@ export default function RegisterVolunteerScreen() {
         >
           {/* Header */}
           <View style={styles.header}>
-            <TouchableOpacity onPress={() => pop()} style={styles.backButton}>
+            <TouchableOpacity onPress={() => step === 'otp' ? setStep('form') : pop()} style={styles.backButton}>
               <MaterialCommunityIcons name="arrow-left" size={scale(24)} color="#111827" />
             </TouchableOpacity>
-            <Text style={styles.title}>Register as Saathi</Text>
-            <Text style={styles.subtitle}>Join our network of care companions</Text>
+            <Text style={styles.title}>{step === 'otp' ? 'Verify OTP' : 'Register as Saathi'}</Text>
+            <Text style={styles.subtitle}>
+              {step === 'otp' 
+                ? `Enter the 6-digit code sent to +91 ${form.phone}` 
+                : 'Join our network of care companions'}
+            </Text>
           </View>
 
           {/* Form */}
           <View style={styles.card}>
-            {/* Full Name */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Full Name *</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter your full name"
-                placeholderTextColor="#9CA3AF"
-                value={form.name}
-                onChangeText={(text) => setForm({ ...form, name: text })}
-                editable={!isLoading}
-              />
-            </View>
+            {step === 'form' ? (
+              <>
+                {/* Full Name */}
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>Full Name *</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Enter your full name"
+                    placeholderTextColor="#9CA3AF"
+                    value={form.name}
+                    onChangeText={(text) => setForm({ ...form, name: text })}
+                    editable={!isLoading}
+                  />
+                </View>
 
-            {/* Phone */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Phone Number *</Text>
-              <View style={styles.phoneRow}>
-                <Text style={styles.countryCode}>+91</Text>
-                <TextInput
-                  style={styles.phoneInput}
-                  placeholder="10-digit mobile number"
-                  placeholderTextColor="#9CA3AF"
-                  keyboardType="numeric"
-                  maxLength={10}
-                  value={form.phone}
-                  onChangeText={(text) => setForm({ ...form, phone: text })}
-                  editable={!isLoading}
-                />
-              </View>
-            </View>
+                {/* Phone */}
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>Phone Number *</Text>
+                  <View style={styles.phoneRow}>
+                    <Text style={styles.countryCode}>+91</Text>
+                    <TextInput
+                      style={styles.phoneInput}
+                      placeholder="10-digit mobile number"
+                      placeholderTextColor="#9CA3AF"
+                      keyboardType="numeric"
+                      maxLength={10}
+                      value={form.phone}
+                      onChangeText={(text) => setForm({ ...form, phone: text })}
+                      editable={!isLoading}
+                    />
+                  </View>
+                </View>
 
-            {/* Password */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Create Password *</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Minimum 6 characters"
-                placeholderTextColor="#9CA3AF"
-                secureTextEntry
-                value={form.password}
-                onChangeText={(text) => setForm({ ...form, password: text })}
-                editable={!isLoading}
-              />
-            </View>
+                {/* Password */}
+                {IS_PASSWORD_LOGIN_ENABLED && (
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.label}>Create Password *</Text>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Minimum 6 characters"
+                      placeholderTextColor="#9CA3AF"
+                      secureTextEntry
+                      value={form.password}
+                      onChangeText={(text) => setForm({ ...form, password: text })}
+                      editable={!isLoading}
+                    />
+                  </View>
+                )}
 
-            {/* Submit */}
-            <TouchableOpacity
-              style={[styles.submitButton, isLoading && styles.submitButtonDisabled]}
-              onPress={handleRegister}
-              disabled={isLoading}
-              activeOpacity={0.85}
-            >
-              {isLoading ? (
-                <ActivityIndicator color="#FFFFFF" />
-              ) : (
-                <Text style={styles.submitButtonText}>Create Account</Text>
-              )}
-            </TouchableOpacity>
+                {/* Submit */}
+                <TouchableOpacity
+                  style={[styles.submitButton, isLoading && styles.submitButtonDisabled]}
+                  onPress={handleRegister}
+                  disabled={isLoading}
+                  activeOpacity={0.85}
+                >
+                  {isLoading ? (
+                    <ActivityIndicator color="#FFFFFF" />
+                  ) : (
+                    <Text style={styles.submitButtonText}>{IS_PASSWORD_LOGIN_ENABLED ? 'Create Account' : 'Send OTP'}</Text>
+                  )}
+                </TouchableOpacity>
 
-            {/* Footer Signin */}
-            <TouchableOpacity
-              style={styles.loginLink}
-              onPress={() => replace('/(auth)')}
-              disabled={isLoading}
-            >
-              <Text style={styles.loginLinkText}>
-                Already have an account? <Text style={styles.orangeTextBold}>Sign in here</Text>
-              </Text>
-            </TouchableOpacity>
+                {/* Footer Signin */}
+                <TouchableOpacity
+                  style={styles.loginLink}
+                  onPress={() => replace('/(auth)')}
+                  disabled={isLoading}
+                >
+                  <Text style={styles.loginLinkText}>
+                    Already have an account? <Text style={styles.orangeTextBold}>Sign in here</Text>
+                  </Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <>
+                <View style={styles.otpContainer}>
+                  {otp.map((digit, index) => (
+                    <TextInput
+                      key={`otp-${index}`}
+                      ref={(ref) => (otpInputs.current[index] = ref)}
+                      style={styles.otpInput}
+                      value={digit}
+                      onChangeText={(text) => handleOtpChange(text, index)}
+                      keyboardType="numeric"
+                      maxLength={1}
+                      selectTextOnFocus
+                      editable={!isLoading}
+                    />
+                  ))}
+                </View>
+                
+                <TouchableOpacity
+                  onPress={handleResendOtp}
+                  disabled={resendTimer > 0 || isLoading}
+                  style={styles.resendContainer}
+                >
+                  <Text style={[styles.resendText, (resendTimer > 0 || isLoading) && styles.resendTextDisabled]}>
+                    {resendTimer > 0 ? `Resend code in ${resendTimer}s` : 'Resend Code'}
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.submitButton, isLoading && styles.submitButtonDisabled]}
+                  onPress={handleVerifyOtp}
+                  disabled={isLoading}
+                  activeOpacity={0.85}
+                >
+                  {isLoading ? (
+                    <ActivityIndicator color="#FFFFFF" />
+                  ) : (
+                    <Text style={styles.submitButtonText}>Verify & Create Account</Text>
+                  )}
+                </TouchableOpacity>
+              </>
+            )}
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -389,6 +546,35 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '600',
     fontSize: scale(16),
+  },
+  otpContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: scale(20),
+  },
+  otpInput: {
+    width: scale(45),
+    height: scale(50),
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: scale(8),
+    backgroundColor: '#FFFFFF',
+    textAlign: 'center',
+    fontSize: scale(20),
+    fontWeight: '600',
+    color: '#111827',
+  },
+  resendContainer: {
+    alignItems: 'center',
+    marginBottom: scale(16),
+  },
+  resendText: {
+    fontSize: scale(14),
+    color: '#FF6F00',
+    fontWeight: '600',
+  },
+  resendTextDisabled: {
+    color: '#9CA3AF',
   },
   loginLink: {
     marginTop: scale(20),
