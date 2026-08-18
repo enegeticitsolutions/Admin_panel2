@@ -61,6 +61,46 @@ export const registerVolunteer = async (data: any) => {
   };
 };
 
+export const registerVolunteerWithOtp = async (data: any) => {
+  const { phone: rawPhone, name, otp } = data;
+  const phone = rawPhone.replace(/\D/g, '').slice(-10);
+
+  const provider = OtpFactory.getProvider();
+  const isValid = await provider.verify(phone, otp);
+  if (!isValid) {
+    throw new ApiError(400, 'Invalid or expired OTP code entered.');
+  }
+
+  const existing = await prisma.volunteer.findFirst({
+    where: { phone }
+  });
+
+  if (existing) {
+    throw new ApiError(400, 'A volunteer with this phone number is already registered.');
+  }
+
+  const volunteer = await prisma.volunteer.create({
+    data: {
+      phone,
+      password: null,
+      name,
+      applicationStatus: 'NOT_APPLIED',
+    }
+  });
+
+  const token = createToken({ sub: volunteer.id, role: 'volunteer' });
+
+  return {
+    token,
+    volunteer: {
+      id: volunteer.id,
+      name: volunteer.name,
+      phone: volunteer.phone,
+      applicationStatus: volunteer.applicationStatus,
+    }
+  };
+};
+
 export const loginVolunteer = async (phone: string, passwordRaw: string) => {
   const cleanPhone = phone.replace(/\D/g, '').slice(-10);
 
@@ -70,6 +110,10 @@ export const loginVolunteer = async (phone: string, passwordRaw: string) => {
 
   if (!volunteer) {
     throw new ApiError(404, 'Volunteer profile not found.');
+  }
+
+  if (!volunteer.isActive) {
+    throw new ApiError(403, 'This account has been deleted.');
   }
 
   const isMatch = await bcrypt.compare(passwordRaw, volunteer.password || '');
@@ -127,6 +171,10 @@ export const verifyVolunteerOtp = async (rawPhone: string, otpCode: string) => {
     throw new ApiError(404, 'Volunteer profile not found.');
   }
 
+  if (!volunteer.isActive) {
+    throw new ApiError(403, 'This account has been deleted.');
+  }
+
   const token = createToken({ sub: volunteer.id, role: 'volunteer' });
 
   return {
@@ -138,6 +186,26 @@ export const verifyVolunteerOtp = async (rawPhone: string, otpCode: string) => {
       applicationStatus: volunteer.applicationStatus,
     }
   };
+};
+
+export const deleteVolunteer = async (volunteerId: string) => {
+  const volunteer = await prisma.volunteer.findUnique({
+    where: { id: volunteerId }
+  });
+
+  if (!volunteer) {
+    throw new ApiError(404, 'Volunteer not found.');
+  }
+
+  await prisma.volunteer.update({
+    where: { id: volunteerId },
+    data: { 
+      isActive: false,
+      fcmToken: null
+    }
+  });
+
+  return { success: true, message: 'Account deleted successfully.' };
 };
 
 export const getVolunteerProfile = async (id: string) => {

@@ -21,6 +21,7 @@ import { API_URL } from '@/constants/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigationStack } from '@/contexts/NavigationStackContext';
 import { useAndroidBackHandler } from '@/hooks/useAndroidBackHandler';
+import { IS_PASSWORD_LOGIN_ENABLED } from '@/constants/authMode';
 
 const { width, height } = Dimensions.get('window');
 const scale = (size: number) => Math.round((width / 390) * size);
@@ -276,19 +277,21 @@ export default function AuthScreen() {
               </>
             )}
 
-            <TouchableOpacity
-              onPress={() => {
-                setLoginMode(loginMode === 'password' ? 'otp' : 'password');
-                setOtpSent(false);
-                setOtpCode('');
-                setErrorMessage('');
-              }}
-              style={styles.modeToggleBtn}
-            >
-              <Text style={styles.modeToggleText}>
-                {loginMode === 'password' ? 'Login with OTP' : 'Login with Password'}
-              </Text>
-            </TouchableOpacity>
+            {IS_PASSWORD_LOGIN_ENABLED && (
+              <TouchableOpacity
+                onPress={() => {
+                  setLoginMode(loginMode === 'password' ? 'otp' : 'password');
+                  setOtpSent(false);
+                  setOtpCode('');
+                  setErrorMessage('');
+                }}
+                style={styles.modeToggleBtn}
+              >
+                <Text style={styles.modeToggleText}>
+                  {loginMode === 'password' ? 'Login with OTP' : 'Login with Password'}
+                </Text>
+              </TouchableOpacity>
+            )}
           </LinearGradient>
 
           {/* Footer */}

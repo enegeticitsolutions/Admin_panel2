@@ -21,6 +21,7 @@ import { SathiBottomNav } from '@/components/shared/SathiBottomNav';
 import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '@/contexts/AuthContext';
 import { sanitizeImageUri } from '@/utils/sanitizeImageUri';
+import { deleteSathiAccount } from '@/utils/deleteAccount';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const scale = (size: number) => Math.round((SCREEN_WIDTH / 390) * size);
@@ -156,6 +157,29 @@ export default function SathiProfile() {
     setLogoutModalVisible(false);
     await logout();
     router.replace('/(auth)');
+  };
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      'Delete Account',
+      'Are you sure you want to delete your account?\n\nThis action will deactivate your profile and you will no longer be able to log in. This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Delete', 
+          style: 'destructive',
+          onPress: async () => {
+            const success = await deleteSathiAccount();
+            if (success) {
+              await logout();
+              router.replace('/(auth)');
+            } else {
+              Alert.alert('Error', 'Failed to delete account. Please try again later.');
+            }
+          }
+        }
+      ]
+    );
   };
 
   if (loading && !profile) {
@@ -310,6 +334,11 @@ export default function SathiProfile() {
         <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
           <Ionicons name="log-out-outline" size={20} color="#EF4444" />
           <Text style={styles.logoutText}>Log Out</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.deleteBtn} onPress={handleDeleteAccount}>
+          <Ionicons name="trash-outline" size={20} color="#FFFFFF" />
+          <Text style={styles.deleteText}>Delete Account</Text>
         </TouchableOpacity>
       </ScrollView>
 
@@ -656,6 +685,21 @@ const styles = StyleSheet.create({
     fontSize: scale(15),
     fontWeight: '700',
     color: '#EF4444',
+  },
+  deleteBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#DC2626', // darker red for delete
+    padding: scale(16),
+    borderRadius: scale(16),
+    marginTop: scale(16),
+    gap: scale(8),
+  },
+  deleteText: {
+    fontSize: scale(15),
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
   modalOverlay: {
     flex: 1,

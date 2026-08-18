@@ -13,6 +13,7 @@ import {
   Dimensions,
   Modal,
   Image,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -66,6 +67,7 @@ export default function ApplyVolunteerScreen() {
   const [availableInterests, setAvailableInterests] = useState<string[]>([]);
   const [showAllInterests, setShowAllInterests] = useState(false);
   const [agreeGuidelines, setAgreeGuidelines] = useState(false);
+  const [agreePrivacy, setAgreePrivacy] = useState(false);
   const [consentBackground, setConsentBackground] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -190,6 +192,10 @@ export default function ApplyVolunteerScreen() {
     }
     if (!agreeGuidelines) {
       setFormError('You must agree to the Community Guidelines to proceed.');
+      return;
+    }
+    if (!agreePrivacy) {
+      setFormError('You must agree to the Privacy Policy to proceed.');
       return;
     }
     if (!consentBackground) {
@@ -764,6 +770,29 @@ export default function ApplyVolunteerScreen() {
                 I agree to the{' '}
                 <Text style={styles.orangeTextBold}>Community Guidelines</Text> and understand
                 that Saathi Network is built on mutual respect and empathy.
+              </Text>
+            </TouchableOpacity>
+
+            {/* Checkbox: Privacy Policy */}
+            <TouchableOpacity
+              style={styles.checkboxRow}
+              onPress={() => setAgreePrivacy(!agreePrivacy)}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.checkbox, agreePrivacy && styles.checkboxActive]}>
+                {agreePrivacy && (
+                  <MaterialCommunityIcons name="check" size={14} color="#FFFFFF" />
+                )}
+              </View>
+              <Text style={styles.checkboxLabel}>
+                I have read and agree to the{' '}
+                <Text 
+                  style={styles.orangeTextBold}
+                  onPress={() => Linking.openURL('https://maihoonna.in/#privacy')}
+                >
+                  Privacy Policy
+                </Text>{' '}
+                and consent to processing of my personal data under the DPDP Act, 2023.
               </Text>
             </TouchableOpacity>
 
