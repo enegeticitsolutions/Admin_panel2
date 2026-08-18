@@ -19,6 +19,39 @@ export class Msg91SmsProvider implements ISmsProvider {
 
     try {
       const cleanPhone = message.to.replace(/[^0-9]/g, '');
+      const recipient = cleanPhone.startsWith('91') ? cleanPhone : `91${cleanPhone}`;
+      const flowTemplateId = message.templateId || process.env.MSG91_FLOW_TEMPLATE_ID || '';
+
+      if (flowTemplateId) {
+        const payload = {
+          template_id: flowTemplateId,
+          recipients: [
+            {
+              mobiles: recipient,
+              var: message.body,
+              otp: message.body,
+            },
+          ],
+        };
+
+        const response = await fetch('https://control.msg91.com/api/v5/flow', {
+          method: 'POST',
+          headers: {
+            accept: 'application/json',
+            'content-type': 'application/json',
+            authkey: this.authKey,
+          },
+          body: JSON.stringify(payload),
+        });
+
+        const result: any = await response.json();
+        if (result.type === 'success' || (!result.hasError && result.status !== 'error')) {
+          return { success: true, messageId: result.message || 'sent' };
+        }
+
+        return { success: false, error: result.message || JSON.stringify(result) };
+      }
+
       const payload = {
         sender: this.senderId,
         route: '4', // Transactional route
@@ -29,7 +62,6 @@ export class Msg91SmsProvider implements ISmsProvider {
             to: [cleanPhone],
           },
         ],
-        ...(message.templateId ? { template_id: message.templateId } : {}),
       };
 
       const response = await fetch('https://api.msg91.com/api/v2/sendsms', {
