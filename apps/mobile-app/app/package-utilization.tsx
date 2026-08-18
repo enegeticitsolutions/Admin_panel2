@@ -233,7 +233,11 @@ export default function PackageUtilizationScreen() {
   const handleCheckLocation = async (lat: number, lng: number) => {
     setCheckingLocation(true);
     try {
-      const res = await fetch(`${API_URL}/public/location/reverse-geocode?lat=${lat}&lng=${lng}`);
+      const res = await fetch(`${API_URL}/public/location/reverse-geocode?lat=${lat}&lng=${lng}`, {
+        headers: {
+          'x-app-secret': process.env.EXPO_PUBLIC_APP_SECRET || ''
+        }
+      });
       const json = await res.json();
       if (json.success && json.data.pincode) {
         const pincode = json.data.pincode;
