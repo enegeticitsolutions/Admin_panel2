@@ -1,4 +1,4 @@
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, Alert, ActivityIndicator, TouchableWithoutFeedback, Keyboard } from 'react-native';
 import { useState, useRef } from "react";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -113,9 +113,11 @@ export default function VerifyOtpScreen() {
         <SafeAreaView style={styles.safeArea}>
             <KeyboardAvoidingView
                 behavior={Platform.OS === "ios" ? "padding" : "height"}
-                style={styles.container}
+                style={{ flex: 1 }}
             >
-                <View>
+                <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+                    <View style={styles.container}>
+                        <View>
                     <View style={styles.header}>
                         <TouchableOpacity onPress={() => {
                             if (router.canGoBack()) {
@@ -187,11 +189,13 @@ export default function VerifyOtpScreen() {
                     </LinearGradient>
                 </View>
 
-                <Text style={styles.terms}>
-                    By continuing, you agree to our{" "}
-                    <Text style={styles.termsLink}>Terms of Service</Text>
-                    {"\n"}and <Text style={styles.termsLink}>Privacy Policy</Text>
-                </Text>
+                        <Text style={styles.terms}>
+                            By continuing, you agree to our{" "}
+                            <Text style={styles.termsLink}>Terms of Service</Text>
+                            {"\n"}and <Text style={styles.termsLink}>Privacy Policy</Text>
+                        </Text>
+                    </View>
+                </TouchableWithoutFeedback>
             </KeyboardAvoidingView>
         </SafeAreaView>
     );

@@ -14,7 +14,6 @@ import HeaderSpacer from '@/components/HeaderSpacer';
 import { useNavigationStack } from '@/contexts/NavigationStackContext';
 import { useAndroidBackHandler } from '@/hooks/useAndroidBackHandler';
 import { useAuth } from '@/contexts/AuthContext';
-// @ts-ignore
 import RazorpayCheckout from 'react-native-razorpay';
 
 /**
@@ -574,71 +573,39 @@ export default function CheckoutScreen() {
                     theme: { color: '#FE6700' }
                 };
 
-                try {
-                    if (Platform.OS === 'web') {
-                        // Razorpay Native SDK doesn't work on Web, mock for testing
-                        paymentDetails = {
-                            razorpay_payment_id: "pay_test_" + Date.now(),
-                            razorpay_order_id: orderData.data.order_id,
-                            razorpay_signature: "DEV_MOCK_SIGNATURE"
-                        };
-                        alert("Running on Web: Simulating successful Razorpay payment.");
-                    } else {
-                        // Try native checkout, fallback to mock if running in Expo Go (missing native module)
-                        try {
-                            console.log('[Razorpay] Opening with options:', JSON.stringify({
-                                key: options.key,
-                                amount: options.amount,
-                                order_id: options.order_id,
-                                currency: options.currency,
-                            }));
-
-                            // Expo Go: RazorpayCheckout native module is null — use dev mock
-                            if (!RazorpayCheckout) {
-                                console.warn("Razorpay Native Module is null (Expo Go). Using Dev Mock.");
-                                paymentDetails = {
-                                    razorpay_payment_id: "pay_test_" + Date.now(),
-                                    razorpay_order_id: orderData.data.order_id,
-                                    razorpay_signature: "DEV_MOCK_SIGNATURE"
-                                };
-                                Alert.alert("Test Mode 🧪", "Razorpay is not available in Expo Go.\n\nSimulating a successful payment so you can test the rest of the flow.");
-                            } else {
-                                const paymentResponse = await RazorpayCheckout.open(options);
-                                paymentDetails = {
-                                    razorpay_payment_id: paymentResponse.razorpay_payment_id,
-                                    razorpay_order_id: paymentResponse.razorpay_order_id,
-                                    razorpay_signature: paymentResponse.razorpay_signature
-                                };
-                            }
-                        } catch (paymentErr: any) {
-                            const errMessage = paymentErr?.message || paymentErr?.description || '';
-                            const errCode = paymentErr?.code;
-
-                            if (errMessage.includes('Native module cannot be null') || errMessage.includes('RazorpayCheckout') || errMessage.includes('null')) {
-                                // Missing native module (likely Expo Go)
-                                console.warn("Razorpay Native Module missing. Using Dev Mock.");
-                                paymentDetails = {
-                                    razorpay_payment_id: "pay_test_" + Date.now(),
-                                    razorpay_order_id: orderData.data.order_id,
-                                    razorpay_signature: "DEV_MOCK_SIGNATURE"
-                                };
-                                Alert.alert("Test Mode 🧪", "Razorpay native module not found (Expo Go). Simulating successful payment.");
-                            } else if (errCode === 0 || errMessage.toLowerCase().includes('cancel')) {
-                                // User cancelled the payment — not an error, just exit gracefully
-                                console.log('[Razorpay] Payment cancelled by user.');
-                                setIsProcessing(false);
-                                return;
-                            } else {
-                                // Real payment error
-                                console.error('[Razorpay Error]', errCode, errMessage, JSON.stringify(paymentErr));
-                                setIsProcessing(false);
-                                Alert.alert('Payment Failed', errMessage || 'Payment could not be completed. Please try again.');
-                                return;
-                            }
-                        }
-                    }
-                } catch (err: any) {
+                if (Platform.OS === 'web') {
+                    Alert.alert("Web Notice", "Razorpay native checkout is not supported on web. Please complete checkout on the mobile app.");
                     setIsProcessing(false);
+                    return;
+                }
+
+                try {
+                    console.log('[Razorpay] Opening checkout with options:', JSON.stringify({
+                        key: options.key,
+                        amount: options.amount,
+                        order_id: options.order_id,
+                        currency: options.currency,
+                    }));
+
+                    const paymentResponse = await RazorpayCheckout.open(options);
+                    paymentDetails = {
+                        razorpay_payment_id: paymentResponse.razorpay_payment_id,
+                        razorpay_order_id: paymentResponse.razorpay_order_id,
+                        razorpay_signature: paymentResponse.razorpay_signature
+                    };
+                } catch (paymentErr: any) {
+                    setIsProcessing(false);
+                    const errMessage = paymentErr?.description || paymentErr?.message || '';
+                    const errCode = paymentErr?.code;
+
+                    if (errCode === 0 || (typeof errMessage === 'string' && errMessage.toLowerCase().includes('cancel'))) {
+                        // User cancelled payment modal
+                        console.log('[Razorpay] Payment cancelled by user.');
+                        return;
+                    }
+
+                    console.error('[Razorpay Error]', errCode, errMessage, paymentErr);
+                    Alert.alert('Payment Failed', (typeof errMessage === 'string' && errMessage) ? errMessage : 'Payment could not be completed. Please try again.');
                     return;
                 }
             }

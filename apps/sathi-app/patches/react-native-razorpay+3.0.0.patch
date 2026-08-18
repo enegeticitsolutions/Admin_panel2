@@ -1,5 +1,5 @@
 diff --git a/node_modules/react-native-razorpay/RazorpayCheckout.js b/node_modules/react-native-razorpay/RazorpayCheckout.js
-index 07c73b6..2e5d5ff 100644
+index 07c73b6..84f7bcf 100644
 --- a/node_modules/react-native-razorpay/RazorpayCheckout.js
 +++ b/node_modules/react-native-razorpay/RazorpayCheckout.js
 @@ -1,6 +1,6 @@
@@ -10,40 +10,102 @@ index 07c73b6..2e5d5ff 100644
  
  // Runtime detection for new architecture.
  // RN <0.74 uses __turboModuleProxy; RN >=0.74 (bridgeless) exposes TurboModuleRegistry and nativeFabricUIManager instead.
-@@ -17,10 +17,18 @@ if (isTurboModuleEnabled) {
+@@ -17,10 +17,16 @@ if (isTurboModuleEnabled) {
    try {
      RazorpayCheckoutModule = require('./src/NativeRazorpayCheckout').default;
      RazorpayEventEmitterModule = require('./src/NativeRazorpayEventEmitter').default;
-+    // In RN 0.76+ bridgeless mode, getEnforcing can return null instead of throwing.
-+    // Explicitly fall back to NativeModules if the TurboModule returned null.
 +    if (RazorpayCheckoutModule == null) {
-+      RazorpayCheckoutModule = NativeModules.RNRazorpayCheckout || TurboModuleRegistry.get('RNRazorpayCheckout');
++      RazorpayCheckoutModule = NativeModules.RNRazorpayCheckout || (TurboModuleRegistry ? TurboModuleRegistry.get('RNRazorpayCheckout') : null);
 +    }
 +    if (RazorpayEventEmitterModule == null) {
-+      RazorpayEventEmitterModule = NativeModules.RazorpayEventEmitter || TurboModuleRegistry.get('RazorpayEventEmitter');
++      RazorpayEventEmitterModule = NativeModules.RazorpayEventEmitter || (TurboModuleRegistry ? TurboModuleRegistry.get('RazorpayEventEmitter') : null);
 +    }
    } catch (error) {
      // Fallback to old architecture if TurboModule not available
 -    RazorpayCheckoutModule = NativeModules.RNRazorpayCheckout;
 -    RazorpayEventEmitterModule = NativeModules.RazorpayEventEmitter;
-+    RazorpayCheckoutModule = NativeModules.RNRazorpayCheckout || TurboModuleRegistry.get('RNRazorpayCheckout');
-+    RazorpayEventEmitterModule = NativeModules.RazorpayEventEmitter || TurboModuleRegistry.get('RazorpayEventEmitter');
++    RazorpayCheckoutModule = NativeModules.RNRazorpayCheckout || (TurboModuleRegistry ? TurboModuleRegistry.get('RNRazorpayCheckout') : null);
++    RazorpayEventEmitterModule = NativeModules.RazorpayEventEmitter || (TurboModuleRegistry ? TurboModuleRegistry.get('RazorpayEventEmitter') : null);
    }
  } else {
    // Old Architecture
-@@ -28,7 +36,11 @@ if (isTurboModuleEnabled) {
+@@ -28,35 +34,59 @@ if (isTurboModuleEnabled) {
    RazorpayEventEmitterModule = NativeModules.RazorpayEventEmitter;
  }
  
 -const razorpayEvents = new NativeEventEmitter(RazorpayEventEmitterModule);
-+// Use NativeEventEmitter only if the module is available, otherwise fall back to
-+// DeviceEventEmitter which receives events sent via RCTDeviceEventEmitter from native.
-+const razorpayEvents = RazorpayEventEmitterModule
-+  ? new NativeEventEmitter(RazorpayEventEmitterModule)
-+  : DeviceEventEmitter;
++let razorpayEvents = null;
++try {
++  if (RazorpayEventEmitterModule) {
++    razorpayEvents = new NativeEventEmitter(RazorpayEventEmitterModule);
++  } else if (DeviceEventEmitter) {
++    razorpayEvents = DeviceEventEmitter;
++  }
++} catch (e) {
++  razorpayEvents = DeviceEventEmitter;
++}
  
  const removeSubscriptions = () => {
-   razorpayEvents.removeAllListeners('Razorpay::PAYMENT_SUCCESS');
+-  razorpayEvents.removeAllListeners('Razorpay::PAYMENT_SUCCESS');
+-  razorpayEvents.removeAllListeners('Razorpay::PAYMENT_ERROR');
+-  razorpayEvents.removeAllListeners('Razorpay::EXTERNAL_WALLET_SELECTED');
++  if (razorpayEvents && razorpayEvents.removeAllListeners) {
++    razorpayEvents.removeAllListeners('Razorpay::PAYMENT_SUCCESS');
++    razorpayEvents.removeAllListeners('Razorpay::PAYMENT_ERROR');
++    razorpayEvents.removeAllListeners('Razorpay::EXTERNAL_WALLET_SELECTED');
++  }
+ };
+ 
+ class RazorpayCheckout {
+   static open(options, successCallback, errorCallback) {
+     return new Promise(function(resolve, reject) {
+-      razorpayEvents.addListener('Razorpay::PAYMENT_SUCCESS', (data) => {
+-        let resolveFn = successCallback || resolve;
+-        resolveFn(data);
+-        removeSubscriptions();
+-      });
+-      razorpayEvents.addListener('Razorpay::PAYMENT_ERROR', (data) => {
++      if (!RazorpayCheckoutModule || !RazorpayCheckoutModule.open) {
++        const err = {
++          code: -1,
++          description: 'Razorpay native module is not linked or unavailable in this environment (e.g. Expo Go). Please run on a Development Build (npx expo run:android / npx expo run:ios).'
++        };
+         let rejectFn = errorCallback || reject;
+-        rejectFn(data);
+-        removeSubscriptions();
+-      });
++        rejectFn(err);
++        return;
++      }
++      if (razorpayEvents && razorpayEvents.addListener) {
++        razorpayEvents.addListener('Razorpay::PAYMENT_SUCCESS', (data) => {
++          let resolveFn = successCallback || resolve;
++          resolveFn(data);
++          removeSubscriptions();
++        });
++        razorpayEvents.addListener('Razorpay::PAYMENT_ERROR', (data) => {
++          let rejectFn = errorCallback || reject;
++          rejectFn(data);
++          removeSubscriptions();
++        });
++      }
+       RazorpayCheckoutModule.open(options);
+     });
+   }
+   static onExternalWalletSelection(externalWalletCallback) {
+-    razorpayEvents.addListener('Razorpay::EXTERNAL_WALLET_SELECTED', (data) => {
+-      externalWalletCallback(data);
+-      removeSubscriptions();
+-    });
++    if (razorpayEvents && razorpayEvents.addListener) {
++      razorpayEvents.addListener('Razorpay::EXTERNAL_WALLET_SELECTED', (data) => {
++        externalWalletCallback(data);
++        removeSubscriptions();
++      });
++    }
+   }
+ }
+ 
 diff --git a/node_modules/react-native-razorpay/android/build/.transforms/1790074e7d98725692ae19254e005106/results.bin b/node_modules/react-native-razorpay/android/build/.transforms/1790074e7d98725692ae19254e005106/results.bin
 deleted file mode 100644
 index 1ed65e0..0000000
@@ -51,6 +113,14 @@ index 1ed65e0..0000000
 +++ /dev/null
 @@ -1 +0,0 @@
 -i/
+diff --git a/node_modules/react-native-razorpay/android/build/.transforms/4520f8037c2c3ac80695eb20e8ab5cef/results.bin b/node_modules/react-native-razorpay/android/build/.transforms/22d16d5a4fbeb27fc2f17c0504498225/results.bin
+similarity index 100%
+rename from node_modules/react-native-razorpay/android/build/.transforms/4520f8037c2c3ac80695eb20e8ab5cef/results.bin
+rename to node_modules/react-native-razorpay/android/build/.transforms/22d16d5a4fbeb27fc2f17c0504498225/results.bin
+diff --git a/node_modules/react-native-razorpay/android/build/.transforms/22d16d5a4fbeb27fc2f17c0504498225/transformed/classes/classes_dex/classes.dex b/node_modules/react-native-razorpay/android/build/.transforms/22d16d5a4fbeb27fc2f17c0504498225/transformed/classes/classes_dex/classes.dex
+new file mode 100644
+index 0000000..adc1f23
+Binary files /dev/null and b/node_modules/react-native-razorpay/android/build/.transforms/22d16d5a4fbeb27fc2f17c0504498225/transformed/classes/classes_dex/classes.dex differ
 diff --git a/node_modules/react-native-razorpay/android/build/.transforms/230a7bba5d1e96601463807a1413ae51/results.bin b/node_modules/react-native-razorpay/android/build/.transforms/230a7bba5d1e96601463807a1413ae51/results.bin
 deleted file mode 100644
 index 5ff383e..0000000
@@ -93,14 +163,6 @@ index 1ed65e0..0000000
 +++ /dev/null
 @@ -1 +0,0 @@
 -i/
-diff --git a/node_modules/react-native-razorpay/android/build/.transforms/4520f8037c2c3ac80695eb20e8ab5cef/results.bin b/node_modules/react-native-razorpay/android/build/.transforms/2ed5311b4959a4670f511e58cb89d585/results.bin
-similarity index 100%
-rename from node_modules/react-native-razorpay/android/build/.transforms/4520f8037c2c3ac80695eb20e8ab5cef/results.bin
-rename to node_modules/react-native-razorpay/android/build/.transforms/2ed5311b4959a4670f511e58cb89d585/results.bin
-diff --git a/node_modules/react-native-razorpay/android/build/.transforms/2ed5311b4959a4670f511e58cb89d585/transformed/classes/classes_dex/classes.dex b/node_modules/react-native-razorpay/android/build/.transforms/2ed5311b4959a4670f511e58cb89d585/transformed/classes/classes_dex/classes.dex
-new file mode 100644
-index 0000000..88ecbd8
-Binary files /dev/null and b/node_modules/react-native-razorpay/android/build/.transforms/2ed5311b4959a4670f511e58cb89d585/transformed/classes/classes_dex/classes.dex differ
 diff --git a/node_modules/react-native-razorpay/android/build/.transforms/4520f8037c2c3ac80695eb20e8ab5cef/transformed/classes/classes_dex/classes.dex b/node_modules/react-native-razorpay/android/build/.transforms/4520f8037c2c3ac80695eb20e8ab5cef/transformed/classes/classes_dex/classes.dex
 deleted file mode 100644
 index 3f5222d..0000000
@@ -513,7 +575,7 @@ index 9e26dfe..0000000
 -{}
 \ No newline at end of file
 diff --git a/node_modules/react-native-razorpay/android/build/intermediates/compile_library_classes_jar/debug/bundleLibCompileToJarDebug/classes.jar b/node_modules/react-native-razorpay/android/build/intermediates/compile_library_classes_jar/debug/bundleLibCompileToJarDebug/classes.jar
-index c4a345a..db205a1 100644
+index c4a345a..670db0d 100644
 Binary files a/node_modules/react-native-razorpay/android/build/intermediates/compile_library_classes_jar/debug/bundleLibCompileToJarDebug/classes.jar and b/node_modules/react-native-razorpay/android/build/intermediates/compile_library_classes_jar/debug/bundleLibCompileToJarDebug/classes.jar differ
 diff --git a/node_modules/react-native-razorpay/android/build/intermediates/compile_library_classes_jar/debug/classes.jar b/node_modules/react-native-razorpay/android/build/intermediates/compile_library_classes_jar/debug/classes.jar
 deleted file mode 100644
@@ -2831,51 +2893,51 @@ index 4e89b6a..0000000
 -int xml file_provider_path_checkout 0x0
 -int xml rn_dev_preferences 0x0
 diff --git a/node_modules/react-native-razorpay/android/build/intermediates/incremental/debug/packageDebugResources/compile-file-map.properties b/node_modules/react-native-razorpay/android/build/intermediates/incremental/debug/packageDebugResources/compile-file-map.properties
-index 067e48b..6302910 100644
+index 067e48b..a51d005 100644
 --- a/node_modules/react-native-razorpay/android/build/intermediates/incremental/debug/packageDebugResources/compile-file-map.properties
 +++ b/node_modules/react-native-razorpay/android/build/intermediates/incremental/debug/packageDebugResources/compile-file-map.properties
 @@ -1 +1 @@
 -#Wed Feb 11 17:07:14 IST 2026
-+#Fri Jun 26 00:29:45 IST 2026
++#Mon Aug 10 11:27:11 IST 2026
 diff --git a/node_modules/react-native-razorpay/android/build/intermediates/incremental/debug/packageDebugResources/merger.xml b/node_modules/react-native-razorpay/android/build/intermediates/incremental/debug/packageDebugResources/merger.xml
-index 1ef23ba..2a4a5ba 100644
+index 1ef23ba..c0d0fac 100644
 --- a/node_modules/react-native-razorpay/android/build/intermediates/incremental/debug/packageDebugResources/merger.xml
 +++ b/node_modules/react-native-razorpay/android/build/intermediates/incremental/debug/packageDebugResources/merger.xml
 @@ -1,2 +1,2 @@
  <?xml version="1.0" encoding="utf-8"?>
 -<merger version="3"><dataSet aapt-namespace="http://schemas.android.com/apk/res-auto" config="main$Generated" generated="true" ignore_pattern="!.svn:!.git:!.ds_store:!*.scc:.*:&lt;dir>_*:!CVS:!thumbs.db:!picasa.ini:!*~"><source path="/Users/vivek.shindhe/Razorpay/react-native/react-native-razorpay/sampleApps/NewArchSample/node_modules/react-native-razorpay/android/src/main/res"/></dataSet><dataSet aapt-namespace="http://schemas.android.com/apk/res-auto" config="main" generated-set="main$Generated" ignore_pattern="!.svn:!.git:!.ds_store:!*.scc:.*:&lt;dir>_*:!CVS:!thumbs.db:!picasa.ini:!*~"><source path="/Users/vivek.shindhe/Razorpay/react-native/react-native-razorpay/sampleApps/NewArchSample/node_modules/react-native-razorpay/android/src/main/res"/></dataSet><dataSet aapt-namespace="http://schemas.android.com/apk/res-auto" config="debug$Generated" generated="true" ignore_pattern="!.svn:!.git:!.ds_store:!*.scc:.*:&lt;dir>_*:!CVS:!thumbs.db:!picasa.ini:!*~"><source path="/Users/vivek.shindhe/Razorpay/react-native/react-native-razorpay/sampleApps/NewArchSample/node_modules/react-native-razorpay/android/src/debug/res"/></dataSet><dataSet aapt-namespace="http://schemas.android.com/apk/res-auto" config="debug" generated-set="debug$Generated" ignore_pattern="!.svn:!.git:!.ds_store:!*.scc:.*:&lt;dir>_*:!CVS:!thumbs.db:!picasa.ini:!*~"><source path="/Users/vivek.shindhe/Razorpay/react-native/react-native-razorpay/sampleApps/NewArchSample/node_modules/react-native-razorpay/android/src/debug/res"/></dataSet><dataSet aapt-namespace="http://schemas.android.com/apk/res-auto" config="generated$Generated" generated="true" ignore_pattern="!.svn:!.git:!.ds_store:!*.scc:.*:&lt;dir>_*:!CVS:!thumbs.db:!picasa.ini:!*~"><source path="/Users/vivek.shindhe/Razorpay/react-native/react-native-razorpay/sampleApps/NewArchSample/node_modules/react-native-razorpay/android/build/generated/res/resValues/debug"/></dataSet><dataSet aapt-namespace="http://schemas.android.com/apk/res-auto" config="generated" generated-set="generated$Generated" ignore_pattern="!.svn:!.git:!.ds_store:!*.scc:.*:&lt;dir>_*:!CVS:!thumbs.db:!picasa.ini:!*~"><source path="/Users/vivek.shindhe/Razorpay/react-native/react-native-razorpay/sampleApps/NewArchSample/node_modules/react-native-razorpay/android/build/generated/res/resValues/debug"/></dataSet><mergedItems/></merger>
 \ No newline at end of file
-+<merger version="3"><dataSet aapt-namespace="http://schemas.android.com/apk/res-auto" config="main$Generated" generated="true" ignore_pattern="!.svn:!.git:!.ds_store:!*.scc:.*:&lt;dir>_*:!CVS:!thumbs.db:!picasa.ini:!*~"><source path="/Users/shubhamtripathi/Downloads/MHN-stagging/apps/mobile-app/node_modules/react-native-razorpay/android/src/main/res"/></dataSet><dataSet aapt-namespace="http://schemas.android.com/apk/res-auto" config="main" generated-set="main$Generated" ignore_pattern="!.svn:!.git:!.ds_store:!*.scc:.*:&lt;dir>_*:!CVS:!thumbs.db:!picasa.ini:!*~"><source path="/Users/shubhamtripathi/Downloads/MHN-stagging/apps/mobile-app/node_modules/react-native-razorpay/android/src/main/res"/></dataSet><dataSet aapt-namespace="http://schemas.android.com/apk/res-auto" config="debug$Generated" generated="true" ignore_pattern="!.svn:!.git:!.ds_store:!*.scc:.*:&lt;dir>_*:!CVS:!thumbs.db:!picasa.ini:!*~"><source path="/Users/shubhamtripathi/Downloads/MHN-stagging/apps/mobile-app/node_modules/react-native-razorpay/android/src/debug/res"/></dataSet><dataSet aapt-namespace="http://schemas.android.com/apk/res-auto" config="debug" generated-set="debug$Generated" ignore_pattern="!.svn:!.git:!.ds_store:!*.scc:.*:&lt;dir>_*:!CVS:!thumbs.db:!picasa.ini:!*~"><source path="/Users/shubhamtripathi/Downloads/MHN-stagging/apps/mobile-app/node_modules/react-native-razorpay/android/src/debug/res"/></dataSet><dataSet aapt-namespace="http://schemas.android.com/apk/res-auto" config="generated$Generated" generated="true" ignore_pattern="!.svn:!.git:!.ds_store:!*.scc:.*:&lt;dir>_*:!CVS:!thumbs.db:!picasa.ini:!*~"><source path="/Users/shubhamtripathi/Downloads/MHN-stagging/apps/mobile-app/node_modules/react-native-razorpay/android/build/generated/res/resValues/debug"/></dataSet><dataSet aapt-namespace="http://schemas.android.com/apk/res-auto" config="generated" generated-set="generated$Generated" ignore_pattern="!.svn:!.git:!.ds_store:!*.scc:.*:&lt;dir>_*:!CVS:!thumbs.db:!picasa.ini:!*~"><source path="/Users/shubhamtripathi/Downloads/MHN-stagging/apps/mobile-app/node_modules/react-native-razorpay/android/build/generated/res/resValues/debug"/></dataSet><mergedItems/></merger>
++<merger version="3"><dataSet aapt-namespace="http://schemas.android.com/apk/res-auto" config="main$Generated" generated="true" ignore_pattern="!.svn:!.git:!.ds_store:!*.scc:.*:&lt;dir>_*:!CVS:!thumbs.db:!picasa.ini:!*~"><source path="/Users/puneet/Desktop/MHN/node_modules/react-native-razorpay/android/src/main/res"/></dataSet><dataSet aapt-namespace="http://schemas.android.com/apk/res-auto" config="main" generated-set="main$Generated" ignore_pattern="!.svn:!.git:!.ds_store:!*.scc:.*:&lt;dir>_*:!CVS:!thumbs.db:!picasa.ini:!*~"><source path="/Users/puneet/Desktop/MHN/node_modules/react-native-razorpay/android/src/main/res"/></dataSet><dataSet aapt-namespace="http://schemas.android.com/apk/res-auto" config="debug$Generated" generated="true" ignore_pattern="!.svn:!.git:!.ds_store:!*.scc:.*:&lt;dir>_*:!CVS:!thumbs.db:!picasa.ini:!*~"><source path="/Users/puneet/Desktop/MHN/node_modules/react-native-razorpay/android/src/debug/res"/></dataSet><dataSet aapt-namespace="http://schemas.android.com/apk/res-auto" config="debug" generated-set="debug$Generated" ignore_pattern="!.svn:!.git:!.ds_store:!*.scc:.*:&lt;dir>_*:!CVS:!thumbs.db:!picasa.ini:!*~"><source path="/Users/puneet/Desktop/MHN/node_modules/react-native-razorpay/android/src/debug/res"/></dataSet><dataSet aapt-namespace="http://schemas.android.com/apk/res-auto" config="generated$Generated" generated="true" ignore_pattern="!.svn:!.git:!.ds_store:!*.scc:.*:&lt;dir>_*:!CVS:!thumbs.db:!picasa.ini:!*~"><source path="/Users/puneet/Desktop/MHN/node_modules/react-native-razorpay/android/build/generated/res/resValues/debug"/></dataSet><dataSet aapt-namespace="http://schemas.android.com/apk/res-auto" config="generated" generated-set="generated$Generated" ignore_pattern="!.svn:!.git:!.ds_store:!*.scc:.*:&lt;dir>_*:!CVS:!thumbs.db:!picasa.ini:!*~"><source path="/Users/puneet/Desktop/MHN/node_modules/react-native-razorpay/android/build/generated/res/resValues/debug"/></dataSet><mergedItems/></merger>
 \ No newline at end of file
 diff --git a/node_modules/react-native-razorpay/android/build/intermediates/incremental/mergeDebugAssets/merger.xml b/node_modules/react-native-razorpay/android/build/intermediates/incremental/mergeDebugAssets/merger.xml
-index 19f8b8d..4672318 100644
+index 19f8b8d..b64f0ad 100644
 --- a/node_modules/react-native-razorpay/android/build/intermediates/incremental/mergeDebugAssets/merger.xml
 +++ b/node_modules/react-native-razorpay/android/build/intermediates/incremental/mergeDebugAssets/merger.xml
 @@ -1,2 +1,2 @@
  <?xml version="1.0" encoding="utf-8"?>
 -<merger version="3"><dataSet config="main" ignore_pattern="!.svn:!.git:!.ds_store:!*.scc:.*:&lt;dir>_*:!CVS:!thumbs.db:!picasa.ini:!*~"><source path="/Users/vivek.shindhe/Razorpay/react-native/react-native-razorpay/sampleApps/NewArchSample/node_modules/react-native-razorpay/android/src/main/assets"/></dataSet><dataSet config="debug" ignore_pattern="!.svn:!.git:!.ds_store:!*.scc:.*:&lt;dir>_*:!CVS:!thumbs.db:!picasa.ini:!*~"><source path="/Users/vivek.shindhe/Razorpay/react-native/react-native-razorpay/sampleApps/NewArchSample/node_modules/react-native-razorpay/android/src/debug/assets"/></dataSet><dataSet config="generated" ignore_pattern="!.svn:!.git:!.ds_store:!*.scc:.*:&lt;dir>_*:!CVS:!thumbs.db:!picasa.ini:!*~"><source path="/Users/vivek.shindhe/Razorpay/react-native/react-native-razorpay/sampleApps/NewArchSample/node_modules/react-native-razorpay/android/build/intermediates/shader_assets/debug/compileDebugShaders/out"/></dataSet></merger>
 \ No newline at end of file
-+<merger version="3"><dataSet config="main" ignore_pattern="!.svn:!.git:!.ds_store:!*.scc:.*:&lt;dir>_*:!CVS:!thumbs.db:!picasa.ini:!*~"><source path="/Users/shubhamtripathi/Downloads/MHN-stagging/apps/mobile-app/node_modules/react-native-razorpay/android/src/main/assets"/></dataSet><dataSet config="debug" ignore_pattern="!.svn:!.git:!.ds_store:!*.scc:.*:&lt;dir>_*:!CVS:!thumbs.db:!picasa.ini:!*~"><source path="/Users/shubhamtripathi/Downloads/MHN-stagging/apps/mobile-app/node_modules/react-native-razorpay/android/src/debug/assets"/></dataSet><dataSet config="generated" ignore_pattern="!.svn:!.git:!.ds_store:!*.scc:.*:&lt;dir>_*:!CVS:!thumbs.db:!picasa.ini:!*~"><source path="/Users/shubhamtripathi/Downloads/MHN-stagging/apps/mobile-app/node_modules/react-native-razorpay/android/build/intermediates/shader_assets/debug/compileDebugShaders/out"/></dataSet></merger>
++<merger version="3"><dataSet config="main" ignore_pattern="!.svn:!.git:!.ds_store:!*.scc:.*:&lt;dir>_*:!CVS:!thumbs.db:!picasa.ini:!*~"><source path="/Users/puneet/Desktop/MHN/node_modules/react-native-razorpay/android/src/main/assets"/></dataSet><dataSet config="debug" ignore_pattern="!.svn:!.git:!.ds_store:!*.scc:.*:&lt;dir>_*:!CVS:!thumbs.db:!picasa.ini:!*~"><source path="/Users/puneet/Desktop/MHN/node_modules/react-native-razorpay/android/src/debug/assets"/></dataSet><dataSet config="generated" ignore_pattern="!.svn:!.git:!.ds_store:!*.scc:.*:&lt;dir>_*:!CVS:!thumbs.db:!picasa.ini:!*~"><source path="/Users/puneet/Desktop/MHN/node_modules/react-native-razorpay/android/build/intermediates/shader_assets/debug/compileDebugShaders/out"/></dataSet></merger>
 \ No newline at end of file
 diff --git a/node_modules/react-native-razorpay/android/build/intermediates/incremental/mergeDebugJniLibFolders/merger.xml b/node_modules/react-native-razorpay/android/build/intermediates/incremental/mergeDebugJniLibFolders/merger.xml
-index 230a1ff..65f5b28 100644
+index 230a1ff..ec7b025 100644
 --- a/node_modules/react-native-razorpay/android/build/intermediates/incremental/mergeDebugJniLibFolders/merger.xml
 +++ b/node_modules/react-native-razorpay/android/build/intermediates/incremental/mergeDebugJniLibFolders/merger.xml
 @@ -1,2 +1,2 @@
  <?xml version="1.0" encoding="utf-8"?>
 -<merger version="3"><dataSet config="main" ignore_pattern="!.svn:!.git:!.ds_store:!*.scc:.*:&lt;dir>_*:!CVS:!thumbs.db:!picasa.ini:!*~"><source path="/Users/vivek.shindhe/Razorpay/react-native/react-native-razorpay/android/src/main/jniLibs"/></dataSet><dataSet config="debug" ignore_pattern="!.svn:!.git:!.ds_store:!*.scc:.*:&lt;dir>_*:!CVS:!thumbs.db:!picasa.ini:!*~"><source path="/Users/vivek.shindhe/Razorpay/react-native/react-native-razorpay/android/src/debug/jniLibs"/></dataSet></merger>
 \ No newline at end of file
-+<merger version="3"><dataSet config="main" ignore_pattern="!.svn:!.git:!.ds_store:!*.scc:.*:&lt;dir>_*:!CVS:!thumbs.db:!picasa.ini:!*~"><source path="/Users/shubhamtripathi/Downloads/MHN-stagging/apps/mobile-app/node_modules/react-native-razorpay/android/src/main/jniLibs"/></dataSet><dataSet config="debug" ignore_pattern="!.svn:!.git:!.ds_store:!*.scc:.*:&lt;dir>_*:!CVS:!thumbs.db:!picasa.ini:!*~"><source path="/Users/shubhamtripathi/Downloads/MHN-stagging/apps/mobile-app/node_modules/react-native-razorpay/android/src/debug/jniLibs"/></dataSet></merger>
++<merger version="3"><dataSet config="main" ignore_pattern="!.svn:!.git:!.ds_store:!*.scc:.*:&lt;dir>_*:!CVS:!thumbs.db:!picasa.ini:!*~"><source path="/Users/puneet/Desktop/MHN/node_modules/react-native-razorpay/android/src/main/jniLibs"/></dataSet><dataSet config="debug" ignore_pattern="!.svn:!.git:!.ds_store:!*.scc:.*:&lt;dir>_*:!CVS:!thumbs.db:!picasa.ini:!*~"><source path="/Users/puneet/Desktop/MHN/node_modules/react-native-razorpay/android/src/debug/jniLibs"/></dataSet></merger>
 \ No newline at end of file
 diff --git a/node_modules/react-native-razorpay/android/build/intermediates/incremental/mergeDebugShaders/merger.xml b/node_modules/react-native-razorpay/android/build/intermediates/incremental/mergeDebugShaders/merger.xml
-index b5aa6df..9a422b4 100644
+index b5aa6df..22213b4 100644
 --- a/node_modules/react-native-razorpay/android/build/intermediates/incremental/mergeDebugShaders/merger.xml
 +++ b/node_modules/react-native-razorpay/android/build/intermediates/incremental/mergeDebugShaders/merger.xml
 @@ -1,2 +1,2 @@
  <?xml version="1.0" encoding="utf-8"?>
 -<merger version="3"><dataSet config="main" ignore_pattern="!.svn:!.git:!.ds_store:!*.scc:.*:&lt;dir>_*:!CVS:!thumbs.db:!picasa.ini:!*~"><source path="/Users/vivek.shindhe/Razorpay/react-native/react-native-razorpay/android/src/main/shaders"/></dataSet><dataSet config="debug" ignore_pattern="!.svn:!.git:!.ds_store:!*.scc:.*:&lt;dir>_*:!CVS:!thumbs.db:!picasa.ini:!*~"><source path="/Users/vivek.shindhe/Razorpay/react-native/react-native-razorpay/android/src/debug/shaders"/></dataSet></merger>
 \ No newline at end of file
-+<merger version="3"><dataSet config="main" ignore_pattern="!.svn:!.git:!.ds_store:!*.scc:.*:&lt;dir>_*:!CVS:!thumbs.db:!picasa.ini:!*~"><source path="/Users/shubhamtripathi/Downloads/MHN-stagging/apps/mobile-app/node_modules/react-native-razorpay/android/src/main/shaders"/></dataSet><dataSet config="debug" ignore_pattern="!.svn:!.git:!.ds_store:!*.scc:.*:&lt;dir>_*:!CVS:!thumbs.db:!picasa.ini:!*~"><source path="/Users/shubhamtripathi/Downloads/MHN-stagging/apps/mobile-app/node_modules/react-native-razorpay/android/src/debug/shaders"/></dataSet></merger>
++<merger version="3"><dataSet config="main" ignore_pattern="!.svn:!.git:!.ds_store:!*.scc:.*:&lt;dir>_*:!CVS:!thumbs.db:!picasa.ini:!*~"><source path="/Users/puneet/Desktop/MHN/node_modules/react-native-razorpay/android/src/main/shaders"/></dataSet><dataSet config="debug" ignore_pattern="!.svn:!.git:!.ds_store:!*.scc:.*:&lt;dir>_*:!CVS:!thumbs.db:!picasa.ini:!*~"><source path="/Users/puneet/Desktop/MHN/node_modules/react-native-razorpay/android/src/debug/shaders"/></dataSet></merger>
 \ No newline at end of file
 diff --git a/node_modules/react-native-razorpay/android/build/intermediates/incremental/packageDebugAssets/merger.xml b/node_modules/react-native-razorpay/android/build/intermediates/incremental/packageDebugAssets/merger.xml
 deleted file mode 100644
@@ -2926,9 +2988,6 @@ diff --git a/node_modules/react-native-razorpay/android/build/intermediates/java
 deleted file mode 100644
 index 8ce72ad..0000000
 Binary files a/node_modules/react-native-razorpay/android/build/intermediates/javac/debug/classes/com/razorpay/rn/Utils.class and /dev/null differ
-diff --git a/node_modules/react-native-razorpay/android/build/intermediates/javac/debug/compileDebugJavaWithJavac/classes/com/razorpay/rn/RazorpayPackage.class b/node_modules/react-native-razorpay/android/build/intermediates/javac/debug/compileDebugJavaWithJavac/classes/com/razorpay/rn/RazorpayPackage.class
-index ebd69a1..3ef9393 100644
-Binary files a/node_modules/react-native-razorpay/android/build/intermediates/javac/debug/compileDebugJavaWithJavac/classes/com/razorpay/rn/RazorpayPackage.class and b/node_modules/react-native-razorpay/android/build/intermediates/javac/debug/compileDebugJavaWithJavac/classes/com/razorpay/rn/RazorpayPackage.class differ
 diff --git a/node_modules/react-native-razorpay/android/build/intermediates/javac/debug/compileDebugJavaWithJavac/classes/com/razorpay/rn/RazorpayWebViewClient.class b/node_modules/react-native-razorpay/android/build/intermediates/javac/debug/compileDebugJavaWithJavac/classes/com/razorpay/rn/RazorpayWebViewClient.class
 deleted file mode 100644
 index 991d8d8..0000000
@@ -2969,7 +3028,7 @@ index 989b0a8..0000000
 -14
 -15</manifest>
 diff --git a/node_modules/react-native-razorpay/android/build/intermediates/manifest_merge_blame_file/debug/processDebugManifest/manifest-merger-blame-debug-report.txt b/node_modules/react-native-razorpay/android/build/intermediates/manifest_merge_blame_file/debug/processDebugManifest/manifest-merger-blame-debug-report.txt
-index 1077399..eea75ff 100644
+index 1077399..9a78af8 100644
 --- a/node_modules/react-native-razorpay/android/build/intermediates/manifest_merge_blame_file/debug/processDebugManifest/manifest-merger-blame-debug-report.txt
 +++ b/node_modules/react-native-razorpay/android/build/intermediates/manifest_merge_blame_file/debug/processDebugManifest/manifest-merger-blame-debug-report.txt
 @@ -5,13 +5,13 @@
@@ -2977,16 +3036,16 @@ index 1077399..eea75ff 100644
  6
  7    <application>
 -7-->/Users/vivek.shindhe/Razorpay/react-native/react-native-razorpay/sampleApps/NewArchSample/node_modules/react-native-razorpay/android/src/main/AndroidManifest.xml:5:2-8:16
-+7-->/Users/shubhamtripathi/Downloads/MHN-stagging/apps/mobile-app/node_modules/react-native-razorpay/android/src/main/AndroidManifest.xml:5:2-8:16
++7-->/Users/puneet/Desktop/MHN/node_modules/react-native-razorpay/android/src/main/AndroidManifest.xml:5:2-8:16
  8        <activity
 -8-->/Users/vivek.shindhe/Razorpay/react-native/react-native-razorpay/sampleApps/NewArchSample/node_modules/react-native-razorpay/android/src/main/AndroidManifest.xml:6:3-7:79
-+8-->/Users/shubhamtripathi/Downloads/MHN-stagging/apps/mobile-app/node_modules/react-native-razorpay/android/src/main/AndroidManifest.xml:6:3-7:79
++8-->/Users/puneet/Desktop/MHN/node_modules/react-native-razorpay/android/src/main/AndroidManifest.xml:6:3-7:79
  9            android:name="com.razorpay.CheckoutActivity"
 -9-->/Users/vivek.shindhe/Razorpay/react-native/react-native-razorpay/sampleApps/NewArchSample/node_modules/react-native-razorpay/android/src/main/AndroidManifest.xml:6:13-57
-+9-->/Users/shubhamtripathi/Downloads/MHN-stagging/apps/mobile-app/node_modules/react-native-razorpay/android/src/main/AndroidManifest.xml:6:13-57
++9-->/Users/puneet/Desktop/MHN/node_modules/react-native-razorpay/android/src/main/AndroidManifest.xml:6:13-57
  10            android:configChanges="keyboard|keyboardHidden|orientation|screenSize" />
 -10-->/Users/vivek.shindhe/Razorpay/react-native/react-native-razorpay/sampleApps/NewArchSample/node_modules/react-native-razorpay/android/src/main/AndroidManifest.xml:7:7-77
-+10-->/Users/shubhamtripathi/Downloads/MHN-stagging/apps/mobile-app/node_modules/react-native-razorpay/android/src/main/AndroidManifest.xml:7:7-77
++10-->/Users/puneet/Desktop/MHN/node_modules/react-native-razorpay/android/src/main/AndroidManifest.xml:7:7-77
  11    </application>
  12
  13</manifest>
@@ -3068,7 +3127,7 @@ deleted file mode 100644
 index 6da64df..0000000
 Binary files a/node_modules/react-native-razorpay/android/build/intermediates/runtime_library_classes_dir/debug/com/razorpay/rn/Utils.class and /dev/null differ
 diff --git a/node_modules/react-native-razorpay/android/build/intermediates/runtime_library_classes_jar/debug/bundleLibRuntimeToJarDebug/classes.jar b/node_modules/react-native-razorpay/android/build/intermediates/runtime_library_classes_jar/debug/bundleLibRuntimeToJarDebug/classes.jar
-index 57e1568..3988fbc 100644
+index 57e1568..0a1fb5e 100644
 Binary files a/node_modules/react-native-razorpay/android/build/intermediates/runtime_library_classes_jar/debug/bundleLibRuntimeToJarDebug/classes.jar and b/node_modules/react-native-razorpay/android/build/intermediates/runtime_library_classes_jar/debug/bundleLibRuntimeToJarDebug/classes.jar differ
 diff --git a/node_modules/react-native-razorpay/android/build/intermediates/symbol_list_with_package_name/debug/package-aware-r.txt b/node_modules/react-native-razorpay/android/build/intermediates/symbol_list_with_package_name/debug/package-aware-r.txt
 deleted file mode 100644
@@ -4812,7 +4871,7 @@ index e7b8272..0000000
 -xml file_provider_path_checkout
 -xml rn_dev_preferences
 diff --git a/node_modules/react-native-razorpay/android/build/outputs/logs/manifest-merger-debug-report.txt b/node_modules/react-native-razorpay/android/build/outputs/logs/manifest-merger-debug-report.txt
-index f3ce4ec..3b733c5 100644
+index f3ce4ec..52430df 100644
 --- a/node_modules/react-native-razorpay/android/build/outputs/logs/manifest-merger-debug-report.txt
 +++ b/node_modules/react-native-razorpay/android/build/outputs/logs/manifest-merger-debug-report.txt
 @@ -1,33 +1,25 @@
@@ -4821,48 +4880,48 @@ index f3ce4ec..3b733c5 100644
 -ADDED from /Users/vivek.shindhe/Razorpay/react-native/react-native-razorpay/android/src/main/AndroidManifest.xml:2:1-10:12
 -INJECTED from /Users/vivek.shindhe/Razorpay/react-native/react-native-razorpay/android/src/main/AndroidManifest.xml:2:1-10:12
 -INJECTED from /Users/vivek.shindhe/Razorpay/react-native/react-native-razorpay/android/src/main/AndroidManifest.xml:2:1-10:12
-+ADDED from /Users/shubhamtripathi/Downloads/MHN-stagging/apps/mobile-app/node_modules/react-native-razorpay/android/src/main/AndroidManifest.xml:2:1-10:12
-+INJECTED from /Users/shubhamtripathi/Downloads/MHN-stagging/apps/mobile-app/node_modules/react-native-razorpay/android/src/main/AndroidManifest.xml:2:1-10:12
++ADDED from /Users/puneet/Desktop/MHN/node_modules/react-native-razorpay/android/src/main/AndroidManifest.xml:2:1-10:12
++INJECTED from /Users/puneet/Desktop/MHN/node_modules/react-native-razorpay/android/src/main/AndroidManifest.xml:2:1-10:12
  	package
 -		ADDED from /Users/vivek.shindhe/Razorpay/react-native/react-native-razorpay/android/src/main/AndroidManifest.xml:3:11-36
 -		INJECTED from /Users/vivek.shindhe/Razorpay/react-native/react-native-razorpay/android/src/main/AndroidManifest.xml
 -		INJECTED from /Users/vivek.shindhe/Razorpay/react-native/react-native-razorpay/android/src/main/AndroidManifest.xml
-+		ADDED from /Users/shubhamtripathi/Downloads/MHN-stagging/apps/mobile-app/node_modules/react-native-razorpay/android/src/main/AndroidManifest.xml:3:11-36
-+		INJECTED from /Users/shubhamtripathi/Downloads/MHN-stagging/apps/mobile-app/node_modules/react-native-razorpay/android/src/main/AndroidManifest.xml
++		ADDED from /Users/puneet/Desktop/MHN/node_modules/react-native-razorpay/android/src/main/AndroidManifest.xml:3:11-36
++		INJECTED from /Users/puneet/Desktop/MHN/node_modules/react-native-razorpay/android/src/main/AndroidManifest.xml
  	xmlns:android
 -		ADDED from /Users/vivek.shindhe/Razorpay/react-native/react-native-razorpay/android/src/main/AndroidManifest.xml:2:11-69
-+		ADDED from /Users/shubhamtripathi/Downloads/MHN-stagging/apps/mobile-app/node_modules/react-native-razorpay/android/src/main/AndroidManifest.xml:2:11-69
++		ADDED from /Users/puneet/Desktop/MHN/node_modules/react-native-razorpay/android/src/main/AndroidManifest.xml:2:11-69
  application
 -ADDED from /Users/vivek.shindhe/Razorpay/react-native/react-native-razorpay/android/src/main/AndroidManifest.xml:5:2-8:16
-+ADDED from /Users/shubhamtripathi/Downloads/MHN-stagging/apps/mobile-app/node_modules/react-native-razorpay/android/src/main/AndroidManifest.xml:5:2-8:16
++ADDED from /Users/puneet/Desktop/MHN/node_modules/react-native-razorpay/android/src/main/AndroidManifest.xml:5:2-8:16
  activity#com.razorpay.CheckoutActivity
 -ADDED from /Users/vivek.shindhe/Razorpay/react-native/react-native-razorpay/android/src/main/AndroidManifest.xml:6:3-7:79
-+ADDED from /Users/shubhamtripathi/Downloads/MHN-stagging/apps/mobile-app/node_modules/react-native-razorpay/android/src/main/AndroidManifest.xml:6:3-7:79
++ADDED from /Users/puneet/Desktop/MHN/node_modules/react-native-razorpay/android/src/main/AndroidManifest.xml:6:3-7:79
  	android:configChanges
 -		ADDED from /Users/vivek.shindhe/Razorpay/react-native/react-native-razorpay/android/src/main/AndroidManifest.xml:7:7-77
-+		ADDED from /Users/shubhamtripathi/Downloads/MHN-stagging/apps/mobile-app/node_modules/react-native-razorpay/android/src/main/AndroidManifest.xml:7:7-77
++		ADDED from /Users/puneet/Desktop/MHN/node_modules/react-native-razorpay/android/src/main/AndroidManifest.xml:7:7-77
  	android:name
 -		ADDED from /Users/vivek.shindhe/Razorpay/react-native/react-native-razorpay/android/src/main/AndroidManifest.xml:6:13-57
-+		ADDED from /Users/shubhamtripathi/Downloads/MHN-stagging/apps/mobile-app/node_modules/react-native-razorpay/android/src/main/AndroidManifest.xml:6:13-57
++		ADDED from /Users/puneet/Desktop/MHN/node_modules/react-native-razorpay/android/src/main/AndroidManifest.xml:6:13-57
  uses-sdk
 -INJECTED from /Users/vivek.shindhe/Razorpay/react-native/react-native-razorpay/android/src/main/AndroidManifest.xml reason: use-sdk injection requested
 -INJECTED from /Users/vivek.shindhe/Razorpay/react-native/react-native-razorpay/android/src/main/AndroidManifest.xml
 -INJECTED from /Users/vivek.shindhe/Razorpay/react-native/react-native-razorpay/android/src/main/AndroidManifest.xml
 -INJECTED from /Users/vivek.shindhe/Razorpay/react-native/react-native-razorpay/android/src/main/AndroidManifest.xml
 -INJECTED from /Users/vivek.shindhe/Razorpay/react-native/react-native-razorpay/android/src/main/AndroidManifest.xml
-+INJECTED from /Users/shubhamtripathi/Downloads/MHN-stagging/apps/mobile-app/node_modules/react-native-razorpay/android/src/main/AndroidManifest.xml reason: use-sdk injection requested
-+INJECTED from /Users/shubhamtripathi/Downloads/MHN-stagging/apps/mobile-app/node_modules/react-native-razorpay/android/src/main/AndroidManifest.xml
-+INJECTED from /Users/shubhamtripathi/Downloads/MHN-stagging/apps/mobile-app/node_modules/react-native-razorpay/android/src/main/AndroidManifest.xml
++INJECTED from /Users/puneet/Desktop/MHN/node_modules/react-native-razorpay/android/src/main/AndroidManifest.xml reason: use-sdk injection requested
++INJECTED from /Users/puneet/Desktop/MHN/node_modules/react-native-razorpay/android/src/main/AndroidManifest.xml
++INJECTED from /Users/puneet/Desktop/MHN/node_modules/react-native-razorpay/android/src/main/AndroidManifest.xml
  	android:targetSdkVersion
 -		INJECTED from /Users/vivek.shindhe/Razorpay/react-native/react-native-razorpay/android/src/main/AndroidManifest.xml
 -		ADDED from /Users/vivek.shindhe/Razorpay/react-native/react-native-razorpay/android/src/main/AndroidManifest.xml
 -		INJECTED from /Users/vivek.shindhe/Razorpay/react-native/react-native-razorpay/android/src/main/AndroidManifest.xml
-+		INJECTED from /Users/shubhamtripathi/Downloads/MHN-stagging/apps/mobile-app/node_modules/react-native-razorpay/android/src/main/AndroidManifest.xml
++		INJECTED from /Users/puneet/Desktop/MHN/node_modules/react-native-razorpay/android/src/main/AndroidManifest.xml
  	android:minSdkVersion
 -		INJECTED from /Users/vivek.shindhe/Razorpay/react-native/react-native-razorpay/android/src/main/AndroidManifest.xml
 -		ADDED from /Users/vivek.shindhe/Razorpay/react-native/react-native-razorpay/android/src/main/AndroidManifest.xml
 -		INJECTED from /Users/vivek.shindhe/Razorpay/react-native/react-native-razorpay/android/src/main/AndroidManifest.xml
-+		INJECTED from /Users/shubhamtripathi/Downloads/MHN-stagging/apps/mobile-app/node_modules/react-native-razorpay/android/src/main/AndroidManifest.xml
++		INJECTED from /Users/puneet/Desktop/MHN/node_modules/react-native-razorpay/android/src/main/AndroidManifest.xml
 diff --git a/node_modules/react-native-razorpay/android/build/tmp/compileDebugJavaWithJavac/compileTransaction/stash-dir/RazorpayModule.class.uniqueId0 b/node_modules/react-native-razorpay/android/build/tmp/compileDebugJavaWithJavac/compileTransaction/stash-dir/RazorpayModule.class.uniqueId0
 deleted file mode 100644
 index ecc8c4e..0000000
@@ -4872,67 +4931,5 @@ deleted file mode 100644
 index e75e493..0000000
 Binary files a/node_modules/react-native-razorpay/android/build/tmp/compileDebugJavaWithJavac/compileTransaction/stash-dir/RazorpayWebViewClient.class.uniqueId1 and /dev/null differ
 diff --git a/node_modules/react-native-razorpay/android/build/tmp/compileDebugJavaWithJavac/previous-compilation-data.bin b/node_modules/react-native-razorpay/android/build/tmp/compileDebugJavaWithJavac/previous-compilation-data.bin
-index 9c83ffb..caa5fb6 100644
+index 9c83ffb..ffc4480 100644
 Binary files a/node_modules/react-native-razorpay/android/build/tmp/compileDebugJavaWithJavac/previous-compilation-data.bin and b/node_modules/react-native-razorpay/android/build/tmp/compileDebugJavaWithJavac/previous-compilation-data.bin differ
-diff --git a/node_modules/react-native-razorpay/android/src/main/java/com/razorpay/rn/RazorpayPackage.java b/node_modules/react-native-razorpay/android/src/main/java/com/razorpay/rn/RazorpayPackage.java
-index 3b27f26..697069b 100644
---- a/node_modules/react-native-razorpay/android/src/main/java/com/razorpay/rn/RazorpayPackage.java
-+++ b/node_modules/react-native-razorpay/android/src/main/java/com/razorpay/rn/RazorpayPackage.java
-@@ -1,24 +1,45 @@
--
- package com.razorpay.rn;
- 
--import java.util.Arrays;
--import java.util.Collections;
--import java.util.List;
-+import androidx.annotation.NonNull;
-+import androidx.annotation.Nullable;
- 
--import com.facebook.react.ReactPackage;
-+import com.facebook.react.TurboReactPackage;
- import com.facebook.react.bridge.NativeModule;
- import com.facebook.react.bridge.ReactApplicationContext;
--import com.facebook.react.uimanager.ViewManager;
--import com.facebook.react.bridge.JavaScriptModule;
-+import com.facebook.react.module.model.ReactModuleInfo;
-+import com.facebook.react.module.model.ReactModuleInfoProvider;
-+
-+import java.util.HashMap;
-+import java.util.Map;
-+
-+public class RazorpayPackage extends TurboReactPackage {
- 
--public class RazorpayPackage implements ReactPackage {
-+    @Nullable
-     @Override
--    public List<NativeModule> createNativeModules(ReactApplicationContext reactContext) {
--      return Arrays.<NativeModule>asList(new RazorpayModule(reactContext));
-+    public NativeModule getModule(@NonNull String name, @NonNull ReactApplicationContext reactContext) {
-+        if (RazorpayModule.NAME.equals(name)) {
-+            return new RazorpayModule(reactContext);
-+        }
-+        return null;
-     }
- 
-     @Override
--    public List<ViewManager> createViewManagers(ReactApplicationContext reactContext) {
--      return Collections.emptyList();
-+    public ReactModuleInfoProvider getReactModuleInfoProvider() {
-+        return () -> {
-+            Map<String, ReactModuleInfo> map = new HashMap<>();
-+            map.put(
-+                RazorpayModule.NAME,
-+                new ReactModuleInfo(
-+                    RazorpayModule.NAME,
-+                    RazorpayModule.class.getName(),
-+                    false,  // canOverrideExistingModule
-+                    false,  // needsEagerInit
-+                    false,  // hasConstants
-+                    false,  // isCxxModule
-+                    true    // isTurboModule
-+                )
-+            );
-+            return map;
-+        };
-     }
- }

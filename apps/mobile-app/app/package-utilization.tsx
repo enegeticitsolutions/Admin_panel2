@@ -10,7 +10,6 @@ import { useSafeBack } from '@/hooks/useSafeBack';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Location from 'expo-location';
 import { AddressPicker } from '@/components/ui/AddressPicker';
-// @ts-ignore
 import RazorpayCheckout from 'react-native-razorpay';
 import Constants from 'expo-constants';
 
@@ -372,47 +371,37 @@ export default function PackageUtilizationScreen() {
         theme: { color: '#FF5B0A' }
       };
 
-      let paymentDetails: any;
       if (Platform.OS === 'web') {
+        Alert.alert('Web Notice', 'Razorpay native checkout is not supported on web. Please complete checkout on the mobile app.');
+        setAddonProcessing(false);
+        return;
+      }
+
+      let paymentDetails: any;
+      try {
+        console.log('[Razorpay Add-on] Opening checkout with options:', JSON.stringify({
+          key: options.key,
+          amount: options.amount,
+          order_id: options.order_id,
+          currency: options.currency,
+        }));
+
+        const response = await RazorpayCheckout.open(options);
         paymentDetails = {
-          razorpay_payment_id: 'pay_test_' + Date.now(),
-          razorpay_order_id: orderData.data.order_id,
-          razorpay_signature: 'DEV_MOCK_SIGNATURE'
+          razorpay_payment_id: response.razorpay_payment_id,
+          razorpay_order_id: response.razorpay_order_id,
+          razorpay_signature: response.razorpay_signature
         };
-        Alert.alert('Web Mode', 'Simulating payment on web.');
-      } else {
-        try {
-          if (!RazorpayCheckout) {
-            paymentDetails = {
-              razorpay_payment_id: 'pay_test_' + Date.now(),
-              razorpay_order_id: orderData.data.order_id,
-              razorpay_signature: 'DEV_MOCK_SIGNATURE'
-            };
-            Alert.alert('Test Mode 🧪', 'Razorpay not available in Expo Go. Simulating payment.');
-          } else {
-            const response = await RazorpayCheckout.open(options);
-            paymentDetails = {
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_order_id: response.razorpay_order_id,
-              razorpay_signature: response.razorpay_signature
-            };
-          }
-        } catch (payErr: any) {
-          const msg = payErr?.message || payErr?.description || '';
-          if (msg.includes('cancel') || payErr?.code === 0) {
-            setAddonProcessing(false);
-            return;
-          }
-          if (msg.includes('Native module cannot be null') || msg.includes('null')) {
-            paymentDetails = {
-              razorpay_payment_id: 'pay_test_' + Date.now(),
-              razorpay_order_id: orderData.data.order_id,
-              razorpay_signature: 'DEV_MOCK_SIGNATURE'
-            };
-          } else {
-            throw new Error(msg || 'Payment failed');
-          }
+      } catch (payErr: any) {
+        setAddonProcessing(false);
+        const msg = payErr?.description || payErr?.message || '';
+        if (payErr?.code === 0 || (typeof msg === 'string' && msg.toLowerCase().includes('cancel'))) {
+          console.log('[Razorpay Add-on] Payment cancelled by user.');
+          return;
         }
+        console.error('[Razorpay Add-on Error]', payErr?.code, msg, payErr);
+        Alert.alert('Payment Failed', (typeof msg === 'string' && msg) ? msg : 'Add-on payment failed. Please try again.');
+        return;
       }
 
       // 2. Confirm purchase on backend

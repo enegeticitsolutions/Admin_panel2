@@ -13,6 +13,9 @@ import {
   Modal,
   TextInput,
   Dimensions,
+  KeyboardAvoidingView,
+  TouchableWithoutFeedback,
+  Keyboard,
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter, useFocusEffect } from 'expo-router';
@@ -1133,8 +1136,11 @@ export default function SathiDashboard() {
 
       {/* OTP Verification Modal */}
       <Modal visible={showOtpModal} transparent animationType="slide" onRequestClose={() => setShowOtpModal(false)}>
-        <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)' }}>
-          <View style={{ backgroundColor: '#FFFFFF', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: scale(24), paddingBottom: scale(40) }}>
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
+            <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)' }}>
+              <TouchableWithoutFeedback accessible={false}>
+                <View style={{ backgroundColor: '#FFFFFF', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: scale(24), paddingBottom: scale(40) }}>
             <Text style={{ fontSize: scale(18), fontFamily: 'Poppins-Bold', color: '#111827', marginBottom: scale(4) }}>Start Visit</Text>
             <Text style={{ fontSize: scale(13), fontFamily: 'Poppins-Regular', color: '#6B7280', marginBottom: scale(24) }}>Ask the beneficiary for the 4-digit PIN displayed on their app to start the visit.</Text>
 
@@ -1171,14 +1177,20 @@ export default function SathiDashboard() {
                 )}
               </TouchableOpacity>
             </View>
-          </View>
-        </View>
+                </View>
+              </TouchableWithoutFeedback>
+            </View>
+          </KeyboardAvoidingView>
+        </TouchableWithoutFeedback>
       </Modal>
 
       {/* Feedback Modal */}
       <Modal visible={showFeedbackModal} transparent animationType="slide" onRequestClose={() => setShowFeedbackModal(false)}>
-        <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)' }}>
-          <View style={{ backgroundColor: '#FFFFFF', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: scale(24), paddingBottom: scale(40) }}>
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
+            <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)' }}>
+              <TouchableWithoutFeedback accessible={false}>
+                <View style={{ backgroundColor: '#FFFFFF', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: scale(24), paddingBottom: scale(40) }}>
             <Text style={{ fontSize: scale(18), fontFamily: 'Poppins-Bold', color: '#111827', marginBottom: scale(4) }}>Visit Completed</Text>
             <Text style={{ fontSize: scale(13), fontFamily: 'Poppins-Regular', color: '#6B7280', marginBottom: scale(24) }}>Please rate the visit and add some notes for your records.</Text>
 
@@ -1233,8 +1245,11 @@ export default function SathiDashboard() {
             >
               <Text style={{ color: '#9CA3AF', fontFamily: 'Poppins-Medium', fontSize: scale(14), textDecorationLine: 'underline' }}>Skip Feedback</Text>
             </TouchableOpacity>
-          </View>
-        </View>
+                </View>
+              </TouchableWithoutFeedback>
+            </View>
+          </KeyboardAvoidingView>
+        </TouchableWithoutFeedback>
       </Modal>
 
     </View>

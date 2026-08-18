@@ -1,8 +1,10 @@
 import { Router, Response } from 'express';
 import prisma from '../../core/database';
 import { authenticate, AuthRequest } from '../shared/deps';
+import { UserAccountService } from '../../services/shared/user_account.service';
 
 const router = Router();
+const userAccountService = UserAccountService.getInstance();
 
 // Fetch beneficiary profile information
 router.get('/me', authenticate, async (req: AuthRequest, res: Response) => {

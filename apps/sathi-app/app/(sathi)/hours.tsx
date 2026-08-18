@@ -10,6 +10,10 @@ import {
   useWindowDimensions,
   Alert,
   Modal,
+  KeyboardAvoidingView,
+  TouchableWithoutFeedback,
+  Keyboard,
+  Platform,
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter, useFocusEffect } from 'expo-router';
@@ -369,8 +373,11 @@ export default function SathiHours() {
 
         {/* OTP Modal */}
         <Modal visible={showOtpModal} transparent animationType="fade">
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+            <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
+              <View style={styles.modalOverlay}>
+                <TouchableWithoutFeedback accessible={false}>
+                  <View style={styles.modalContent}>
               <Text style={styles.modalTitle}>Enter PIN</Text>
               <Text style={styles.modalDesc}>
                 Ask {selectedMatch?.beneficiary.name} for the 4-digit PIN displayed on their app to start the visit.
@@ -398,8 +405,11 @@ export default function SathiHours() {
                   <Text style={styles.modalSubmitText}>Verify & Start</Text>
                 </TouchableOpacity>
               </View>
-            </View>
-          </View>
+                  </View>
+                </TouchableWithoutFeedback>
+              </View>
+            </KeyboardAvoidingView>
+          </TouchableWithoutFeedback>
         </Modal>
 
         {/* Feedback Modal */}
@@ -409,8 +419,11 @@ export default function SathiHours() {
           animationType="fade"
           onRequestClose={() => setShowFeedbackModal(false)}
         >
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+            <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
+              <View style={styles.modalOverlay}>
+                <TouchableWithoutFeedback accessible={false}>
+                  <View style={styles.modalContent}>
               <Text style={styles.modalTitle}>Visit Feedback</Text>
               <Text style={styles.modalSubtitle}>How was your visit? Any notes or concerns?</Text>
               
@@ -436,8 +449,11 @@ export default function SathiHours() {
                   <Text style={styles.modalSubmitText}>Submit</Text>
                 </TouchableOpacity>
               </View>
-            </View>
-          </View>
+                  </View>
+                </TouchableWithoutFeedback>
+              </View>
+            </KeyboardAvoidingView>
+          </TouchableWithoutFeedback>
         </Modal>
 
         {/* Visit Logs History */}
