@@ -1467,7 +1467,20 @@ export const getSubscriptionPackages = async (regionId?: string) => {
     }) as any;
   }
 
-  return packages;
+  // Map Prisma relations to the format expected by Admin Frontend
+  const mappedPackages = packages.map((pkg: any) => ({
+    ...pkg,
+    regions: pkg.packageRegions?.map((pr: any) => pr.region) || [],
+    regionIds: pkg.packageRegions?.map((pr: any) => pr.regionId) || [],
+    benefits: pkg.packageBenefits?.map((pb: any) => ({
+      ...pb,
+      benefitId: pb.benefitId,
+      monthlyUnits: pb.unitsIncluded,
+      unitsIncluded: pb.unitsIncluded,
+    })) || []
+  }));
+
+  return mappedPackages;
 };
 
 

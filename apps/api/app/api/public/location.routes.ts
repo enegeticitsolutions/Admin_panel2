@@ -38,14 +38,19 @@ router.get('/reverse-geocode', async (req: Request, res: Response, next: NextFun
     const result = data.results[0];
     const address = result.formatted_address;
     
-    // Extract city, state, pincode from address_components
+    // Extract city, state, pincode from address_components across all results
     let city = '', state = '', pincode = '';
-    if (result.address_components) {
-      result.address_components.forEach((comp: any) => {
-          if (comp.types.includes('locality')) city = comp.long_name;
-          if (comp.types.includes('administrative_area_level_1')) state = comp.long_name;
-          if (comp.types.includes('postal_code')) pincode = comp.long_name;
-      });
+    
+    for (const res of data.results) {
+      if (res.address_components) {
+        res.address_components.forEach((comp: any) => {
+            if (!city && comp.types.includes('locality')) city = comp.long_name;
+            if (!state && comp.types.includes('administrative_area_level_1')) state = comp.long_name;
+            if (!pincode && comp.types.includes('postal_code')) pincode = comp.long_name;
+        });
+      }
+      // Stop searching once we have all three
+      if (city && state && pincode) break;
     }
 
     res.json({

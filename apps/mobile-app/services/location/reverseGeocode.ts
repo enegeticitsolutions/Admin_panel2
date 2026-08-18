@@ -15,7 +15,12 @@ export const reverseGeocode = async (
 ): Promise<ReverseGeocodeResult> => {
   try {
     const response = await fetch(
-      `${API_URL}/public/location/reverse-geocode?lat=${lat}&lng=${lng}`
+      `${API_URL}/public/location/reverse-geocode?lat=${lat}&lng=${lng}`,
+      {
+        headers: {
+          'x-app-secret': process.env.EXPO_PUBLIC_APP_SECRET || '',
+        },
+      }
     );
     const result = await response.json();
 

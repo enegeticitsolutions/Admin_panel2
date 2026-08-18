@@ -55,7 +55,11 @@ export default function SubscriptionPackagesScreen() {
         setServiceMessage('');
         setIsServiceable(null);
         try {
-            const res = await fetch(`${API_URL}/public/location/reverse-geocode?lat=${lat}&lng=${lng}`);
+            const res = await fetch(`${API_URL}/public/location/reverse-geocode?lat=${lat}&lng=${lng}`, {
+                headers: {
+                    'x-app-secret': process.env.EXPO_PUBLIC_APP_SECRET || ''
+                }
+            });
             const json = await res.json();
             if (json.success && json.data.pincode) {
                 const pincode = json.data.pincode;
@@ -63,7 +67,7 @@ export default function SubscriptionPackagesScreen() {
                 const svcJson = await svcRes.json();
                 
                 if (svcJson.success && svcJson.data.available) {
-                    const regionId = svcJson.data.regionId || '';
+                    const regionId = svcJson.data.region?.id || '';
                     setServiceMessage(`Serving ${json.data.address || svcJson.data.location}! Showing targeted packages.`);
                     setIsServiceable(true);
                     setSelectedAddress(json.data.address || `${svcJson.data.location} (${pincode})`);
@@ -168,7 +172,7 @@ export default function SubscriptionPackagesScreen() {
                         const pinRes = await fetch(`${API_URL}/public/zones/check-pincode?pincode=${userPincode}`);
                         const pinJson = await pinRes.json();
                         if (pinJson.success && pinJson.data.available) {
-                            const regionId = pinJson.data.regionId || '';
+                            const regionId = pinJson.data.region?.id || '';
                             setSelectedAddress(pinJson.data.location);
                             setSelectedPincode(userPincode);
                             setSelectedRegionId(regionId);
