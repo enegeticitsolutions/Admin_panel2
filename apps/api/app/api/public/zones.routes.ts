@@ -1,7 +1,32 @@
 import { Router, Request, Response } from 'express';
-import prisma from '../../core/database';
+import { regionService } from '../../services/region.service';
 
 const router = Router();
+
+// GET /api/public/zones/check-serviceability?lat=28.6139&lng=77.2090&pincode=110001
+router.get('/check-serviceability', async (req: Request, res: Response) => {
+  const lat = req.query.lat ? parseFloat(req.query.lat as string) : undefined;
+  const lng = req.query.lng ? parseFloat(req.query.lng as string) : undefined;
+  const pincode = req.query.pincode as string | undefined;
+
+  if ((lat === undefined || isNaN(lat) || lng === undefined || isNaN(lng)) && (!pincode || pincode.trim().length < 6)) {
+    return res.status(400).json({
+      success: false,
+      message: 'Either valid GPS coordinates (lat, lng) or a 6-digit pincode are required.',
+    });
+  }
+
+  try {
+    const result = await regionService.checkServiceability(lat, lng, pincode);
+    return res.json({
+      success: true,
+      data: result,
+    });
+  } catch (error: any) {
+    console.error('Error checking serviceability:', error);
+    res.status(500).json({ success: false, message: 'Failed to check serviceability.' });
+  }
+});
 
 // GET /api/public/zones/check-pincode?pincode=123456
 router.get('/check-pincode', async (req: Request, res: Response) => {
@@ -12,56 +37,11 @@ router.get('/check-pincode', async (req: Request, res: Response) => {
   }
 
   try {
-    // 1. Search for an active zone with the given pincode
-    const zone = await prisma.zone.findFirst({
-      where: {
-        pincode: pincode,
-        isActive: true,
-      },
-    });
-
-    if (zone) {
-      // Find how many active care companions are associated with this zone
-      // Since care companions store their zone as a string in `Zone.name` or `Zone.city` depending on the logic, 
-      // let's do a basic check.
-      const careCompanionCount = await prisma.careCompanion.count({
-        where: {
-          zone: zone.name, // assuming CCs are mapped to the zone name
-          isAvailable: true,
-        }
-      });
-
-      // Find how many total active centers (zones) exist with the same city
-      const centersCount = await prisma.zone.count({
-        where: {
-          city: zone.city,
-          isActive: true,
-        }
-      });
-
-      return res.json({
-        success: true,
-        data: {
-          available: true,
-          location: `${zone.city}, ${zone.state}`,
-          zoneId: zone.id,
-          regionId: zone.regionId,
-          stats: {
-            companions: careCompanionCount,
-            centers: centersCount,
-          }
-        }
-      });
-    }
-
-    // Pincode doesn't match an active zone
+    const result = await regionService.checkServiceability(undefined, undefined, pincode);
     return res.json({
       success: true,
-      data: {
-        available: false,
-      }
+      data: result,
     });
-    
   } catch (error: any) {
     console.error('Error verifying pincode:', error);
     res.status(500).json({ success: false, message: 'Failed to verify pincode.' });

@@ -46,6 +46,7 @@ export default function BeneficiaryInfoScreen() {
     // Track original phone so we don't falsely block it during verification
     const [originalPhone, setOriginalPhone] = useState<string>('');
     const [isSameAsSubscriber, setIsSameAsSubscriber] = useState(false);
+    const [hasActiveSelf, setHasActiveSelf] = useState(false);
     const [subscriberProfile, setSubscriberProfile] = useState<any>(null);
 
     useEffect(() => {
@@ -62,19 +63,62 @@ export default function BeneficiaryInfoScreen() {
                     } catch (e) {}
                 }
 
-                // Attempt to fetch fresh profile from API
+                // Attempt to fetch fresh profile & dashboard data from API
                 const token = await AsyncStorage.getItem('userToken');
                 if (token) {
                     try {
-                        const res = await fetch(`${API_URL}/subscriber/profile`, {
-                            headers: { Authorization: `Bearer ${token}` }
-                        });
-                        const json = await res.json();
-                        if (json.success && json.data) {
-                            parsedUser = { ...parsedUser, ...json.data };
+                        const [dashRes, profileRes] = await Promise.allSettled([
+                            fetch(`${API_URL}/subscriber/dashboard/me`, {
+                                headers: { Authorization: `Bearer ${token}` }
+                            }).then(r => r.json()),
+                            fetch(`${API_URL}/subscriber/profile`, {
+                                headers: { Authorization: `Bearer ${token}` }
+                            }).then(r => r.json())
+                        ]);
+
+                        let activeSelf = false;
+
+                        if (dashRes.status === 'fulfilled' && dashRes.value?.success) {
+                            const dData = dashRes.value;
+                            const bens = dData.beneficiaries || [];
+                            const activeSubs = dData.activeSubscriptions || [];
+
+                            activeSelf = bens.some((b: any) => {
+                                const isSelfRel = (b.relationship || '').toLowerCase() === 'self' || b.isSelf || (parsedUser?.id && b.userId === parsedUser.id);
+                                if (!isSelfRel) return false;
+                                const hasActivePkg = b.packageStatus === 'active' || (!b.isExpired && b.packageStatus !== 'expired' && b.packageStatus !== 'none') || activeSubs.some((s: any) => s.beneficiaryId === b.id);
+                                return hasActivePkg;
+                            });
+                        }
+
+                        if (!activeSelf) {
+                            try {
+                                const cacheRaw = await AsyncStorage.getItem('beneficiaryDashboardCache');
+                                if (cacheRaw) {
+                                    const cache = JSON.parse(cacheRaw);
+                                    Object.values(cache).forEach((cachedItem: any) => {
+                                        const dData = cachedItem?.response;
+                                        if (dData?.beneficiaries) {
+                                            const found = dData.beneficiaries.some((b: any) => {
+                                                const isSelfRel = (b.relationship || '').toLowerCase() === 'self' || b.isSelf || (parsedUser?.id && b.userId === parsedUser.id);
+                                                return isSelfRel && (b.packageStatus === 'active' || !b.isExpired);
+                                            });
+                                            if (found) activeSelf = true;
+                                        }
+                                    });
+                                }
+                            } catch (_) {}
+                        }
+
+                        setHasActiveSelf(activeSelf);
+
+                        if (profileRes.status === 'fulfilled' && profileRes.value?.success && profileRes.value.data) {
+                            parsedUser = { ...parsedUser, ...profileRes.value.data };
                             setUserData(parsedUser);
                         }
-                    } catch (err) {}
+                    } catch (err) {
+                        console.error('Error loading subscriber profile/dashboard:', err);
+                    }
                 }
 
                 setSubscriberProfile({
@@ -235,7 +279,8 @@ export default function BeneficiaryInfoScreen() {
 
     const [showRelationshipModal, setShowRelationshipModal] = useState(false);
     const [pickedPhotoUri, setPickedPhotoUri] = useState<string | null>(null);
-    const relationships = ['Self', 'Spouse', 'Father', 'Mother', 'Son', 'Daughter', 'Sibling', 'Guardian', 'Friend', 'Other'];
+    const allRelationships = ['Self', 'Spouse', 'Father', 'Mother', 'Son', 'Daughter', 'Sibling', 'Guardian', 'Friend', 'Other'];
+    const relationships = hasActiveSelf ? allRelationships.filter(r => r !== 'Self') : allRelationships;
 
     // Request location permission immediately on screen load
     const { location: userLocation } = useLocationPermission({ requestOnMount: true });
@@ -450,8 +495,8 @@ export default function BeneficiaryInfoScreen() {
                     <View style={styles.formCard}>
                         <Text style={styles.sectionTitle}>Beneficiary Information</Text>
 
-                        {/* Same as Subscriber Toggle — hidden when activating pre-existing beneficiaries */}
-                        {!isVerificationFlow && (
+                        {/* Same as Subscriber Toggle — hidden when activating pre-existing beneficiaries or when subscriber already has an active self package */}
+                        {!isVerificationFlow && !hasActiveSelf && (
                             <TouchableOpacity
                                 style={[
                                     styles.sameAsSubscriberBox,

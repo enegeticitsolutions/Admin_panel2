@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator, Animated, Dimensions, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator, Animated, Dimensions, Alert, Linking } from 'react-native';
 
 const { width } = Dimensions.get('window');
 const DRAWER_WIDTH = width * 0.75;
@@ -16,6 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import HeaderSpacer from '../../components/HeaderSpacer';
 import { API_URL } from '@/constants/api';
 import { useAuth } from '@/contexts/AuthContext';
+import { LEGAL_CONFIG } from '@/constants/legal';
 
 export default function SchedulePreferencesScreen() {
     const router = useRouter();
@@ -232,7 +233,21 @@ export default function SchedulePreferencesScreen() {
                                 />
                             </TouchableOpacity>
                             <Text style={styles.agreementText}>
-                                I agree to the <Text style={styles.boldText}>Terms of Service</Text> and <Text style={styles.boldText}>Privacy Policy</Text>. I understand that this is a demo application and no actual data will be stored.
+                                I agree to the{' '}
+                                <Text
+                                    style={styles.linkText}
+                                    onPress={() => Linking.openURL(LEGAL_CONFIG.TERMS_OF_SERVICE_URL)}
+                                >
+                                    Terms of Service
+                                </Text>
+                                {' '}and{' '}
+                                <Text
+                                    style={styles.linkText}
+                                    onPress={() => Linking.openURL(LEGAL_CONFIG.PRIVACY_POLICY_URL)}
+                                >
+                                    Privacy Policy
+                                </Text>
+                                . I understand that this is a demo application and no actual data will be stored.
                             </Text>
                         </View>
 
@@ -310,6 +325,7 @@ const styles = StyleSheet.create({
     checkbox: { marginRight: 8, marginTop: 1 },
     agreementText: { flex: 1, fontFamily: 'Poppins_400Regular', fontSize: 14, color: '#000000', lineHeight: 20 },
     boldText: { fontFamily: 'Poppins_400Regular', color: '#000000' },
+    linkText: { fontFamily: 'Poppins_600SemiBold', color: '#FE6700', textDecorationLine: 'underline' },
     divider: { height: 1, backgroundColor: '#E5E7EB', marginBottom: 13 },
 
     buttonContainerStacked: { alignItems: 'center' },

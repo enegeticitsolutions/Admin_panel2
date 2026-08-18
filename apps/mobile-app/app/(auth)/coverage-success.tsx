@@ -1,10 +1,11 @@
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Linking } from 'react-native';
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeBack } from '@/hooks/useSafeBack';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigationStack } from '@/contexts/NavigationStackContext';
 import { useAndroidBackHandler } from '@/hooks/useAndroidBackHandler';
+import { LEGAL_CONFIG } from '@/constants/legal';
 
 export default function CoverageSuccessScreen() {
     const router = useRouter();
@@ -13,8 +14,8 @@ export default function CoverageSuccessScreen() {
     const safeBack = useSafeBack();
 
     const handleProceed = () => {
-        // Navigate to the Subscription Setup flow instead of tabs immediately
-        replace("/(setup)/subscription-packages");
+        // Proceed to registration or setup
+        replace("/(auth)/register");
     };
 
     return (
@@ -31,7 +32,7 @@ export default function CoverageSuccessScreen() {
                 <View style={styles.card}>
                     <Text style={styles.title}>Great news!</Text>
                     <Text style={styles.subtitle}>
-                        We serve your area. You can now enjoy our full range of services.
+                        We serve your area. You can now create your account and get full elder care support.
                     </Text>
 
                     {/* Location Badge styling within the card */}
@@ -39,7 +40,7 @@ export default function CoverageSuccessScreen() {
                         <View style={styles.locationBadge}>
                             <View style={styles.greenDot} />
                             <Text style={styles.locationText}>
-                                Service Coverage{"\n"}Active in 110001
+                                Service Coverage Active in Your Area
                             </Text>
                         </View>
                     </View>
@@ -48,12 +49,12 @@ export default function CoverageSuccessScreen() {
                     <View style={styles.mapMock}>
                         <Ionicons name="map-outline" size={64} color="#E5E7EB" />
                         <View style={styles.mapPin}>
-                            <Ionicons name="location" size={32} color="#3B82F6" />
+                            <Ionicons name="location" size={32} color="#22C55E" />
                         </View>
                     </View>
 
                     <TouchableOpacity style={styles.proceedButton} onPress={handleProceed}>
-                        <Text style={styles.proceedButtonText}>Proceed to Dashboard</Text>
+                        <Text style={styles.proceedButtonText}>Continue to Create Account</Text>
                     </TouchableOpacity>
                 </View>
 
@@ -61,8 +62,19 @@ export default function CoverageSuccessScreen() {
                 <View style={styles.footer}>
                     <Text style={styles.terms}>
                         By continuing, you agree to our{"\n"}
-                        <Text style={styles.orangeText}>Terms of Service</Text> and{" "}
-                        <Text style={styles.orangeText}>Privacy Policy</Text>
+                        <Text
+                            style={styles.orangeText}
+                            onPress={() => Linking.openURL(LEGAL_CONFIG.TERMS_OF_SERVICE_URL)}
+                        >
+                            Terms of Service
+                        </Text>
+                        {" "}and{" "}
+                        <Text
+                            style={styles.orangeText}
+                            onPress={() => Linking.openURL(LEGAL_CONFIG.PRIVACY_POLICY_URL)}
+                        >
+                            Privacy Policy
+                        </Text>
                     </Text>
                 </View>
             </ScrollView>

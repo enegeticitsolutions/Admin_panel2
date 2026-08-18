@@ -1,14 +1,18 @@
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, Alert, ActivityIndicator, ScrollView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, Alert, ActivityIndicator, ScrollView, Linking, Modal } from 'react-native';
 import { useState, useEffect, useRef } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { API_URL } from '@/constants/api';
+import { LEGAL_CONFIG } from '@/constants/legal';
 import { useSafeBack } from '@/hooks/useSafeBack';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigationStack } from '@/contexts/NavigationStackContext';
 import { useAndroidBackHandler } from '@/hooks/useAndroidBackHandler';
 import { useAuth } from '@/contexts/AuthContext';
 import { IS_PASSWORD_LOGIN_ENABLED } from '@/constants/authMode';
+import { AddressPicker, SelectedAddress } from '@/components/ui/AddressPicker';
+import { getAccurateLocation } from '@/services/location';
+import { serviceabilityService, ServiceabilityResult } from '@/services/serviceability.service';
 
 export default function RegisterScreen() {
     const { push, replace } = useNavigationStack();
@@ -18,6 +22,7 @@ export default function RegisterScreen() {
 
     const [step, setStep] = useState<'form' | 'otp'>('form');
     const [otp, setOtp] = useState(["", "", "", "", "", ""]);
+    const [consentGiven, setConsentGiven] = useState(false);
     const [resendTimer, setResendTimer] = useState(30);
     const inputRefs = useRef<Array<TextInput | null>>([]);
 
@@ -25,12 +30,17 @@ export default function RegisterScreen() {
         name: "",
         phone: "",
         pincode: "",
+        address: "",
         age: "",
         password: "",
+        latitude: undefined as number | undefined,
+        longitude: undefined as number | undefined,
     });
 
-    const [isCheckingPincode, setIsCheckingPincode] = useState(false);
-    const [zoneDetails, setZoneDetails] = useState<any>(null);
+    const [showAddressPicker, setShowAddressPicker] = useState(false);
+    const [isDetectingGps, setIsDetectingGps] = useState(false);
+    const [isCheckingServiceability, setIsCheckingServiceability] = useState(false);
+    const [serviceability, setServiceability] = useState<ServiceabilityResult | null>(null);
     const [isLoading, setIsLoading] = useState(false);
 
     // Resend countdown timer
@@ -44,33 +54,60 @@ export default function RegisterScreen() {
         return () => clearInterval(interval);
     }, [step, resendTimer]);
 
-    // Dynamic Pincode Check
-    useEffect(() => {
-        const checkPincode = async () => {
-            if (form.pincode.length === 6) {
-                setIsCheckingPincode(true);
-                try {
-                    const response = await fetch(`${API_URL}/public/zones/check-pincode?pincode=${form.pincode}`);
-                    const data = await response.json();
-                    if (data.success && data.data && data.data.available) {
-                        setZoneDetails(data.data);
-                    } else {
-                        setZoneDetails(false);
-                    }
-                } catch (err) {
-                    console.error("Failed to check pincode", err);
-                    setZoneDetails(null);
-                } finally {
-                    setIsCheckingPincode(false);
-                }
-            } else {
-                setZoneDetails(null);
-            }
-        };
+    // ── Location & Serviceability Handlers ──────────────────────────────────
 
-        const timeout = setTimeout(checkPincode, 500);
-        return () => clearTimeout(timeout);
-    }, [form.pincode]);
+    const evaluateServiceability = async (lat?: number, lng?: number, pin?: string) => {
+        setIsCheckingServiceability(true);
+        try {
+            const result = await serviceabilityService.checkLocation(lat, lng, pin);
+            setServiceability(result);
+        } catch (err) {
+            console.error("Serviceability evaluation failed:", err);
+            setServiceability(null);
+        } finally {
+            setIsCheckingServiceability(false);
+        }
+    };
+
+    const handleAutoDetectLocation = async () => {
+        setIsDetectingGps(true);
+        try {
+            const loc = await getAccurateLocation();
+            const resolvedAddress = loc.address || [loc.city, loc.state].filter(Boolean).join(', ') || 'Current Location';
+            setForm((prev) => ({
+                ...prev,
+                address: resolvedAddress,
+                pincode: loc.pincode || prev.pincode,
+                latitude: loc.latitude,
+                longitude: loc.longitude,
+            }));
+            await evaluateServiceability(loc.latitude, loc.longitude, loc.pincode);
+        } catch (err) {
+            Alert.alert(
+                "GPS Location",
+                "Could not automatically detect your location. Please select it on the map."
+            );
+            setShowAddressPicker(true);
+        } finally {
+            setIsDetectingGps(false);
+        }
+    };
+
+    const handleAddressSelected = async (selected: SelectedAddress) => {
+        setShowAddressPicker(false);
+        setForm((prev) => ({
+            ...prev,
+            address: selected.address,
+            pincode: selected.pincode || prev.pincode,
+            latitude: selected.latitude !== 0 ? selected.latitude : prev.latitude,
+            longitude: selected.longitude !== 0 ? selected.longitude : prev.longitude,
+        }));
+        await evaluateServiceability(
+            selected.latitude !== 0 ? selected.latitude : undefined,
+            selected.longitude !== 0 ? selected.longitude : undefined,
+            selected.pincode
+        );
+    };
 
     const handleBackPress = () => {
         if (step === 'otp') {
@@ -131,13 +168,27 @@ export default function RegisterScreen() {
             Alert.alert("Invalid Phone", "Please enter a valid 10-digit phone number.");
             return;
         }
-        if (form.pincode.length !== 6) {
-            Alert.alert("Invalid Pincode", "Please enter a valid 6-digit pincode.");
+        if (!form.address && !form.pincode) {
+            Alert.alert("Location Required", "Please select your service location on the map.");
+            return;
+        }
+        if (serviceability && !serviceability.isServiceable) {
+            Alert.alert(
+                "Area Not Serviceable",
+                "We are not operating in this area yet. Please select a location within our active service regions."
+            );
             return;
         }
         const ageNum = parseInt(form.age, 10);
         if (isNaN(ageNum) || ageNum < 18 || ageNum > 120) {
             Alert.alert("Invalid Age", "Please enter a valid age (18+).");
+            return;
+        }
+        if (!consentGiven) {
+            Alert.alert(
+                "Consent Required",
+                "Please accept our Terms of Service and Privacy Policy to continue."
+            );
             return;
         }
 
@@ -346,62 +397,102 @@ export default function RegisterScreen() {
                                     </View>
                                 </View>
 
-                                {/* Pincode */}
+                                {/* ── Swiggy/Zomato-Style Location Selector ── */}
                                 <View style={styles.inputGroup}>
-                                    <Text style={styles.label}>Service Area Pincode *</Text>
-                                    <TextInput
-                                        style={styles.input}
-                                        placeholder="Enter 6-digit pincode"
-                                        placeholderTextColor="#9CA3AF"
-                                        keyboardType="numeric"
-                                        maxLength={6}
-                                        value={form.pincode}
-                                        onChangeText={(text) => setForm({ ...form, pincode: text })}
-                                        editable={!isLoading}
-                                    />
+                                    <View style={styles.labelRow}>
+                                        <Text style={styles.label}>Service Location *</Text>
+                                        {form.address ? (
+                                            <TouchableOpacity onPress={() => setShowAddressPicker(true)}>
+                                                <Text style={styles.changeLocationText}>Change</Text>
+                                            </TouchableOpacity>
+                                        ) : null}
+                                    </View>
 
-                                    {isCheckingPincode && (
+                                    {/* Location Display / Select Box */}
+                                    <TouchableOpacity
+                                        style={[
+                                            styles.locationCard,
+                                            serviceability?.isServiceable === true && styles.locationCardSuccess,
+                                            serviceability && !serviceability.isServiceable && styles.locationCardError,
+                                        ]}
+                                        onPress={() => setShowAddressPicker(true)}
+                                        activeOpacity={0.8}
+                                    >
+                                        <View style={styles.locationIconCircle}>
+                                            <Ionicons name="location-sharp" size={20} color="#FE6700" />
+                                        </View>
+                                        <View style={styles.locationTextContainer}>
+                                            <Text style={styles.locationTitle} numberOfLines={1}>
+                                                {form.address ? form.address : "Select Service Area on Map"}
+                                            </Text>
+                                            <Text style={styles.locationSubtitle} numberOfLines={1}>
+                                                {form.pincode
+                                                    ? `Pincode: ${form.pincode} • Tap to view on map`
+                                                    : "Tap to search area or pin exact location"}
+                                            </Text>
+                                        </View>
+                                        <Ionicons name="chevron-forward" size={18} color="#9CA3AF" />
+                                    </TouchableOpacity>
+
+                                    {/* GPS Quick Detect Button */}
+                                    <TouchableOpacity
+                                        style={styles.gpsDetectBtn}
+                                        onPress={handleAutoDetectLocation}
+                                        disabled={isDetectingGps}
+                                        activeOpacity={0.8}
+                                    >
+                                        {isDetectingGps ? (
+                                            <ActivityIndicator size="small" color="#FE6700" style={{ marginRight: 8 }} />
+                                        ) : (
+                                            <Ionicons name="navigate-outline" size={16} color="#FE6700" style={{ marginRight: 6 }} />
+                                        )}
+                                        <Text style={styles.gpsDetectText}>
+                                            {isDetectingGps ? "Detecting GPS location..." : "Use Current GPS Location"}
+                                        </Text>
+                                    </TouchableOpacity>
+
+                                    {/* Checking Indicator */}
+                                    {isCheckingServiceability && (
                                         <View style={styles.checkingBox}>
                                             <ActivityIndicator size="small" color="#FE6700" />
-                                            <Text style={styles.checkingText}>Checking availability...</Text>
+                                            <Text style={styles.checkingText}>Verifying service coverage in your region...</Text>
                                         </View>
                                     )}
 
-                                    {zoneDetails && zoneDetails.available === true && (
-                                        <View>
-                                            <View style={styles.locationPinRow}>
-                                                <Ionicons name="pin" size={14} color="#EF4444" />
-                                                <Text style={styles.locationPinText}>{zoneDetails.location}</Text>
+                                    {/* Serviceable Success Badge */}
+                                    {serviceability && serviceability.isServiceable && !isCheckingServiceability && (
+                                        <View style={styles.successBox}>
+                                            <View style={styles.successHeader}>
+                                                <Ionicons name="checkmark-circle" size={20} color="#16A34A" />
+                                                <Text style={styles.successMessage}>
+                                                    {serviceability.message || `Great! We serve ${serviceability.region?.name || serviceability.location}`}
+                                                </Text>
                                             </View>
-                                            <View style={styles.successBox}>
-                                                <View style={styles.successHeader}>
-                                                    <Ionicons name="checkmark-circle-outline" size={20} color="#16A34A" />
-                                                    <Text style={styles.successMessage}>
-                                                        Great! We serve {zoneDetails.location}
-                                                    </Text>
-                                                </View>
-                                                <View style={styles.successStatsRow}>
-                                                    <Text style={styles.successCheck}>✓</Text>
-                                                    <Text style={styles.successStatText}>
-                                                        {zoneDetails.stats.companions} care companions available
-                                                    </Text>
-                                                </View>
-                                                <View style={styles.successStatsRow}>
-                                                    <Text style={styles.successCheck}>✓</Text>
-                                                    <Text style={styles.successStatText}>
-                                                        {zoneDetails.stats.centers} active care centers
-                                                    </Text>
-                                                </View>
+                                            <View style={styles.successStatsRow}>
+                                                <Text style={styles.successCheck}>✓</Text>
+                                                <Text style={styles.successStatText}>
+                                                    {serviceability.stats.companions} care companions available
+                                                </Text>
+                                            </View>
+                                            <View style={styles.successStatsRow}>
+                                                <Text style={styles.successCheck}>✓</Text>
+                                                <Text style={styles.successStatText}>
+                                                    {serviceability.stats.centers} active care centers
+                                                </Text>
                                             </View>
                                         </View>
                                     )}
 
-                                    {zoneDetails === false && (
+                                    {/* Unserviceable Warning Badge */}
+                                    {serviceability && !serviceability.isServiceable && !isCheckingServiceability && (
                                         <View style={styles.unavailableBox}>
-                                            <Ionicons name="information-circle-outline" size={20} color="#F59E0B" />
-                                            <Text style={styles.unavailableText}>
-                                                We are not serving this area yet, but we are coming soon!
-                                            </Text>
+                                            <Ionicons name="alert-circle-outline" size={22} color="#D97706" />
+                                            <View style={{ flex: 1, marginLeft: 10 }}>
+                                                <Text style={styles.unavailableTitle}>Area Not Yet Serviceable</Text>
+                                                <Text style={styles.unavailableText}>
+                                                    We haven't expanded to this specific area yet. Please select a location in Delhi NCR or active regions.
+                                                </Text>
+                                            </View>
                                         </View>
                                     )}
                                 </View>
@@ -437,10 +528,41 @@ export default function RegisterScreen() {
                                     </View>
                                 )}
 
+                                {/* ── Data Consent Checkbox ── */}
                                 <TouchableOpacity
-                                    style={[styles.primaryButton, isLoading && styles.primaryButtonDisabled]}
+                                    style={styles.consentBox}
+                                    onPress={() => setConsentGiven(!consentGiven)}
+                                    activeOpacity={0.8}
+                                    accessibilityRole="checkbox"
+                                    accessibilityLabel="Accept Terms of Service and Privacy Policy"
+                                    accessibilityState={{ checked: consentGiven }}
+                                >
+                                    <View style={[styles.consentCheckbox, consentGiven && styles.consentCheckboxActive]}>
+                                        {consentGiven && <Ionicons name="checkmark" size={13} color="#FFFFFF" />}
+                                    </View>
+                                    <Text style={styles.consentText}>
+                                        I agree that MaiHoonNa may collect and use my personal information (name, phone, age, and location) to provide elder care coordination services. I have read and accept the{" "}
+                                        <Text
+                                            style={styles.consentLink}
+                                            onPress={(e) => { e.stopPropagation?.(); Linking.openURL(LEGAL_CONFIG.TERMS_OF_SERVICE_URL); }}
+                                        >
+                                            Terms of Service
+                                        </Text>
+                                        {" "}and{" "}
+                                        <Text
+                                            style={styles.consentLink}
+                                            onPress={(e) => { e.stopPropagation?.(); Linking.openURL(LEGAL_CONFIG.PRIVACY_POLICY_URL); }}
+                                        >
+                                            Privacy Policy
+                                        </Text>
+                                        .
+                                    </Text>
+                                </TouchableOpacity>
+
+                                <TouchableOpacity
+                                    style={[styles.primaryButton, (isLoading || !consentGiven) && styles.primaryButtonDisabled]}
                                     onPress={handleRegister}
-                                    disabled={isLoading}
+                                    disabled={isLoading || !consentGiven}
                                     activeOpacity={0.85}
                                 >
                                     {isLoading ? (
@@ -532,15 +654,19 @@ export default function RegisterScreen() {
                             <Text style={styles.loginTextNormal}>Already have an account? </Text>
                             <Text style={styles.loginTextHighlight}>Login</Text>
                         </TouchableOpacity>
-
-                        <Text style={styles.footerText}>
-                            By continuing, you agree to our{" "}
-                            <Text style={styles.footerLink}>Terms of Service</Text>
-                            {"\n"}and <Text style={styles.footerLink}>Privacy Policy</Text>
-                        </Text>
                     </View>
                 </ScrollView>
             </KeyboardAvoidingView>
+
+            {/* ── Address & Map Picker Modal ── */}
+            <Modal visible={showAddressPicker} animationType="slide" transparent={false}>
+                <AddressPicker
+                    onAddressSelected={handleAddressSelected}
+                    onCancel={() => setShowAddressPicker(false)}
+                    title="Select Service Location"
+                    subtitle="Move the pin to your service address"
+                />
+            </Modal>
         </SafeAreaView>
     );
 }
@@ -815,7 +941,7 @@ const styles = StyleSheet.create({
     loginRow: {
         flexDirection: "row",
         alignItems: "center",
-        marginBottom: 40,
+        marginBottom: 12,
     },
     loginTextNormal: {
         fontSize: 15,
@@ -838,5 +964,124 @@ const styles = StyleSheet.create({
     },
     footerLink: {
         color: "#FE6700",
+        textDecorationLine: "underline",
+    },
+    consentBox: {
+        flexDirection: "row",
+        alignItems: "flex-start",
+        backgroundColor: "#FFF8F3",
+        borderWidth: 1,
+        borderColor: "#FFD7BC",
+        borderRadius: 10,
+        padding: 14,
+        marginBottom: 18,
+        marginTop: 8,
+    },
+    consentCheckbox: {
+        width: 22,
+        height: 22,
+        borderRadius: 6,
+        borderWidth: 2,
+        borderColor: "#D1D5DB",
+        backgroundColor: "#FFFFFF",
+        alignItems: "center",
+        justifyContent: "center",
+        marginTop: 1,
+        flexShrink: 0,
+    },
+    consentCheckboxActive: {
+        backgroundColor: "#FE6700",
+        borderColor: "#FE6700",
+    },
+    consentText: {
+        flex: 1,
+        fontSize: 12,
+        lineHeight: 18,
+        color: "#4B5563",
+        fontFamily: "Poppins-Regular",
+        marginLeft: 10,
+    },
+    consentLink: {
+        color: "#FE6700",
+        fontFamily: "Poppins-Medium",
+        textDecorationLine: "underline",
+    },
+    labelRow: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginBottom: 8,
+    },
+    changeLocationText: {
+        fontSize: 13,
+        color: "#FE6700",
+        fontFamily: "Poppins-Medium",
+    },
+    locationCard: {
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: "#FFFFFF",
+        borderWidth: 1.5,
+        borderColor: "#E5E7EB",
+        borderRadius: 12,
+        padding: 12,
+        marginBottom: 10,
+    },
+    locationCardSuccess: {
+        borderColor: "#86EFAC",
+        backgroundColor: "#F0FDF4",
+    },
+    locationCardError: {
+        borderColor: "#FCA5A5",
+        backgroundColor: "#FEF2F2",
+    },
+    locationIconCircle: {
+        width: 38,
+        height: 38,
+        borderRadius: 19,
+        backgroundColor: "#FFF5ED",
+        alignItems: "center",
+        justifyContent: "center",
+        marginRight: 12,
+    },
+    locationTextContainer: {
+        flex: 1,
+        marginRight: 8,
+    },
+    locationTitle: {
+        fontSize: 14,
+        fontWeight: "600",
+        color: "#111827",
+        fontFamily: "Poppins-Medium",
+        marginBottom: 2,
+    },
+    locationSubtitle: {
+        fontSize: 12,
+        color: "#6B7280",
+        fontFamily: "Poppins-Regular",
+    },
+    gpsDetectBtn: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "#FFF5ED",
+        borderWidth: 1,
+        borderColor: "#FE6700",
+        borderRadius: 10,
+        paddingVertical: 10,
+        paddingHorizontal: 14,
+        marginBottom: 12,
+    },
+    gpsDetectText: {
+        fontSize: 13,
+        color: "#FE6700",
+        fontFamily: "Poppins-Medium",
+    },
+    unavailableTitle: {
+        fontSize: 14,
+        fontWeight: "600",
+        color: "#B45309",
+        fontFamily: "Poppins-Medium",
+        marginBottom: 2,
     },
 });

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Platform, KeyboardAvoidingView, Alert, ActivityIndicator, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Platform, KeyboardAvoidingView, Alert, ActivityIndicator, Dimensions, Linking } from 'react-native';
 import { Feather, MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -9,6 +9,7 @@ import Constants from 'expo-constants';
 
 // 🛑 BACKEND SETUP
 import { API_URL } from '@/constants/api';
+import { LEGAL_CONFIG } from '@/constants/legal';
 import HeaderSpacer from '@/components/HeaderSpacer';
 import { useNavigationStack } from '@/contexts/NavigationStackContext';
 import { useAndroidBackHandler } from '@/hooks/useAndroidBackHandler';
@@ -1000,7 +1001,20 @@ export default function CheckoutScreen() {
                                 </TouchableOpacity>
 
                                 <Text style={styles.termsText}>
-                                    By completing this purchase, you agree to our Terms of Service and Privacy Policy
+                                    By completing this purchase, you agree to our{' '}
+                                    <Text
+                                        style={{ color: '#FE6700', textDecorationLine: 'underline', fontFamily: 'Poppins_500Medium' }}
+                                        onPress={() => Linking.openURL(LEGAL_CONFIG.TERMS_OF_SERVICE_URL)}
+                                    >
+                                        Terms of Service
+                                    </Text>
+                                    {' '}and{' '}
+                                    <Text
+                                        style={{ color: '#FE6700', textDecorationLine: 'underline', fontFamily: 'Poppins_500Medium' }}
+                                        onPress={() => Linking.openURL(LEGAL_CONFIG.PRIVACY_POLICY_URL)}
+                                    >
+                                        Privacy Policy
+                                    </Text>
                                 </Text>
                             </View>
                         </>

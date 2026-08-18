@@ -1,4 +1,4 @@
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, Alert, Linking } from 'react-native';
 import { useState } from "react";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -6,13 +6,24 @@ import { useSafeBack } from '@/hooks/useSafeBack';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigationStack } from '@/contexts/NavigationStackContext';
 import { useAndroidBackHandler } from '@/hooks/useAndroidBackHandler';
+import { LEGAL_CONFIG } from '@/constants/legal';
 
 export default function CoverageFailureScreen() {
     const [contactInfo, setContactInfo] = useState("");
+    const [notified, setNotified] = useState(false);
     const router = useRouter();
     const { push, replace, pop } = useNavigationStack();
     useAndroidBackHandler();
     const safeBack = useSafeBack();
+
+    const handleNotify = () => {
+        if (!contactInfo.trim()) {
+            Alert.alert("Contact Info", "Please enter your email or phone number.");
+            return;
+        }
+        setNotified(true);
+        Alert.alert("Thank you!", "We will notify you as soon as our elder care services launch in your area.");
+    };
 
     return (
         <SafeAreaView style={styles.safeArea}>
@@ -40,8 +51,7 @@ export default function CoverageFailureScreen() {
 
                         <Text style={styles.title}>We're not there yet</Text>
                         <Text style={styles.subtitle}>
-                            We haven't reached your area (PIN: 700084)
-                            yet, but we are expanding fast!
+                            We haven't reached your selected area yet, but we are expanding fast!
                         </Text>
 
                         <Text style={styles.instruction}>
@@ -58,10 +68,12 @@ export default function CoverageFailureScreen() {
                                 value={contactInfo}
                                 onChangeText={setContactInfo}
                             />
-                            <Ionicons name="checkmark-circle" size={20} color="#22C55E" style={styles.inputIcon} />
+                            {notified && (
+                                <Ionicons name="checkmark-circle" size={20} color="#22C55E" style={styles.inputIcon} />
+                            )}
                         </View>
 
-                        <TouchableOpacity style={styles.notifyButton}>
+                        <TouchableOpacity style={styles.notifyButton} onPress={handleNotify}>
                             <Text style={styles.notifyButtonText}>Notify Me</Text>
                         </TouchableOpacity>
 
@@ -79,8 +91,19 @@ export default function CoverageFailureScreen() {
                 <View style={styles.footer}>
                     <Text style={styles.terms}>
                         By continuing, you agree to our{"\n"}
-                        <Text style={styles.orangeText}>Terms of Service</Text> and{" "}
-                        <Text style={styles.orangeText}>Privacy Policy</Text>
+                        <Text
+                            style={styles.orangeText}
+                            onPress={() => Linking.openURL(LEGAL_CONFIG.TERMS_OF_SERVICE_URL)}
+                        >
+                            Terms of Service
+                        </Text>
+                        {" "}and{" "}
+                        <Text
+                            style={styles.orangeText}
+                            onPress={() => Linking.openURL(LEGAL_CONFIG.PRIVACY_POLICY_URL)}
+                        >
+                            Privacy Policy
+                        </Text>
                     </Text>
                 </View>
             </KeyboardAvoidingView>

@@ -1,4 +1,4 @@
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator, Alert, Modal } from 'react-native';
 import { useState } from "react";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -6,20 +6,76 @@ import { useSafeBack } from '@/hooks/useSafeBack';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigationStack } from '@/contexts/NavigationStackContext';
 import { useAndroidBackHandler } from '@/hooks/useAndroidBackHandler';
+import { AddressPicker, SelectedAddress } from '@/components/ui/AddressPicker';
+import { getAccurateLocation } from '@/services/location';
+import { serviceabilityService, ServiceabilityResult } from '@/services/serviceability.service';
 
 export default function LocationScreen() {
-    const [location, setLocation] = useState("");
+    const [selectedLocation, setSelectedLocation] = useState<{
+        address: string;
+        latitude?: number;
+        longitude?: number;
+        pincode?: string;
+    } | null>(null);
+    const [pincodeInput, setPincodeInput] = useState("");
+    const [showAddressPicker, setShowAddressPicker] = useState(false);
+    const [isLocating, setIsLocating] = useState(false);
+    const [isChecking, setIsChecking] = useState(false);
+
     const router = useRouter();
     const { push, replace, pop } = useNavigationStack();
     useAndroidBackHandler();
     const safeBack = useSafeBack();
 
-    const handleCheckAvailability = () => {
-        // Basic mock: if location ends with '0', we "fail"
-        if (location.endsWith("0")) {
-            push("/(auth)/coverage-failure");
-        } else {
-            push("/(auth)/coverage-success");
+    const handleGpsDetect = async () => {
+        setIsLocating(true);
+        try {
+            const loc = await getAccurateLocation();
+            const resolvedAddress = loc.address || [loc.city, loc.state].filter(Boolean).join(', ') || 'Current GPS Location';
+            setSelectedLocation({
+                address: resolvedAddress,
+                latitude: loc.latitude,
+                longitude: loc.longitude,
+                pincode: loc.pincode,
+            });
+            if (loc.pincode) setPincodeInput(loc.pincode);
+        } catch (err) {
+            Alert.alert("Location Detection", "Could not detect GPS location. Please select your address on the map.");
+            setShowAddressPicker(true);
+        } finally {
+            setIsLocating(false);
+        }
+    };
+
+    const handleAddressSelected = (address: SelectedAddress) => {
+        setShowAddressPicker(false);
+        setSelectedLocation({
+            address: address.address,
+            latitude: address.latitude !== 0 ? address.latitude : undefined,
+            longitude: address.longitude !== 0 ? address.longitude : undefined,
+            pincode: address.pincode,
+        });
+        if (address.pincode) setPincodeInput(address.pincode);
+    };
+
+    const handleCheckAvailability = async () => {
+        setIsChecking(true);
+        try {
+            const result = await serviceabilityService.checkLocation(
+                selectedLocation?.latitude,
+                selectedLocation?.longitude,
+                selectedLocation?.pincode || pincodeInput
+            );
+
+            if (result.isServiceable) {
+                push("/(auth)/coverage-success");
+            } else {
+                push("/(auth)/coverage-failure");
+            }
+        } catch (err) {
+            Alert.alert("Error", "Could not verify serviceability. Please try again.");
+        } finally {
+            setIsChecking(false);
         }
     };
 
@@ -34,12 +90,12 @@ export default function LocationScreen() {
                     <TouchableOpacity onPress={() => safeBack()} style={styles.backButton}>
                         <Ionicons name="arrow-back" size={24} color="#111827" />
                     </TouchableOpacity>
-                    <Text style={styles.headerTitle}>Location</Text>
+                    <Text style={styles.headerTitle}>Check Service Area</Text>
                     <View style={{ width: 24 }} />
                 </View>
 
                 <View style={styles.content}>
-                    {/* Illustration Container (Mock for Image) */}
+                    {/* Illustration Container */}
                     <View style={styles.illustrationContainer}>
                         <View style={styles.mockImage}>
                             <Ionicons name="location" size={48} color="#F97316" />
@@ -50,30 +106,72 @@ export default function LocationScreen() {
                     <View style={styles.card}>
                         <Text style={styles.title}>Where are you located?</Text>
                         <Text style={styles.subtitle}>
-                            Enter your PIN code or address to see if our experts are available in your area.
+                            Select your area on the map or enter your PIN code to check if our care companions serve your region.
                         </Text>
 
-                        <Text style={styles.label}>Location Details</Text>
-                        <View style={styles.inputContainer}>
-                            <TextInput
-                                style={styles.input}
-                                placeholder="Enter PIN code or Address"
-                                placeholderTextColor="#9CA3AF"
-                                value={location}
-                                onChangeText={setLocation}
-                            />
-                        </View>
-
-                        <TouchableOpacity style={styles.detectButton}>
-                            <Ionicons name="location-outline" size={20} color="#F97316" style={styles.btnIcon} />
-                            <Text style={styles.detectButtonText}>Detect current location</Text>
+                        {/* Location Picker Box */}
+                        <TouchableOpacity
+                            style={styles.locationPickerBox}
+                            onPress={() => setShowAddressPicker(true)}
+                            activeOpacity={0.8}
+                        >
+                            <View style={styles.locationIconBox}>
+                                <Ionicons name="map-outline" size={20} color="#F97316" />
+                            </View>
+                            <View style={{ flex: 1, marginRight: 8 }}>
+                                <Text style={styles.locationBoxTitle} numberOfLines={1}>
+                                    {selectedLocation?.address || "Choose location on map"}
+                                </Text>
+                                <Text style={styles.locationBoxSubtitle} numberOfLines={1}>
+                                    {selectedLocation?.pincode ? `Pincode: ${selectedLocation.pincode}` : "Tap to open interactive map & places search"}
+                                </Text>
+                            </View>
+                            <Ionicons name="chevron-forward" size={18} color="#9CA3AF" />
                         </TouchableOpacity>
 
                         <TouchableOpacity
-                            style={styles.checkButton}
-                            onPress={handleCheckAvailability}
+                            style={styles.detectButton}
+                            onPress={handleGpsDetect}
+                            disabled={isLocating}
+                            activeOpacity={0.8}
                         >
-                            <Text style={styles.checkButtonText}>Check Availability</Text>
+                            {isLocating ? (
+                                <ActivityIndicator size="small" color="#F97316" style={styles.btnIcon} />
+                            ) : (
+                                <Ionicons name="navigate-outline" size={20} color="#F97316" style={styles.btnIcon} />
+                            )}
+                            <Text style={styles.detectButtonText}>
+                                {isLocating ? "Detecting location..." : "Use device GPS location"}
+                            </Text>
+                        </TouchableOpacity>
+
+                        <Text style={styles.label}>Or enter PIN code</Text>
+                        <View style={styles.inputContainer}>
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Enter 6-digit PIN code"
+                                placeholderTextColor="#9CA3AF"
+                                keyboardType="numeric"
+                                maxLength={6}
+                                value={pincodeInput}
+                                onChangeText={setPincodeInput}
+                            />
+                        </View>
+
+                        <TouchableOpacity
+                            style={[
+                                styles.checkButton,
+                                (!selectedLocation && pincodeInput.length < 6) && styles.checkButtonDisabled,
+                            ]}
+                            onPress={handleCheckAvailability}
+                            disabled={(!selectedLocation && pincodeInput.length < 6) || isChecking}
+                            activeOpacity={0.85}
+                        >
+                            {isChecking ? (
+                                <ActivityIndicator size="small" color="#FFFFFF" />
+                            ) : (
+                                <Text style={styles.checkButtonText}>Check Availability</Text>
+                            )}
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -87,6 +185,15 @@ export default function LocationScreen() {
                     </Text>
                 </View>
             </KeyboardAvoidingView>
+
+            <Modal visible={showAddressPicker} animationType="slide" transparent={false}>
+                <AddressPicker
+                    onAddressSelected={handleAddressSelected}
+                    onCancel={() => setShowAddressPicker(false)}
+                    title="Select Location"
+                    subtitle="Move the pin to your area"
+                />
+            </Modal>
         </SafeAreaView>
     );
 }
@@ -209,6 +316,39 @@ const styles = StyleSheet.create({
         fontSize: 12,
         lineHeight: 18,
         color: "#9CA3AF",
+    },
+    locationPickerBox: {
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: "#FFFFFF",
+        borderWidth: 1.5,
+        borderColor: "#E5E7EB",
+        borderRadius: 12,
+        padding: 12,
+        marginBottom: 12,
+    },
+    locationIconBox: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: "#FFF5ED",
+        alignItems: "center",
+        justifyContent: "center",
+        marginRight: 10,
+    },
+    locationBoxTitle: {
+        fontSize: 14,
+        fontWeight: "600",
+        color: "#111827",
+        marginBottom: 2,
+    },
+    locationBoxSubtitle: {
+        fontSize: 12,
+        color: "#6B7280",
+    },
+    checkButtonDisabled: {
+        backgroundColor: "#FDBA74",
+        opacity: 0.7,
     },
     orangeText: {
         color: "#F97316",
