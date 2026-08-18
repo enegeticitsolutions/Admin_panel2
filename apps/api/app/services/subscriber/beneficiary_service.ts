@@ -111,6 +111,7 @@ export const createBeneficiary = async (data: {
         gender: (data.gender.toLowerCase() === 'male' ? 'male' : data.gender.toLowerCase() === 'female' ? 'female' : 'prefer_not_to_say') as any,
         address: data.address,
         isActive: true,
+        status: 'active',
       }
     });
   }
@@ -145,7 +146,7 @@ export const getBeneficiary = async (beneficiaryId: string) => {
 };
 
 export const getSubscriberBeneficiaries = async (subscriberId: string) => {
-  return prisma.beneficiary.findMany({ where: { subscriberId } });
+  return prisma.beneficiary.findMany({ where: { subscriberId, status: { not: 'deleted' } } });
 };
 
 export const getSathiEligibleBeneficiaries = async (subscriberId: string) => {
@@ -848,4 +849,47 @@ export const deleteMedication = async (medicationId: string) => {
     where: { id: medicationId },
     data: { isActive: false }
   });
+};
+
+export const deleteBeneficiary = async (subscriberId: string, beneficiaryId: string) => {
+  const beneficiary = await prisma.beneficiary.findUnique({
+    where: { id: beneficiaryId },
+  });
+
+  if (!beneficiary) {
+    throw new Error('Beneficiary not found');
+  }
+
+  if (beneficiary.subscriberId !== subscriberId) {
+    throw new Error('Unauthorized: You can only delete your own beneficiaries');
+  }
+
+  // Prevent deleting "Self" profile as a beneficiary
+  const isSelf = (beneficiary.relationship || '').toLowerCase() === 'self' || beneficiary.userId === subscriberId;
+  if (isSelf) {
+    throw new Error('Your own profile cannot be deleted as a beneficiary. Please use Delete Account in Security Settings.');
+  }
+
+  // Prevent re-deleting an already deleted beneficiary
+  if (beneficiary.status === 'deleted') {
+    throw new Error('Beneficiary has already been removed from your list.');
+  }
+
+  // Set status to 'deleted' — this hides the beneficiary from subscriber views
+  // while keeping the record intact for admin/operational purposes
+  await prisma.$transaction(async (tx) => {
+    // 1. Mark beneficiary status as deleted
+    await tx.beneficiary.update({
+      where: { id: beneficiaryId },
+      data: { status: 'deleted' }
+    });
+
+    // 2. Deactivate any active subscriptions linked to this beneficiary
+    await tx.subscription.updateMany({
+      where: { beneficiaryId, isActive: true },
+      data: { isActive: false }
+    });
+  });
+
+  return { success: true, message: 'Beneficiary removed successfully' };
 };

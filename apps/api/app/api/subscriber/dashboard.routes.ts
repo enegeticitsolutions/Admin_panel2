@@ -6,7 +6,7 @@ const router = Router();
 
 router.get('/subscriber/:subscriberId', authenticate, async (req: Request, res: Response) => {
   const beneficiaries = await prisma.beneficiary.findMany({
-    where: { subscriberId: req.params.subscriberId as string },
+    where: { subscriberId: req.params.subscriberId as string, status: { not: 'deleted' } },
   });
 
   const dashboardData = await Promise.all(
@@ -138,7 +138,7 @@ async function handleUserDashboard(req: AuthRequest, res: Response) {
     });
 
     const beneficiaries = await prisma.beneficiary.findMany({
-      where: { subscriberId: userId }
+      where: { subscriberId: userId, status: { not: 'deleted' } }
     });
 
     let effectiveBeneficiaryId = targetBeneficiaryId;

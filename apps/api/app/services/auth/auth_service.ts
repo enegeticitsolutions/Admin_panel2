@@ -268,8 +268,8 @@ export class AuthService {
       },
     });
 
-    // Unknown phone → new user registration flow
-    if (!user) {
+    // Unknown phone OR deleted/inactive user → new user registration flow
+    if (!user || user.isActive === false) {
       return {
         success: true,
         isNewUser: true,
@@ -326,7 +326,50 @@ export class AuthService {
     const phone = this.normalizePhone(rawPhone);
 
     const existingUser = await prisma.user.findUnique({ where: { phone } });
-    if (existingUser) throw new ApiError(400, 'A user with this phone number already exists.');
+    if (existingUser) {
+      if (existingUser.isActive) {
+        throw new ApiError(400, 'A user with this phone number already exists.');
+      }
+
+      // Soft-deleted user registering again -> reactivate as a fresh prospect!
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash(passwordRaw, salt);
+
+      const user = await prisma.user.update({
+        where: { id: existingUser.id },
+        data: {
+          name,
+          age,
+          password: hashedPassword,
+          role: 'prospect',
+          isActive: true,
+          status: 'active',
+          deletedAt: null,
+          fcmToken: null,
+          refreshToken: null,
+          profilePhoto: null,
+          location: null,
+          latitude: null,
+          longitude: null,
+          flatPlot: null,
+          streetArea: null,
+          landmark: null,
+          city: null,
+          state: null,
+          pincode: null,
+          createdAt: new Date(),
+        },
+      });
+
+      const token = createToken({ sub: user.id, role: user.role });
+
+      return {
+        success: true,
+        message: 'Registration successful',
+        user: { id: user.id, phone: user.phone, name: user.name, age: user.age, role: user.role },
+        token,
+      };
+    }
 
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(passwordRaw, salt);
@@ -353,7 +396,47 @@ export class AuthService {
     const phone = this.normalizePhone(rawPhone);
 
     const existingUser = await prisma.user.findUnique({ where: { phone } });
-    if (existingUser) throw new ApiError(400, 'A user with this phone number already exists.');
+    if (existingUser) {
+      if (existingUser.isActive) {
+        throw new ApiError(400, 'A user with this phone number already exists.');
+      }
+
+      // Soft-deleted user registering again -> reactivate as a fresh prospect!
+      const user = await prisma.user.update({
+        where: { id: existingUser.id },
+        data: {
+          name,
+          age,
+          password: null,
+          role: 'prospect',
+          isActive: true,
+          status: 'active',
+          deletedAt: null,
+          fcmToken: null,
+          refreshToken: null,
+          profilePhoto: null,
+          location: null,
+          latitude: null,
+          longitude: null,
+          flatPlot: null,
+          streetArea: null,
+          landmark: null,
+          city: null,
+          state: null,
+          pincode: null,
+          createdAt: new Date(),
+        },
+      });
+
+      const token = createToken({ sub: user.id, role: user.role });
+
+      return {
+        success: true,
+        message: 'Registration successful',
+        user: { id: user.id, phone: user.phone, name: user.name, age: user.age, role: user.role },
+        token,
+      };
+    }
 
     const user = await prisma.user.create({
       data: { id: generateUUID(), phone, name, age, password: null, role: 'prospect' },
@@ -382,6 +465,9 @@ export class AuthService {
     });
 
     if (!user || !user.password) throw new Error('Invalid phone number or password.');
+    if (user.isActive === false) {
+      throw new ApiError(401, 'This account has been deleted. Please create a new account.');
+    }
 
     const isMatch = await bcrypt.compare(passwordRaw, user.password);
     if (!isMatch) throw new Error('Invalid phone number or password.');

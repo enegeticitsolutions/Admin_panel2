@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, usePathname } from 'expo-router';
 import { useLogoutWithConfirm } from '@/utils/logout';
+import { useDeleteAccountWithConfirm } from '@/utils/deleteAccount';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigationStack } from '@/contexts/NavigationStackContext';
 import { useAndroidBackHandler } from '@/hooks/useAndroidBackHandler';
@@ -70,6 +71,9 @@ const GlobalDrawer = ({ isOpen, onClose, drawerAnim, userData: _userDataProp }: 
             }
         }, 300);
     };
+
+    // ─── Reusable Account Deletion hook ───────────────────────────────────────
+    const deleteAccountWithConfirm = useDeleteAccountWithConfirm(onClose);
 
     return (
         <Modal 
@@ -225,6 +229,14 @@ const GlobalDrawer = ({ isOpen, onClose, drawerAnim, userData: _userDataProp }: 
                                         onClose();
                                         Linking.openURL(LEGAL_CONFIG.PRIVACY_POLICY_URL).catch(() => {});
                                     }} 
+                                />
+
+                                <DrawerItem 
+                                    label="Delete Account" 
+                                    icon="trash-outline" 
+                                    bg="#FEF2F2"
+                                    color="#DC2626"
+                                    onPress={deleteAccountWithConfirm} 
                                 />
 
                                 <View style={styles.sectionDivider} />

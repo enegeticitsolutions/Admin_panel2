@@ -7,6 +7,7 @@ import {
 } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLogoutWithConfirm } from '@/utils/logout';
+import { useDeleteAccountWithConfirm } from '@/utils/deleteAccount';
 import { API_URL } from '@/constants/api';
 import { useSafeBack } from '@/hooks/useSafeBack';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -39,6 +40,7 @@ export default function MoreOptionsScreen() {
     const [profileName, setProfileName] = useState('Margaret Williams');
     const safeBack = useSafeBack();
     const logoutWithConfirm = useLogoutWithConfirm();
+    const deleteAccountWithConfirm = useDeleteAccountWithConfirm();
     const { availableRoles, isSwitchingRole, switchRole } = useAuth();
     const isDualRole = availableRoles.includes('subscriber') && availableRoles.includes('beneficiary');
 
@@ -177,6 +179,17 @@ export default function MoreOptionsScreen() {
                     <Text style={styles.logoutText}>Log Out</Text>
                 </TouchableOpacity>
 
+                <TouchableOpacity
+                    style={styles.deleteAccountBtn}
+                    onPress={deleteAccountWithConfirm}
+                    activeOpacity={0.75}
+                >
+                    <View style={styles.deleteAccountIconWrap}>
+                        <Feather name="trash-2" size={18} color="#DC2626" />
+                    </View>
+                    <Text style={styles.deleteAccountText}>Delete Account</Text>
+                </TouchableOpacity>
+
                 <View style={{ height: Platform.OS === 'ios' ? 120 : 100 }} />
             </ScrollView>
         </SafeAreaView>
@@ -205,7 +218,10 @@ const styles = StyleSheet.create({
     iconWrap: { width: 36, height: 36, borderRadius: 10, justifyContent: 'center', alignItems: 'center', marginRight: 16 },
     menuLabel: { flex: 1, fontSize: 15, color: '#374151', fontFamily: 'Poppins-Medium' },
     divider: { height: 1, backgroundColor: '#F3F4F6', marginHorizontal: 16 },
-    logoutBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF', borderRadius: 16, paddingHorizontal: 16, paddingVertical: 12, shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.03, shadowRadius: 8, elevation: 2, borderWidth: 1, borderColor: '#FEE2E2' },
+    logoutBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF', borderRadius: 16, paddingHorizontal: 16, paddingVertical: 12, shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.03, shadowRadius: 8, elevation: 2, borderWidth: 1, borderColor: '#FEE2E2', marginBottom: 12 },
     logoutIconWrap: { width: 36, height: 36, borderRadius: 10, backgroundColor: '#FEF2F2', justifyContent: 'center', alignItems: 'center', marginRight: 16 },
     logoutText: { flex: 1, fontSize: 15, color: '#EF4444', fontFamily: 'Poppins-Medium' },
+    deleteAccountBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF', borderRadius: 16, paddingHorizontal: 16, paddingVertical: 12, shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.03, shadowRadius: 8, elevation: 2, borderWidth: 1, borderColor: '#FECDD3' },
+    deleteAccountIconWrap: { width: 36, height: 36, borderRadius: 10, backgroundColor: '#FFF1F2', justifyContent: 'center', alignItems: 'center', marginRight: 16 },
+    deleteAccountText: { flex: 1, fontSize: 15, color: '#DC2626', fontFamily: 'Poppins-Medium' },
 });

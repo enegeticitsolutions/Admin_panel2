@@ -18,6 +18,7 @@ import { useNavigationStack } from '@/contexts/NavigationStackContext';
 import { useAndroidBackHandler } from '@/hooks/useAndroidBackHandler';
 
 import NotificationBell from '@/components/shared/NotificationBell';
+import { BeneficiariesModal } from './components/profile/BeneficiariesModal';
 
 type TabType = 'Personal' | 'Security' | 'Subscription';
 
@@ -29,6 +30,7 @@ export default function ProfileScreen() {
     const [loading, setLoading] = useState(true);
     const [profileData, setProfileData] = useState<any>(null);
     const [activeTab, setActiveTab] = useState<TabType>('Personal');
+    const [showBeneficiariesModal, setShowBeneficiariesModal] = useState(false);
 
     // Drawer state
     const [drawerOpen, setDrawerOpen] = useState(false);
@@ -126,6 +128,7 @@ export default function ProfileScreen() {
                     user={profileData.user}
                     stats={profileData.stats}
                     onPhotoUpdated={fetchProfile}
+                    onPressBeneficiaries={() => setShowBeneficiariesModal(true)}
                 />
 
                 {/* Tabs Selector */}
@@ -166,6 +169,17 @@ export default function ProfileScreen() {
                 onClose={closeDrawer}
                 drawerAnim={drawerAnim}
                 userData={profileData.user}
+            />
+
+            {/* Beneficiaries List Modal (Active & Inactive) */}
+            <BeneficiariesModal
+                visible={showBeneficiariesModal}
+                onClose={() => setShowBeneficiariesModal(false)}
+                beneficiaries={profileData.beneficiaries || []}
+                onSelectBeneficiary={(benId) => {
+                    fetchProfile();
+                }}
+                onRefresh={fetchProfile}
             />
         </SafeAreaView>
     );

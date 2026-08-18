@@ -35,16 +35,34 @@ export const getSubscriberProfile = async (subscriberId: string, beneficiaryId?:
     pincode: '',
   };
 
-  // 1. Get Beneficiary List and Count
+  // 1. Get Beneficiary List and Count (exclude subscriber-deleted ones)
   const beneficiaries = await prisma.beneficiary.findMany({
-    where: { subscriberId },
+    where: { subscriberId, status: { not: 'deleted' } },
     select: {
         id: true,
         name: true,
         age: true,
         relationship: true,
-        photo: true
-    }
+        photo: true,
+        isActive: true,
+        status: true,
+        gender: true,
+        subscriptions: {
+          select: {
+            id: true,
+            packageType: true,
+            isActive: true,
+            startDate: true,
+            endDate: true,
+            package: {
+              select: {
+                name: true
+              }
+            }
+          }
+        }
+    },
+    orderBy: { createdAt: 'desc' }
   });
   const beneficiaryCount = beneficiaries.length;
 

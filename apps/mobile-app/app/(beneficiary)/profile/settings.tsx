@@ -7,7 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigationStack } from '@/contexts/NavigationStackContext';
 import { useAndroidBackHandler } from '@/hooks/useAndroidBackHandler';
 import { LEGAL_CONFIG } from '@/constants/legal';
-
+import { useDeleteAccountWithConfirm } from '@/utils/deleteAccount';
 import Constants from 'expo-constants';
 
 export default function SettingsScreen() {
@@ -18,6 +18,7 @@ export default function SettingsScreen() {
     const { push, replace, pop } = useNavigationStack();
     useAndroidBackHandler();
     const safeBack = useSafeBack();
+    const deleteAccountWithConfirm = useDeleteAccountWithConfirm();
 
     const appVersion = Constants.expoConfig?.version || '1.0.0';
     const buildNumber = Constants.expoConfig?.ios?.buildNumber || Constants.expoConfig?.android?.versionCode?.toString() || '1.0.0';
@@ -86,6 +87,25 @@ export default function SettingsScreen() {
 
                     <TouchableOpacity style={styles.linkRow} activeOpacity={0.7} onPress={openHelpSupport}>
                         <Text style={styles.linkText}>Help & Support</Text>
+                    </TouchableOpacity>
+                </View>
+
+                {/* Account & Privacy Section */}
+                <View style={[styles.dangerCard, responsiveContentStyle]}>
+                    <Text style={styles.dangerTitle}>Account</Text>
+                    <TouchableOpacity
+                        style={styles.deleteRow}
+                        activeOpacity={0.7}
+                        onPress={deleteAccountWithConfirm}
+                    >
+                        <View style={styles.deleteLeft}>
+                            <Feather name="trash-2" size={18} color="#DC2626" />
+                            <View style={styles.deleteTextCol}>
+                                <Text style={styles.deleteTitle}>Delete Account</Text>
+                                <Text style={styles.deleteSubtitle}>Permanently remove your account and profile</Text>
+                            </View>
+                        </View>
+                        <Feather name="chevron-right" size={18} color="#DC2626" />
                     </TouchableOpacity>
                 </View>
             </View>
@@ -193,5 +213,52 @@ const styles = StyleSheet.create({
     divider: {
         height: 1,
         backgroundColor: '#F0F0F0',
+    },
+    dangerCard: {
+        marginTop: 20,
+        backgroundColor: '#FFFFFF',
+        borderRadius: 16,
+        paddingHorizontal: 16,
+        paddingTop: 16,
+        paddingBottom: 14,
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.12,
+        shadowRadius: 2,
+        elevation: 2,
+        borderWidth: 1,
+        borderColor: '#FEE2E2',
+    },
+    dangerTitle: {
+        fontFamily: 'Poppins-Medium',
+        fontSize: 16,
+        color: '#991B1B',
+        marginBottom: 12,
+    },
+    deleteRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingVertical: 10,
+    },
+    deleteLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        flex: 1,
+    },
+    deleteTextCol: {
+        flex: 1,
+    },
+    deleteTitle: {
+        fontFamily: 'Poppins-SemiBold',
+        fontSize: 14,
+        color: '#DC2626',
+    },
+    deleteSubtitle: {
+        fontFamily: 'Poppins-Regular',
+        fontSize: 12,
+        color: '#6B7280',
+        marginTop: 2,
     },
 });

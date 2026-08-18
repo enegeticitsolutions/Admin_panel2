@@ -209,4 +209,15 @@ router.post('/emergency-contacts', authenticate, async (req: AuthRequest, res: R
     }
 });
 
+// Delete beneficiary user account
+router.delete('/account', authenticate, async (req: AuthRequest, res: Response) => {
+    try {
+        const userId = req.userId as string;
+        const result = await userAccountService.deleteAccount(userId);
+        res.json(result);
+    } catch (error: any) {
+        res.status(error.statusCode || 500).json({ success: false, message: error.message });
+    }
+});
+
 export default router;

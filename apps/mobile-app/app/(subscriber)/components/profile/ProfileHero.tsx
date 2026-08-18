@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, Platform, ImageBackground } from 'react-native';
+import { View, Text, StyleSheet, Platform, ImageBackground, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ProfilePhotoUploader } from '@/components/ui/ProfilePhotoUploader';
 import { formatHours } from '@/utils/timeFormat';
@@ -19,9 +19,11 @@ interface ProfileHeroProps {
     };
     /** Called after a successful photo upload so the parent can refresh profile data */
     onPhotoUpdated?: (newUrl: string) => void;
+    /** Called when user taps on the Beneficiaries stat card to view all beneficiaries */
+    onPressBeneficiaries?: () => void;
 }
 
-export const ProfileHero = ({ user, stats, onPhotoUpdated }: ProfileHeroProps) => {
+export const ProfileHero = ({ user, stats, onPhotoUpdated, onPressBeneficiaries }: ProfileHeroProps) => {
     const getInitials = (name: string) => {
         return name
             .split(' ')
@@ -80,11 +82,18 @@ export const ProfileHero = ({ user, stats, onPhotoUpdated }: ProfileHeroProps) =
 
                 {/* Stats Bar */}
                 <View style={styles.statsBar}>
-                    <View style={[styles.statItem, styles.beneficiaryStat]}>
+                    <TouchableOpacity 
+                        style={[styles.statItem, styles.beneficiaryStat]}
+                        activeOpacity={0.7}
+                        onPress={onPressBeneficiaries}
+                    >
                         <Ionicons name="people-outline" size={24} color="#FF5B0A" />
                         <Text style={styles.statValue}>{stats.beneficiaryCount}</Text>
-                        <Text style={styles.statLabel}>Beneficiaries</Text>
-                    </View>
+                        <View style={styles.labelWithArrow}>
+                            <Text style={styles.statLabel}>Beneficiaries</Text>
+                            <Ionicons name="chevron-forward" size={12} color="#FF5B0A" style={{ marginLeft: 2, marginTop: 2 }} />
+                        </View>
+                    </TouchableOpacity>
                     <View style={[styles.statItem, styles.hoursStat]}>
                         <Ionicons name="pulse-outline" size={24} color="#1F6BFF" />
                         <Text style={styles.statValue}>{formatHours(stats.usedHours)}</Text>
@@ -161,6 +170,11 @@ const styles = StyleSheet.create({
     availableStat: { backgroundColor: '#FBF1FF' },
     statValue: { fontSize: 23, fontWeight: '800', color: '#000000', marginTop: 5 },
     statLabel: { fontSize: 13, color: '#333333', marginTop: 2 },
+    labelWithArrow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
     statDivider: { width: 0, height: 0 },
 });
 

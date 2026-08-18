@@ -17,6 +17,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigationStack } from '@/contexts/NavigationStackContext';
 import { useAndroidBackHandler } from '@/hooks/useAndroidBackHandler';
 import { LEGAL_CONFIG } from '@/constants/legal';
+import { DeleteAccountButton } from '@/components/shared/DeleteAccountButton';
 
 interface SecurityItemProps {
     icon: any;
@@ -152,6 +153,14 @@ export const SecurityTab = () => {
                         subtitle="Read terms of service" 
                         onPress={openTermsOfService}
                     />
+                </View>
+            </View>
+
+            {/* Account Deletion / Danger Zone */}
+            <View style={[styles.section, styles.dangerSection]}>
+                <Text style={[styles.sectionTitle, styles.dangerTitle]}>Account Management</Text>
+                <View style={styles.card}>
+                    <DeleteAccountButton />
                 </View>
             </View>
 
@@ -357,6 +366,14 @@ const styles = StyleSheet.create({
         fontSize: 15,
         fontWeight: '600',
         color: '#FFFFFF',
+    },
+    dangerSection: {
+        borderColor: '#FEE2E2',
+        backgroundColor: '#FFFFFF',
+        marginTop: 4,
+    },
+    dangerTitle: {
+        color: '#DC2626',
     },
 });
 

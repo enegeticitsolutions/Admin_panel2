@@ -33,3 +33,15 @@ export const getActivityLog = async (req: Request, res: Response) => {
     res.status(400).json({ success: false, message: error.message });
   }
 };
+
+export const deleteAccount = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).userId;
+    if (!userId) return res.status(401).json({ success: false, message: 'Unauthorized' });
+    const { userAccountService } = await import('../../services/shared/user_account.service');
+    const result = await userAccountService.deleteAccount(userId);
+    res.json({ success: true, message: result.message });
+  } catch (error: any) {
+    res.status(error.statusCode || 400).json({ success: false, message: error.message });
+  }
+};

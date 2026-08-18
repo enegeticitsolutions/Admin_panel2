@@ -5,6 +5,7 @@ import { Feather, Ionicons, MaterialCommunityIcons, FontAwesome5, AntDesign } fr
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_URL } from '@/constants/api';
 import { useLogoutWithConfirm } from '@/utils/logout';
+import { useDeleteAccountWithConfirm } from '@/utils/deleteAccount';
 import { useSafeBack } from '@/hooks/useSafeBack';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigationStack } from '@/contexts/NavigationStackContext';
@@ -40,6 +41,7 @@ export default function ProfileScreen() {
     useAndroidBackHandler();
     const safeBack = useSafeBack();
     const logoutWithConfirm = useLogoutWithConfirm();
+    const deleteAccountWithConfirm = useDeleteAccountWithConfirm();
     const [loading, setLoading] = useState(true);
     const [profile, setProfile] = useState<ProfileData>({
         name: 'Beneficiary',
@@ -380,6 +382,12 @@ export default function ProfileScreen() {
                         <Text style={styles.logoutText}>Logout</Text>
                     </TouchableOpacity>
 
+                    {/* Delete Account Button */}
+                    <TouchableOpacity style={styles.deleteAccountBtn} onPress={deleteAccountWithConfirm} activeOpacity={0.75}>
+                        <Feather name="trash-2" size={16} color="#DC2626" />
+                        <Text style={styles.deleteAccountText}>Delete Account</Text>
+                    </TouchableOpacity>
+
                     <View style={{ height: 60 }} />
                 </View>
             </ScrollView>
@@ -709,6 +717,23 @@ const styles = StyleSheet.create({
     logoutText: {
         fontFamily: 'Poppins-SemiBold',
         fontSize: 15,
+        color: '#DC2626',
+        marginLeft: 8,
+    },
+    deleteAccountBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#FFF1F2',
+        borderRadius: 14,
+        paddingVertical: 13,
+        marginTop: 10,
+        borderWidth: 1,
+        borderColor: '#FECDD3',
+    },
+    deleteAccountText: {
+        fontFamily: 'Poppins-Medium',
+        fontSize: 14,
         color: '#DC2626',
         marginLeft: 8,
     },

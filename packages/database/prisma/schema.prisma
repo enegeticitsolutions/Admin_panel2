@@ -28,6 +28,8 @@ model User {
   profilePhoto                   String?
   fcmToken                       String?
   isActive                       Boolean                  @default(true)
+  status                         String                   @default("active") // "active" | "inactive" | "deleted"
+  deletedAt                      DateTime?
   isVerified                     Boolean                  @default(false)
   refreshToken                   String?
   lastLoginAt                    DateTime?
@@ -257,6 +259,7 @@ model Beneficiary {
   insuranceProvider   String?
   insurancePolicyNo   String?
   isActive            Boolean                  @default(true)
+  status              String                   @default("active") // "active" | "inactive" | "deleted"
   createdBy           String                   @default("subscriber") // "subscriber" | "csa"
   verificationStatus  String                   @default("verified") // "verified" | "pending"
   createdAt           DateTime                 @default(now())

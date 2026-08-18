@@ -30,6 +30,7 @@ router.get('/sathi-eligible', authenticate, beneficiaryController.getSathiEligib
 router.get('/:beneficiaryId/profile', authenticate, beneficiaryController.getBeneficiaryProfile);
 router.get('/:beneficiaryId/pending-details', authenticate, beneficiaryController.getBeneficiaryPendingDetails);
 router.put('/:beneficiaryId', authenticate, validate(updateBeneficiarySchema), beneficiaryController.updateBeneficiary);
+router.delete('/:beneficiaryId', authenticate, beneficiaryController.deleteBeneficiary);
 
 // Medical Records Management
 router.post('/:beneficiaryId/medical-records/upload', authenticate, (req: any, res: any, next: any) => {

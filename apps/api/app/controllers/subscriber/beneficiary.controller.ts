@@ -57,6 +57,18 @@ export const updateBeneficiary = async (req: Request, res: Response) => {
     res.status(400).json({ success: false, message: error.message });
   }
 };
+
+export const deleteBeneficiary = async (req: Request, res: Response) => {
+  try {
+    const subscriberId = (req as any).userId;
+    const beneficiaryId = req.params.beneficiaryId as string;
+    if (!subscriberId) return res.status(401).json({ success: false, message: 'Unauthorized' });
+    const result = await beneficiaryService.deleteBeneficiary(subscriberId, beneficiaryId);
+    res.json({ success: true, message: result.message });
+  } catch (error: any) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+};
 export const updateMedicalRecord = async (req: Request, res: Response) => {
   try {
     const recordId = req.params.recordId as string;
