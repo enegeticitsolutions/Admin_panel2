@@ -55,6 +55,10 @@ const Header = ({ activePage, setActivePage, user, openForm }) => {
           View Plans
         </button>
 
+        <button className="view-plan-button" onClick={openForm}>
+          Join Waitlist
+        </button>
+
         {user ? (
           <button
             className="user-account-btn"
@@ -83,10 +87,6 @@ const Header = ({ activePage, setActivePage, user, openForm }) => {
             Sign Up
           </button>
         )}
-
-        <button className="pill-button pill-button--light" onClick={openForm}>
-          Join Waitlist
-        </button>
 
         {/* Mobile Hamburger Menu Button */}
         <button

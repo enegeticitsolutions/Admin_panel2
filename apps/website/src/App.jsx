@@ -49,6 +49,11 @@ const App = () => {
     };
   }, []);
 
+  // Scroll to top whenever the active page changes
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [activePage]);
+
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   // User Auth State
@@ -122,10 +127,6 @@ const App = () => {
   const closeForm = () => setIsModalOpen(false);
 
   const renderAppContent = () => {
-    if (activePage === "auth") {
-      return <AuthPage onAuthSuccess={handleAuthSuccess} onGoBack={() => setActivePage("home")} />;
-    }
-
     if (activePage === "account") {
       return (
         <AccountPage
@@ -167,6 +168,8 @@ const App = () => {
 
         {activePage === "home" ? (
           <HomePage openForm={openForm} />
+        ) : activePage === "auth" ? (
+          <AuthPage onAuthSuccess={handleAuthSuccess} onGoBack={() => setActivePage("home")} />
         ) : activePage === "services" ? (
           <ServicesPage setActivePage={setActivePage} openForm={openForm} />
         ) : activePage === "saathi" ? (

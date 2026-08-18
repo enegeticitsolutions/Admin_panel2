@@ -94,11 +94,84 @@ const homeCareCards = [
   },
 ];
 
+const widgetBanners = [
+  {
+    bgColor1: "#FE6700",
+    bgColor2: "rgba(254, 103, 0, 0.8)",
+    icon: (
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2.16" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
+      </svg>
+    ),
+    title: "Vitals Monitoring",
+    subtitle: "Medical-grade logging",
+    metrics: [
+      { label: "BP", value: "120/80", sub: "Normal" },
+      { label: "SPO2", value: "98%", sub: "Excellent" },
+      { label: "TEMP", value: "98.4°F", sub: "Normal" }
+    ]
+  },
+  {
+    bgColor1: "#8B5CF6",
+    bgColor2: "rgba(139, 92, 246, 0.8)",
+    icon: (
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2.16" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="10" />
+        <polyline points="12 6 12 12 16 14" />
+      </svg>
+    ),
+    title: "Medication Adherence",
+    subtitle: "Zero missed doses",
+    metrics: [
+      { label: "TODAY", value: "3/3", sub: "Taken" },
+      { label: "THIS WEEK", value: "21/21", sub: "Perfect" },
+      { label: "STREAK", value: "14 days", sub: "Running" }
+    ]
+  },
+  {
+    bgColor1: "#2EAA7B",
+    bgColor2: "rgba(46, 170, 123, 0.8)",
+    icon: (
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2.16" strokeLinecap="round" strokeLinejoin="round">
+        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+      </svg>
+    ),
+    title: "Mood & Happiness Logging",
+    subtitle: "Feel the difference",
+    metrics: [
+      { label: "SCORE", value: "82", sub: "Feeling great" },
+      { label: "TREND", value: "↑ +5", sub: "This week" },
+      { label: "ALERTS", value: "0", sub: "All clear" }
+    ]
+  },
+  {
+    bgColor1: "#29A9E9",
+    bgColor2: "rgba(41, 169, 233, 0.8)",
+    icon: (
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2.16" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+        <circle cx="9" cy="7" r="4" />
+        <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+      </svg>
+    ),
+    title: "Clinic Accompaniment",
+    subtitle: "Never go alone",
+    metrics: [
+      { label: "LAST VISIT", value: "12 Jun", sub: "Cardiology" },
+      { label: "SUMMARY", value: "Shared", sub: "Via app" },
+      { label: "NEXT", value: "8 Jul", sub: "Follow-up" }
+    ]
+  }
+];
+
 /**
  * ServicesSection Component - Home Page Ecosystem & Care Mitra Home Visits (IMAGE 1 reference & Figma exact)
  */
 const ServicesSection = ({ openForm }) => {
   const [activeCardIndex, setActiveCardIndex] = useState(0);
+
+  const activeBanner = widgetBanners[activeCardIndex];
 
   return (
     <>
@@ -182,6 +255,7 @@ const ServicesSection = ({ openForm }) => {
                     key={card.id}
                     className={`hm-cm__card ${isActive ? "hm-cm__card--active" : ""}`}
                     onClick={() => setActiveCardIndex(idx)}
+                    onMouseEnter={() => setActiveCardIndex(idx)}
                   >
                     <div className="hm-cm__icon-box">{card.icon}</div>
 
@@ -208,36 +282,29 @@ const ServicesSection = ({ openForm }) => {
 
             {/* Right Dashboard Widget */}
             <div className="hm-cm__widget">
-              {/* Orange Vitals Banner */}
-              <div className="hm-cm__vitals-banner">
+              {/* Dynamic Banner */}
+              <div
+                className="hm-cm__vitals-banner"
+                style={{ background: `linear-gradient(135deg, ${activeBanner.bgColor1} 0%, ${activeBanner.bgColor2} 100%)` }}
+              >
                 <div className="hm-cm__vitals-banner-header">
                   <div className="hm-cm__vitals-icon-box">
-                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2.16" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
-                    </svg>
+                    {activeBanner.icon}
                   </div>
                   <div className="hm-cm__vitals-banner-title">
-                    <h3>Vitals Monitoring</h3>
-                    <span>Medical-grade logging</span>
+                    <h3>{activeBanner.title}</h3>
+                    <span>{activeBanner.subtitle}</span>
                   </div>
                 </div>
 
                 <div className="hm-cm__vitals-grid">
-                  <div className="hm-cm__vital-pill">
-                    <label>BP</label>
-                    <strong>120/80</strong>
-                    <small>Normal</small>
-                  </div>
-                  <div className="hm-cm__vital-pill">
-                    <label>SPO2</label>
-                    <strong>98%</strong>
-                    <small>Excellent</small>
-                  </div>
-                  <div className="hm-cm__vital-pill">
-                    <label>TEMP</label>
-                    <strong>98.4°F</strong>
-                    <small>Normal</small>
-                  </div>
+                  {activeBanner.metrics.map((metric, idx) => (
+                    <div className="hm-cm__vital-pill" key={idx}>
+                      <label>{metric.label}</label>
+                      <strong>{metric.value}</strong>
+                      <small>{metric.sub}</small>
+                    </div>
+                  ))}
                 </div>
               </div>
 

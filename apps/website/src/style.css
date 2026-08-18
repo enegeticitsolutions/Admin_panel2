@@ -2817,6 +2817,7 @@ a {
   background: #111;
   font-size: 13px;
   font-weight: 900;
+  cursor: pointer;
 }
 
 .plan-card--featured>button {
@@ -7450,8 +7451,9 @@ a {
 
 /* ── AUTHENTICATION / LOGIN PAGE DESIGN & MOBILE RESPONSIVE ── */
 .auth-page-container {
-  height: 100vh;
-  height: 100dvh;
+  height: calc(100vh - 84px);
+  height: calc(100dvh - 84px);
+  margin-top: 84px;
   width: 100%;
   display: flex;
   flex-direction: row;
@@ -7463,8 +7465,7 @@ a {
 
 .auth-hero-side {
   flex: 1.1;
-  height: 100vh;
-  height: 100dvh;
+  height: 100%;
   position: sticky;
   top: 0;
   background: linear-gradient(135deg, #14110f 0%, #1c1816 45%, #d45500 100%);
@@ -7573,8 +7574,7 @@ a {
 
 .auth-form-side {
   flex: 0.9;
-  height: 100vh;
-  height: 100dvh;
+  height: 100%;
   overflow-y: auto;
   background: #FAFAFC;
   display: flex;

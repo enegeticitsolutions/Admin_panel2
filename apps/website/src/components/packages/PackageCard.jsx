@@ -133,21 +133,8 @@ export default function PackageCard({ plan, selectedCycle = "1", onSelectPackage
         </ul>
       )}
 
-      <button
-        onClick={() => onSelectPackage && onSelectPackage(planForCheckout)}
-        style={{
-          width: "100%",
-          padding: "12px",
-          borderRadius: "10px",
-          background: "var(--orange, #fe6700)",
-          color: "#fff",
-          fontWeight: "700",
-          border: "none",
-          marginTop: "auto",
-          cursor: "pointer",
-        }}
-      >
-        Buy Subscription <span>→</span>
+      <button onClick={() => onSelectPackage && onSelectPackage(planForCheckout)}>
+        Get Started <span>→</span>
       </button>
     </article>
   );
