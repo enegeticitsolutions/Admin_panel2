@@ -1,9 +1,9 @@
 # Scratch / Dev-only files (never push)
 ################################
-.claude
 MOBILE_TESTING_SETUP.md
 sync-app.ps1
 scripts/
+.claude
 
 
 # Backend seed/scratch files

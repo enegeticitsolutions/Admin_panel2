@@ -1041,6 +1041,20 @@ export const subscriptionApi = {
       body: JSON.stringify(payload),
     });
   },
+  /** Allocate add-on benefit units to subscription */
+  async allocateAddon(subscriptionId: string, payload: {
+    benefitId: string;
+    units?: number;
+    amountPaid?: number;
+    paymentMethod?: string;
+    transactionId?: string;
+    paymentNote?: string;
+  }): Promise<any> {
+    return apiJson(`/subscriptions/${subscriptionId}/addons/allocate`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
 };
 
 export const visitApi = {

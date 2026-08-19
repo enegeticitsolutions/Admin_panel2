@@ -772,6 +772,111 @@ router.post('/:id/consume', async (req, res) => {
   }
 });
 
+// ── POST /api/subscriptions/:id/addons/allocate ──────────────────────────────
+router.post('/:id/addons/allocate', async (req, res) => {
+  const { benefitId, units = 1, amountPaid = 0, paymentMethod = 'Cash', transactionId, paymentNote } = req.body;
+  try {
+    if (!benefitId) {
+      return res.status(400).json({ success: false, message: 'benefitId is required' });
+    }
+
+    let subscriptionId = req.params.id;
+
+    // Check if subscription exists by ID or if this was passed a beneficiary ID
+    let subscription = await prisma.subscription.findUnique({
+      where: { id: subscriptionId },
+      include: { subscriber: true, beneficiary: true }
+    });
+
+    if (!subscription) {
+      // Try resolving as beneficiaryId
+      subscription = await prisma.subscription.findFirst({
+        where: { beneficiaryId: subscriptionId, isActive: true },
+        orderBy: { createdAt: 'desc' },
+        include: { subscriber: true, beneficiary: true }
+      });
+      if (subscription) {
+        subscriptionId = subscription.id;
+      }
+    }
+
+    if (!subscription) {
+      return res.status(404).json({ success: false, message: 'Active subscription not found' });
+    }
+
+    const benefit = await prisma.benefit.findUnique({
+      where: { id: benefitId }
+    });
+
+    if (!benefit) {
+      return res.status(404).json({ success: false, message: 'Benefit not found' });
+    }
+
+    const result = await prisma.$transaction(async (tx) => {
+      // 1. Upsert SubscriptionBenefitBalance
+      let balance = await tx.subscriptionBenefitBalance.findUnique({
+        where: {
+          subscriptionId_benefitId: {
+            subscriptionId,
+            benefitId,
+          },
+        },
+      });
+
+      if (balance) {
+        balance = await tx.subscriptionBenefitBalance.update({
+          where: { id: balance.id },
+          data: { totalUnits: { increment: Number(units) || 1 } },
+        });
+      } else {
+        const { v4: uuidv4 } = require('uuid');
+        balance = await tx.subscriptionBenefitBalance.create({
+          data: {
+            id: uuidv4(),
+            subscriptionId,
+            benefitId,
+            totalUnits: Number(units) || 1,
+            usedUnits: 0,
+            reservedUnits: 0,
+          },
+        });
+      }
+
+      // 2. Record Payment if amountPaid > 0
+      const numericAmount = parseFloat(amountPaid);
+      if (numericAmount > 0) {
+        const { v4: uuidv4 } = require('uuid');
+        await tx.payment.create({
+          data: {
+            id: uuidv4(),
+            subscriptionId,
+            subscriberId: subscription.subscriberId,
+            amount: numericAmount,
+            method: paymentMethod || 'Cash',
+            status: 'completed',
+            paymentDate: new Date(),
+            transactionId: transactionId || null,
+            notes: paymentNote || `Add-on Purchase: ${benefit.name} (${units} units)`,
+          },
+        }).catch(err => {
+          console.warn('[Addon Payment Record Warning]:', err.message);
+        });
+      }
+
+      return balance;
+    });
+
+    res.json({
+      success: true,
+      data: result,
+      message: `Successfully allocated ${units} units of "${benefit.name}"`,
+    });
+  } catch (err) {
+    console.error('Addon allocate error:', err);
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
 // ── GET /api/subscriptions/beneficiary/:id/utilization ────────────────────────
 // Returns active subscription + benefit balances + recent hours log for a beneficiary
 router.get('/beneficiary/:id/utilization', async (req, res) => {

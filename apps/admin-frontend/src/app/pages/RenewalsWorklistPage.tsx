@@ -2,11 +2,12 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { subscriptionApi } from '../../services/api';
 import {
   Calendar, CheckCircle2, XCircle, AlertCircle, Loader2, Phone, Search,
-  MessageCircle, RefreshCw, Clock, Ban, X, FileText, User, UserSquare, ShieldAlert
+  MessageCircle, RefreshCw, Clock, Ban, X, FileText, User, UserSquare, ShieldAlert, Plus
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router';
 import { sanitizeTelLink, sanitizeWhatsappLink } from '../utils/sanitizeUrl';
+import { AddonBenefitModal } from '../components/addons/AddonBenefitModal';
 
 export default function RenewalsWorklistPage() {
   const [subscriptions, setSubscriptions] = useState<any[]>([]);
@@ -19,6 +20,10 @@ export default function RenewalsWorklistPage() {
   const [selectedSubId, setSelectedSubId] = useState<string | null>(null);
   const [terminationReason, setTerminationReason] = useState('');
   const [terminating, setTerminating] = useState(false);
+
+  // Addon Action Modal State
+  const [showAddonModal, setShowAddonModal] = useState(false);
+  const [selectedAddonSub, setSelectedAddonSub] = useState<any>(null);
 
   // Terminated Subscriptions View Modal State
   const [showTerminatedModal, setShowTerminatedModal] = useState(false);
@@ -252,6 +257,16 @@ export default function RenewalsWorklistPage() {
                       </td>
                       <td className="p-4 pr-6 text-right">
                         <div className="flex justify-end gap-2">
+                          <button
+                            onClick={() => {
+                              setSelectedAddonSub(sub);
+                              setShowAddonModal(true);
+                            }}
+                            className="px-3 py-2 bg-orange-50 text-[#FF7A00] hover:bg-orange-100 font-bold text-xs uppercase tracking-wider rounded-lg transition-colors flex items-center gap-1 border border-orange-200 cursor-pointer shadow-sm"
+                            title="Add Add-on Benefit / Service"
+                          >
+                            <Plus className="w-3.5 h-3.5 stroke-[3]" /> Add-on
+                          </button>
                           <button 
                             onClick={() => navigate(`/renew/${sub.id}`)}
                             className="px-4 py-2 bg-[#7C3AED] text-white hover:bg-[#6D28D9] font-bold text-xs uppercase tracking-wider rounded-lg transition-colors flex items-center gap-1 shadow-sm cursor-pointer"
@@ -423,6 +438,28 @@ export default function RenewalsWorklistPage() {
 
           </div>
         </div>
+      )}
+
+      {/* Add-on Benefit Modal */}
+      {selectedAddonSub && (
+        <AddonBenefitModal
+          isOpen={showAddonModal}
+          onClose={() => {
+            setShowAddonModal(false);
+            setSelectedAddonSub(null);
+          }}
+          subscriptionId={selectedAddonSub.id}
+          beneficiaryId={selectedAddonSub.beneficiaryId || selectedAddonSub.beneficiary?.id}
+          beneficiaryName={selectedAddonSub.beneficiary?.name}
+          subscriberId={selectedAddonSub.subscriberId || selectedAddonSub.subscriber?.id}
+          subscriberName={selectedAddonSub.subscriber?.name}
+          subscriberPhone={selectedAddonSub.subscriber?.phone}
+          subscriberEmail={selectedAddonSub.subscriber?.email}
+          defaultPincode={selectedAddonSub.beneficiary?.pincode || selectedAddonSub.subscriber?.pincode}
+          onSuccess={() => {
+            fetchExpiring();
+          }}
+        />
       )}
     </div>
   );

@@ -15,6 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../co
 import { subscriptionApi, packageApi, staffOnboardingApi, vitalApi, hobbyApi, paymentApi } from '../../services/api';
 import { PaymentMethodSelector } from '../components/payment/PaymentMethodSelector';
 import { toast } from 'sonner';
+import { AddonBenefitModal } from '../components/addons/AddonBenefitModal';
 import {
   RefreshCw, ArrowLeft, ArrowRight, Check, Phone, User, Package,
   CreditCard, CheckCircle2, Loader2, AlertCircle, Users,
@@ -168,6 +169,10 @@ export default function RenewalWizardPage() {
 
   const paymentLinkDetails = paymentLinkDetailsState;
   const [generatingLink, setGeneratingLink] = useState(false);
+
+  // ── Add-on Benefits State
+  const [selectedAddons, setSelectedAddons] = useState<any[]>([]);
+  const [isAddonModalOpen, setIsAddonModalOpen] = useState(false);
 
   // ── Add Medicine Dialog State
   const [isMedDialogOpen, setIsMedDialogOpen] = useState(false);
@@ -454,13 +459,14 @@ export default function RenewalWizardPage() {
     selectedPackageId, duration, renewalMode, customStartDate, amountPaid, paymentMethod, transactionId, paymentNote
   ]);
 
-  // Auto-set amount when package selected
+  // Auto-set amount when package or addons selected
   useEffect(() => {
     const pkg = packages.find(p => p.id === selectedPackageId);
-    if (pkg && !amountPaid) {
-      setAmountPaid(String(pkg.basePrice || 0));
+    if (pkg) {
+      const addonsSum = selectedAddons.reduce((sum, a) => sum + (a.totalAmount || 0), 0);
+      setAmountPaid(String((pkg.basePrice || 0) + addonsSum));
     }
-  }, [selectedPackageId, packages]);
+  }, [selectedPackageId, packages, selectedAddons]);
 
   const stepIndex = STEPS.findIndex(s => s.id === step);
   const selectedPackage = packages.find(p => p.id === selectedPackageId);
@@ -547,6 +553,20 @@ export default function RenewalWizardPage() {
           paymentNote,
         },
       });
+
+      // Allocate any selected add-ons
+      const newSubId = result?.newSubscription?.id || (result as any)?.subscription?.id || (result as any)?.id || (result as any)?.data?.newSubscription?.id;
+      if (newSubId && selectedAddons.length > 0) {
+        for (const addon of selectedAddons) {
+          await subscriptionApi.allocateAddon(newSubId, {
+            benefitId: addon.benefit.id,
+            units: addon.units,
+            amountPaid: addon.totalAmount,
+            paymentMethod,
+            paymentNote: `Renewal Add-on: ${addon.benefit.name}`,
+          }).catch(e => console.warn('Addon allocation warning on renew:', e));
+        }
+      }
 
       setRenewedResult(result);
       setStep('confirm');
@@ -1520,6 +1540,52 @@ export default function RenewalWizardPage() {
                       </div>
                     </div>
                   </div>
+
+                  {/* ── Add-on Benefits Picker ── */}
+                  <div className="pt-4 border-t border-dashed space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label className="text-xs font-bold text-gray-700 uppercase tracking-wider block">
+                          Add-on Benefits (Optional)
+                        </Label>
+                        <p className="text-[10px] text-muted-foreground">Attach extra services or care visits to this renewal</p>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setIsAddonModalOpen(true)}
+                        className="h-8 gap-1 rounded-full border-[#FF7A00] text-[#FF7A00] hover:bg-orange-50 font-bold"
+                      >
+                        <Plus className="w-3.5 h-3.5 stroke-[3]" /> Add Add-on Benefit
+                      </Button>
+                    </div>
+
+                    {selectedAddons.length > 0 && (
+                      <div className="space-y-2">
+                        {selectedAddons.map((addonItem, idx) => (
+                          <div key={idx} className="flex items-center justify-between p-3 bg-orange-50/50 rounded-xl border border-orange-200">
+                            <div>
+                              <p className="text-sm font-bold text-gray-800">{addonItem.benefit.name}</p>
+                              <p className="text-[10px] text-muted-foreground">{addonItem.units} {addonItem.benefit.unitLabel || 'units'}</p>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <span className="text-sm font-black text-[#FF7A00]">₹{addonItem.totalAmount}</span>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 text-destructive hover:bg-red-50"
+                                onClick={() => setSelectedAddons(selectedAddons.filter((_, i) => i !== idx))}
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </>
               )}
             </CardContent>
@@ -1535,24 +1601,42 @@ export default function RenewalWizardPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               {selectedPackage && (
-                <div className="bg-secondary/60 rounded-xl p-4 flex justify-between items-center mb-2">
-                  <div>
-                    <p className="font-semibold">{selectedPackage.name}</p>
-                    <p className="text-xs text-muted-foreground capitalize">{duration.replace('_', ' ')} plan · starts {computeStartDate()}</p>
+                <div className="bg-secondary/60 rounded-xl p-4 space-y-2 mb-2">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <p className="font-semibold">{selectedPackage.name}</p>
+                      <p className="text-xs text-muted-foreground capitalize">{duration.replace('_', ' ')} plan · starts {computeStartDate()}</p>
+                    </div>
+                    <div className="text-right">
+                      {selectedPackage.mrp > selectedPackage.basePrice && <p className="text-xs line-through text-muted-foreground">₹{selectedPackage.mrp}</p>}
+                      <p className="text-lg font-bold text-primary">₹{selectedPackage.basePrice}</p>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    {selectedPackage.mrp > selectedPackage.basePrice && <p className="text-xs line-through text-muted-foreground">₹{selectedPackage.mrp}</p>}
-                    <p className="text-xl font-bold text-primary">₹{selectedPackage.basePrice}</p>
+
+                  {selectedAddons.length > 0 && (
+                    <div className="border-t border-gray-200/60 pt-2 space-y-1">
+                      {selectedAddons.map((ao, i) => (
+                        <div key={i} className="flex justify-between text-xs text-gray-700">
+                          <span>+ {ao.benefit.name} ({ao.units} units)</span>
+                          <span className="font-bold text-[#FF7A00]">₹{ao.totalAmount}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="border-t border-gray-200 pt-2 flex justify-between items-center">
+                    <span className="text-xs font-bold uppercase text-gray-600">Total Order Amount</span>
+                    <span className="text-xl font-black text-green-700">₹{amountPaid}</span>
                   </div>
                 </div>
               )}
 
               <PaymentMethodSelector
-                amount={selectedPackage?.basePrice || 4999}
+                amount={parseFloat(amountPaid) || selectedPackage?.basePrice || 4999}
                 subscriberName={subscriberName || 'Subscriber'}
                 subscriberPhone={subscriberPhone || ''}
                 subscriberEmail={subscriberEmail || ''}
-                packageName={selectedPackage?.name || 'Care Package'}
+                packageName={`${selectedPackage?.name || 'Care Package'}${selectedAddons.length > 0 ? ` + ${selectedAddons.length} Add-on(s)` : ''}`}
                 paymentMode={paymentMode}
                 onPaymentModeChange={setPaymentMode}
                 offlineMethod={paymentMethod}
@@ -1578,7 +1662,7 @@ export default function RenewalWizardPage() {
                       beneficiaryId: original.beneficiaryId || '',
                       subscriptionId: original.subscriptionId || subscriptionId || '',
                       packageType: selectedPackage?.type || selectedPackage?.name || 'gold',
-                      packageName: selectedPackage?.name || 'Care Package',
+                      packageName: `${selectedPackage?.name || 'Care Package'}${selectedAddons.length > 0 ? ` + ${selectedAddons.length} Add-ons` : ''}`,
                       amount: parseFloat(amountPaid) || selectedPackage?.basePrice || 4999,
                       subscriberPhone,
                       subscriberEmail,
@@ -1618,6 +1702,12 @@ export default function RenewalWizardPage() {
                     )}
                   </div>
                 </div>
+                {selectedAddons.length > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Add-ons</span>
+                    <span className="font-medium text-[#FF7A00]">{selectedAddons.map(a => `${a.benefit.name} (${a.units}u)`).join(', ')}</span>
+                  </div>
+                )}
                 <div className="flex justify-between"><span className="text-muted-foreground">Start Date</span><span className="font-medium">{computeStartDate()}</span></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">Duration</span><span className="font-medium capitalize">{duration.replace('_', ' ')} · until {endDate}</span></div>
                 <div className="flex justify-between border-t pt-2"><span className="text-muted-foreground">Amount</span><span className="font-bold text-green-700">₹{amountPaid} via {paymentMethod}</span></div>
@@ -1656,6 +1746,22 @@ export default function RenewalWizardPage() {
           )}
         </div>
       </div>
+
+      {/* Add-on Benefit Modal */}
+      <AddonBenefitModal
+        isOpen={isAddonModalOpen}
+        onClose={() => setIsAddonModalOpen(false)}
+        beneficiaryName={beneficiaryName}
+        subscriberName={subscriberName}
+        subscriberPhone={subscriberPhone}
+        subscriberEmail={subscriberEmail}
+        defaultPincode={beneficiaryPincode}
+        standaloneSelectMode={true}
+        onSelectAddonForWizard={(newAddon) => {
+          setSelectedAddons(prev => [...prev, newAddon]);
+          toast.success(`Added "${newAddon.benefit.name}" to renewal!`);
+        }}
+      />
     </div>
   );
 }

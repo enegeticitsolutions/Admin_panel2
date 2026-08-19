@@ -42,20 +42,40 @@ router.get('/geocode', async (req, res, next) => {
     const response = await fetch(geocodeUrl);
     const data = await response.json();
 
-    if (data.status !== 'OK') {
-      throw new ApiError(500, `Geocoding failed: ${data.status} - ${data.error_message || ''}`);
+    if (data.status === 'OK' && data.results && data.results[0]) {
+      const location = data.results[0].geometry.location;
+      return res.json({
+        success: true,
+        data: {
+          latitude: location.lat,
+          longitude: location.lng,
+          formattedAddress: data.results[0].formatted_address
+        }
+      });
     }
 
-    const location = data.results[0].geometry.location;
-
-    res.json({
-      success: true,
-      data: {
-        latitude: location.lat,
-        longitude: location.lng,
-        formattedAddress: data.results[0].formatted_address
+    // Fallback to OpenStreetMap Nominatim Geocoding if Google API key has referer/quota restrictions
+    try {
+      const osmUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&countrycodes=in&limit=1`;
+      const osmRes = await fetch(osmUrl, {
+        headers: { 'User-Agent': 'MaiHoonNa-Admin/1.0 (contact@maihoonna.com)' }
+      });
+      const osmData = await osmRes.json();
+      if (osmData && osmData.length > 0) {
+        return res.json({
+          success: true,
+          data: {
+            latitude: parseFloat(osmData[0].lat),
+            longitude: parseFloat(osmData[0].lon),
+            formattedAddress: osmData[0].display_name
+          }
+        });
       }
-    });
+    } catch (osmErr) {
+      console.warn('OSM Geocode fallback error:', osmErr.message);
+    }
+
+    throw new ApiError(404, `Could not find coordinates for "${address}"`);
   } catch (err) {
     next(err);
   }

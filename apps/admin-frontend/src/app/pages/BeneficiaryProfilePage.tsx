@@ -510,6 +510,11 @@ export default function BeneficiaryProfilePage() {
                 <PackageUtilizationPanel
                   beneficiaryId={details.id}
                   beneficiaryName={details.name}
+                  subscriberId={details.subscriber?.id || details.subscriberId}
+                  subscriberName={details.subscriber?.name}
+                  subscriberPhone={details.subscriber?.phone}
+                  subscriberEmail={details.subscriber?.email}
+                  defaultPincode={details.pincode}
                 />
               </TabsContent>
 

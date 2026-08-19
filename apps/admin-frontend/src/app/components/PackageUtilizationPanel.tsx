@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { Clock, TrendingUp, AlertTriangle, CheckCircle2, Loader2, RefreshCw, PackageCheck, Calendar, CheckCheck, Sparkles } from 'lucide-react';
+import { Clock, TrendingUp, AlertTriangle, CheckCircle2, Loader2, RefreshCw, PackageCheck, Calendar, CheckCheck, Sparkles, Plus } from 'lucide-react';
 import { subscriptionApi } from '../../services/api';
 import { toast } from 'sonner';
+import { AddonBenefitModal } from './addons/AddonBenefitModal';
 
 interface BenefitBalance {
   benefitId: string;
@@ -53,6 +54,11 @@ interface UtilizationData {
 interface Props {
   beneficiaryId: string;
   beneficiaryName?: string;
+  subscriberId?: string;
+  subscriberName?: string;
+  subscriberPhone?: string;
+  subscriberEmail?: string;
+  defaultPincode?: string;
   /** When provided, renders benefit cards as selectable buttons */
   onBenefitSelect?: (benefitId: string, benefitName: string, unitLabel: string) => void;
   /** Currently selected benefit ID (for highlighted state) */
@@ -160,12 +166,13 @@ function CircleRing({
 
 const COLORS = ['#FF7A00', '#7C3AED', '#059669', '#2563EB', '#DB2777', '#D97706'];
 
-export function PackageUtilizationPanel({ beneficiaryId, beneficiaryName, onBenefitSelect, selectedBenefitId }: Props) {
+export function PackageUtilizationPanel({ beneficiaryId, beneficiaryName, subscriberId, subscriberName, subscriberPhone, subscriberEmail, defaultPincode, onBenefitSelect, selectedBenefitId }: Props) {
   const [data, setData] = useState<UtilizationData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showAllLogs, setShowAllLogs] = useState(false);
   const [initializing, setInitializing] = useState(false);
+  const [isAddonModalOpen, setIsAddonModalOpen] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -240,13 +247,22 @@ export function PackageUtilizationPanel({ beneficiaryId, beneficiaryName, onBene
               {new Date(subscription.endDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
             </p>
           </div>
-          <button
-            onClick={load}
-            className="flex items-center gap-2 text-gray-400 hover:text-[#FF7A00] transition-colors"
-            title="Refresh utilization"
-          >
-            <RefreshCw size={14} />
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setIsAddonModalOpen(true)}
+              className="px-4 py-2 bg-gradient-to-r from-orange-500 to-[#FF7A00] hover:from-orange-600 hover:to-orange-500 text-white text-xs font-bold uppercase tracking-wider rounded-2xl shadow-sm hover:shadow transition-all flex items-center gap-1.5 cursor-pointer"
+            >
+              <Plus size={14} className="stroke-[3]" /> Add Add-on Benefit
+            </button>
+            <button
+              onClick={load}
+              className="p-2 rounded-2xl bg-gray-50 hover:bg-orange-50 text-gray-400 hover:text-[#FF7A00] transition-colors border border-gray-100 cursor-pointer"
+              title="Refresh utilization"
+            >
+              <RefreshCw size={14} />
+            </button>
+          </div>
         </div>
 
         {/* Selectable hint banner */}
@@ -484,6 +500,21 @@ export function PackageUtilizationPanel({ beneficiaryId, beneficiaryName, onBene
           <p className="text-xs text-gray-400 mt-1">Activity will appear here once visits are scheduled and completed.</p>
         </div>
       )}
+
+      {/* Add-on Benefit Modal */}
+      <AddonBenefitModal
+        isOpen={isAddonModalOpen}
+        onClose={() => setIsAddonModalOpen(false)}
+        subscriptionId={subscription.id}
+        beneficiaryId={beneficiaryId}
+        beneficiaryName={beneficiaryName}
+        subscriberId={subscriberId}
+        subscriberName={subscriberName}
+        subscriberPhone={subscriberPhone}
+        subscriberEmail={subscriberEmail}
+        defaultPincode={defaultPincode}
+        onSuccess={() => load()}
+      />
     </div>
   );
 }
