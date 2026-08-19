@@ -501,12 +501,6 @@ export default function SubscriberDashboardScreen() {
                                 </View>
                             </View>
                         ))}
-                        
-                        {/* Overlapping View Volunteers Button */}
-                        <TouchableOpacity style={styles.viewVolunteersBtn}>
-                            <Ionicons name="people-outline" size={22} color="#FFFFFF" style={{ marginRight: 6 }} />
-                            <Text style={styles.viewVolunteersText}>View Volunteers</Text>
-                        </TouchableOpacity>
                     </View>
                 )}
 
@@ -856,28 +850,6 @@ const styles = StyleSheet.create({
         width: scale(48), height: scale(48),
         justifyContent: 'center', alignItems: 'center',
         marginLeft: scale(8),
-    },
-    viewVolunteersBtn: {
-        position: 'absolute',
-        right: 0,
-        top: '30%',
-        backgroundColor: '#FE6700',
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingLeft: scale(18),
-        paddingRight: scale(12),
-        paddingVertical: scale(12),
-        borderTopLeftRadius: scale(25),
-        borderBottomLeftRadius: scale(25),
-        ...Platform.select({
-            ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8 },
-            android: { elevation: 8 },
-        }),
-    },
-    viewVolunteersText: {
-        color: '#FFFFFF',
-        fontSize: scale(14),
-        fontWeight: '600',
     },
     unlinkedSubCard: {
         backgroundColor: '#FFF5ED',
