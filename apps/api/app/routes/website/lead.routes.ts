@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import prisma from '../../core/database';
 import { createTransporter, isEmailConfigured, formatISTTimestamp } from './utils/mailer';
 import { ZohoCrmService } from '../../services/crm/zoho_crm_service';
+import { parsePhoneNumberWithError } from 'libphonenumber-js';
 
 const router = Router();
 
@@ -20,6 +21,21 @@ router.post('/submit-form', async (req: Request, res: Response) => {
       return res.status(400).json({
         success: false,
         message: 'Name, phone, pin code and email are required',
+      });
+    }
+
+    try {
+      const phoneNumber = parsePhoneNumberWithError(phone);
+      if (!phoneNumber.isValid()) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid mobile number format for the selected country',
+        });
+      }
+    } catch (error) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid mobile number',
       });
     }
 

@@ -614,7 +614,7 @@ a {
 .video-frame::after {
   position: absolute;
   inset: 0;
-  background: rgba(18, 14, 10, 0.34);
+  display: none;
   content: "";
 }
 
@@ -622,7 +622,7 @@ a {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  opacity: 0.7;
+  opacity: 1;
 }
 
 .play-button {
@@ -655,7 +655,7 @@ a {
   position: absolute;
   left: 0;
   right: 0;
-  top: calc(50% + 56px);
+  top: 75%;
   z-index: 2;
   margin: 0;
   color: #FFFFFF;
@@ -884,7 +884,7 @@ a {
 }
 
 .timeline__content {
-  padding-top: 14px;
+  text-align: left;
 }
 
 .timeline h3 {
@@ -894,6 +894,7 @@ a {
   font-weight: 600;
   line-height: 30px;
   color: #111111;
+  text-align: left;
 }
 
 .timeline p {
@@ -902,6 +903,7 @@ a {
   font-family: 'Poppins', sans-serif;
   font-size: 16px;
   line-height: 27px;
+  text-align: left;
 }
 
 .visits .section-heading>span {
@@ -2233,17 +2235,39 @@ a {
   gap: 14px;
 }
 
-.waitlist-form input {
+.waitlist-form input,
+.phone-input-wrapper {
   width: 100%;
   border: 1px solid var(--line);
   border-radius: 14px;
   outline: 0;
+  background: #fff;
+}
+
+.waitlist-form input:not(.PhoneInputInput) {
   padding: 14px 16px;
 }
 
-.waitlist-form input:focus {
+.phone-input-wrapper {
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  gap: 12px;
+}
+
+.waitlist-form input:focus,
+.phone-input-wrapper:focus-within {
   border-color: var(--orange);
   box-shadow: 0 0 0 4px rgba(254, 103, 0, 0.12);
+}
+
+.phone-input-wrapper input.PhoneInputInput {
+  border: none;
+  outline: none;
+  box-shadow: none;
+  padding: 14px 0;
+  background: transparent;
+  flex: 1;
 }
 
 .waitlist-form button {

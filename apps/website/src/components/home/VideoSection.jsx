@@ -58,7 +58,6 @@ const VideoSection = () => {
 
       <div className="video-frame">
         <video src={demoVideo} autoPlay loop muted playsInline />
-        <div className="play-button" aria-hidden="true" />
         <p>"Mai Hoon Na - We are here for you."</p>
       </div>
 

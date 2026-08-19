@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import waitlistService from "../../services/WaitlistService";
+import PhoneInput, { isValidPhoneNumber } from "react-phone-number-input";
+import "react-phone-number-input/style.css";
 
 /**
  * WaitlistModal Component - Modal registration dialog for joining waitlist
@@ -24,6 +26,12 @@ const WaitlistModal = ({ isOpen, onClose }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (formData.phone && !isValidPhoneNumber(formData.phone)) {
+      setSubmitError("Please enter a valid mobile number.");
+      return;
+    }
+
     setIsSubmitting(true);
     setSubmitError("");
 
@@ -77,16 +85,18 @@ const WaitlistModal = ({ isOpen, onClose }) => {
             onChange={handleInputChange}
           />
 
-          <input
+          <PhoneInput
             id="form-phone"
-            type="tel"
             name="phone"
             placeholder="Mobile Number"
+            defaultCountry="IN"
+            international
             required
             aria-label="Mobile Number"
             autoComplete="tel"
             value={formData.phone}
-            onChange={handleInputChange}
+            onChange={(val) => setFormData((prev) => ({ ...prev, phone: val }))}
+            className="phone-input-wrapper"
           />
 
           <input
