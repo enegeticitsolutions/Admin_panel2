@@ -59,6 +59,12 @@ export const BeneficiariesModal: React.FC<BeneficiariesModalProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<FilterTab>('all');
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [itemToDelete, setItemToDelete] = useState<BeneficiaryItemData | null>(null);
+  const [feedback, setFeedback] = useState<{
+    title: string;
+    message: string;
+    type: 'success' | 'error' | 'warning' | 'info';
+  } | null>(null);
 
   useEffect(() => {
     setLocalBeneficiaries(beneficiaries);
@@ -129,7 +135,11 @@ export const BeneficiariesModal: React.FC<BeneficiariesModalProps> = ({
     try {
       const token = await AsyncStorage.getItem('userToken');
       if (!token) {
-        Alert.alert('Error', 'Authentication session expired. Please log in again.');
+        setFeedback({
+          title: 'Session Expired',
+          message: 'Authentication session expired. Please log in again.',
+          type: 'error',
+        });
         return;
       }
 
@@ -152,26 +162,30 @@ export const BeneficiariesModal: React.FC<BeneficiariesModalProps> = ({
           await AsyncStorage.removeItem('selectedBeneficiaryId');
         }
 
-        if (Platform.OS === 'web') {
-          window.alert(`${name} has been removed successfully.`);
-        } else {
-          Alert.alert('Beneficiary Removed', `${name} has been removed successfully.`);
-        }
+        setFeedback({
+          title: 'Beneficiary Removed',
+          message: `${name || 'Beneficiary'} has been removed successfully.`,
+          type: 'success',
+        });
 
         if (onRefresh) {
           onRefresh();
         }
       } else {
         const errorMsg = data.message || 'Could not delete beneficiary.';
-        if (Platform.OS === 'web') {
-          window.alert(errorMsg);
-        } else {
-          Alert.alert('Delete Failed', errorMsg);
-        }
+        setFeedback({
+          title: 'Delete Failed',
+          message: errorMsg,
+          type: 'error',
+        });
       }
     } catch (error: any) {
       console.error('[BeneficiariesModal] Delete error:', error);
-      Alert.alert('Error', 'Network error while removing beneficiary. Please try again.');
+      setFeedback({
+        title: 'Error',
+        message: 'Network error while removing beneficiary. Please try again.',
+        type: 'error',
+      });
     } finally {
       setDeletingId(null);
     }
@@ -180,28 +194,21 @@ export const BeneficiariesModal: React.FC<BeneficiariesModalProps> = ({
   const handleDeleteBeneficiary = (item: BeneficiaryItemData) => {
     const isSelf = (item.relationship || '').toLowerCase() === 'self';
     if (isSelf) {
-      Alert.alert('Cannot Delete Self Profile', 'Your personal subscriber profile cannot be removed as a beneficiary.');
+      setFeedback({
+        title: 'Cannot Delete Self Profile',
+        message: 'Your personal subscriber profile cannot be removed as a beneficiary.',
+        type: 'warning',
+      });
       return;
     }
+    setItemToDelete(item);
+  };
 
-    if (Platform.OS === 'web') {
-      if (window.confirm(`Are you sure you want to delete ${item.name}? This will remove the beneficiary from your account.`)) {
-        executeDeleteBeneficiary(item.id, item.name);
-      }
-    } else {
-      Alert.alert(
-        'Delete Beneficiary',
-        `Are you sure you want to delete ${item.name}? This will remove this beneficiary from your account.`,
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Delete',
-            style: 'destructive',
-            onPress: () => executeDeleteBeneficiary(item.id, item.name),
-          },
-        ]
-      );
-    }
+  const handleConfirmDelete = async () => {
+    if (!itemToDelete) return;
+    const target = itemToDelete;
+    await executeDeleteBeneficiary(target.id, target.name);
+    setItemToDelete(null);
   };
 
   const renderBeneficiaryCard = ({ item }: { item: BeneficiaryItemData }) => {
@@ -434,6 +441,81 @@ export const BeneficiariesModal: React.FC<BeneficiariesModalProps> = ({
               <Text style={styles.addBtnText}>Add New Beneficiary</Text>
             </TouchableOpacity>
           </View>
+
+          {/* Custom Delete Confirmation Modal UI */}
+          {itemToDelete && (
+            <View style={styles.confirmOverlay}>
+              <View style={styles.confirmCard}>
+                <View style={styles.confirmIconContainer}>
+                  <Feather name="alert-triangle" size={36} color="#D97706" />
+                </View>
+                <Text style={styles.confirmTitle}>Delete Beneficiary</Text>
+                <Text style={styles.confirmMessage}>
+                  Are you sure you want to delete <Text style={{ fontWeight: '700', color: '#111827' }}>{itemToDelete.name}</Text>? Deleting this profile will delete the beneficiary account and the beneficiary will lose access.
+                </Text>
+
+                <View style={styles.confirmBtnRow}>
+                  <TouchableOpacity
+                    style={styles.confirmCancelBtn}
+                    onPress={() => !deletingId && setItemToDelete(null)}
+                    disabled={!!deletingId}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.confirmCancelBtnText}>Cancel</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.confirmDeleteBtn, !!deletingId && { opacity: 0.7 }]}
+                    onPress={handleConfirmDelete}
+                    disabled={!!deletingId}
+                    activeOpacity={0.7}
+                  >
+                    {deletingId ? (
+                      <ActivityIndicator size="small" color="#FFFFFF" />
+                    ) : (
+                      <Text style={styles.confirmDeleteBtnText}>Delete</Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          )}
+
+          {/* Custom Feedback Dialog Modal UI (Success / Error / Warning) */}
+          {feedback && (
+            <View style={styles.confirmOverlay}>
+              <View style={styles.confirmCard}>
+                <View style={styles.confirmIconContainer}>
+                  {feedback.type === 'success' && (
+                    <Feather name="check-circle" size={38} color="#059669" />
+                  )}
+                  {feedback.type === 'error' && (
+                    <Feather name="alert-circle" size={38} color="#DC2626" />
+                  )}
+                  {feedback.type === 'warning' && (
+                    <Feather name="alert-triangle" size={38} color="#D97706" />
+                  )}
+                  {feedback.type === 'info' && (
+                    <Feather name="info" size={38} color="#2563EB" />
+                  )}
+                </View>
+                <Text style={styles.confirmTitle}>{feedback.title}</Text>
+                <Text style={styles.confirmMessage}>{feedback.message}</Text>
+
+                <TouchableOpacity
+                  style={[
+                    styles.confirmOkBtn,
+                    feedback.type === 'success' && { backgroundColor: '#059669' },
+                    feedback.type === 'error' && { backgroundColor: '#DC2626' },
+                  ]}
+                  onPress={() => setFeedback(null)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.confirmOkBtnText}>OK</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
         </View>
       </View>
     </Modal>
@@ -777,6 +859,94 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '700',
     color: '#FFFFFF',
+  },
+  confirmOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+    zIndex: 999,
+    elevation: 20,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+  },
+  confirmCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    paddingHorizontal: 24,
+    paddingVertical: 24,
+    width: '100%',
+    maxWidth: 320,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.15,
+    shadowRadius: 14,
+    elevation: 10,
+  },
+  confirmIconContainer: {
+    marginBottom: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  confirmTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  confirmMessage: {
+    fontSize: 14,
+    color: '#4B5563',
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 22,
+  },
+  confirmBtnRow: {
+    flexDirection: 'row',
+    width: '100%',
+    gap: 12,
+  },
+  confirmCancelBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 10,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  confirmCancelBtnText: {
+    color: '#4B5563',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  confirmDeleteBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 10,
+    backgroundColor: '#E11D48',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  confirmDeleteBtnText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  confirmOkBtn: {
+    width: '100%',
+    paddingVertical: 12,
+    borderRadius: 10,
+    backgroundColor: '#FF5B0A',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  confirmOkBtnText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '700',
   },
 });
 

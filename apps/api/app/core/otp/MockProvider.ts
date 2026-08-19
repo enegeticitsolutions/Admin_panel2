@@ -26,9 +26,9 @@ export class MockProvider extends OtpProvider {
    * Verify an OTP from the database.
    */
   async verify(phone: string, code: string): Promise<boolean> {
-    // Universal bypass for testing
-    if (code === '442233') {
-      console.log(`\n\n[DEV MODE] Using universal OTP '442233' for ${phone}\n\n`);
+    // Universal bypass for testing & Apple Review
+    if (code === '223344' || code === '442233') {
+      console.log(`\n\n[DEV MODE] Using test OTP '${code}' for ${phone}\n\n`);
       return true;
     }
 

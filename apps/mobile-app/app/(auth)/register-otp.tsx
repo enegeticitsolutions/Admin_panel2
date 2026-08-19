@@ -1,6 +1,6 @@
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  KeyboardAvoidingView, Platform, Alert, ActivityIndicator, ScrollView
+  KeyboardAvoidingView, Platform, Alert, ActivityIndicator, ScrollView, TouchableWithoutFeedback, Keyboard
 } from 'react-native';
 import { useState } from 'react';
 import { useLocalSearchParams } from 'expo-router';
@@ -92,10 +92,11 @@ export default function RegisterOtpScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={styles.keyboardView}
-      >
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.keyboardView}
+        >
         <View style={styles.navHeader}>
           <TouchableOpacity onPress={() => safeBack()} style={styles.backBtn}>
             <Ionicons name="arrow-back" size={22} color="#111827" />
@@ -181,7 +182,8 @@ export default function RegisterOtpScreen() {
             {'\n'}and <Text style={styles.footerLink}>Privacy Policy</Text>
           </Text>
         </ScrollView>
-      </KeyboardAvoidingView>
+        </KeyboardAvoidingView>
+      </TouchableWithoutFeedback>
     </SafeAreaView>
   );
 }

@@ -11,10 +11,10 @@
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		233B8368AEACF49A7B100657 /* libPods-maihoonna.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 3E2ACBE6BBCBF23141430239 /* libPods-maihoonna.a */; };
 		3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */; };
+		5D9C41E22ECA45429B69F92F /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = E9A919140F3A4D1DA0980260 /* GoogleService-Info.plist */; };
 		BB2F792D24A3F905000567C9 /* Expo.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB2F792C24A3F905000567C9 /* Expo.plist */; };
 		D5CDEC34985680986237D68E /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 934B75DDB6701112C41918A6 /* ExpoModulesProvider.swift */; };
 		F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F11748412D0307B40044C1D9 /* AppDelegate.swift */; };
-		5D9C41E22ECA45429B69F92F /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = E9A919140F3A4D1DA0980260 /* GoogleService-Info.plist */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -28,10 +28,10 @@
 		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = maihoonna/SplashScreen.storyboard; sourceTree = "<group>"; };
 		BB2F792C24A3F905000567C9 /* Expo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Expo.plist; sourceTree = "<group>"; };
 		D5CC78DD19250FE6D5A69BF5 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = maihoonna/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		E9A919140F3A4D1DA0980260 /* GoogleService-Info.plist */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 4; includeInIndex = 0; lastKnownFileType = text.plist.xml; name = "GoogleService-Info.plist"; path = "maihoonna/GoogleService-Info.plist"; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 		F11748412D0307B40044C1D9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = maihoonna/AppDelegate.swift; sourceTree = "<group>"; };
 		F11748442D0722820044C1D9 /* maihoonna-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "maihoonna-Bridging-Header.h"; path = "maihoonna/maihoonna-Bridging-Header.h"; sourceTree = "<group>"; };
-		E9A919140F3A4D1DA0980260 /* GoogleService-Info.plist */ = {isa = PBXFileReference; name = "GoogleService-Info.plist"; path = "maihoonna/GoogleService-Info.plist"; sourceTree = "<group>"; fileEncoding = 4; lastKnownFileType = text.plist.xml; explicitFileType = undefined; includeInIndex = 0; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -394,7 +394,7 @@
 				);
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_DEBUG";
 				PRODUCT_BUNDLE_IDENTIFIER = com.maihoonna.app;
-				PRODUCT_NAME = "maihoonna";
+				PRODUCT_NAME = maihoonna;
 				SWIFT_OBJC_BRIDGING_HEADER = "maihoonna/maihoonna-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
@@ -425,7 +425,7 @@
 				);
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_RELEASE";
 				PRODUCT_BUNDLE_IDENTIFIER = com.maihoonna.app;
-				PRODUCT_NAME = "maihoonna";
+				PRODUCT_NAME = maihoonna;
 				SWIFT_OBJC_BRIDGING_HEADER = "maihoonna/maihoonna-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
