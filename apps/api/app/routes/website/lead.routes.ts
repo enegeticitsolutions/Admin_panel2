@@ -24,37 +24,43 @@ router.post('/submit-form', async (req: Request, res: Response) => {
       });
     }
 
+    let normalizedPhone: string;
     try {
-      const phoneNumber = parsePhoneNumberWithError(phone);
+      const phoneNumber = typeof phone === 'string' && phone.startsWith('+')
+        ? parsePhoneNumberWithError(phone)
+        : parsePhoneNumberWithError(phone, 'IN');
+
       if (!phoneNumber.isValid()) {
         return res.status(400).json({
           success: false,
           message: 'Invalid mobile number format for the selected country',
         });
       }
+      // Standardize to E.164 format (+[CountryCode][Number], e.g. +919305951785 or +12025550143)
+      normalizedPhone = phoneNumber.format('E.164');
     } catch (error) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid mobile number',
+        message: 'Invalid mobile number format for the selected country',
       });
     }
 
     const recipientEmail = process.env.WAITLIST_RECIPIENT_EMAIL || 'info@maihoonna.com';
     const submittedOn = formatISTTimestamp();
 
-    // 1. Save lead to database
+    // 1. Save lead to database with normalized country code + mobile number
     try {
       await (prisma as any).marketingLead.create({
         data: {
           name,
-          phone,
+          phone: normalizedPhone,
           pincode: finalPinCode,
           email,
           source: 'website',
           status: 'new',
         },
       });
-      console.log(`✅ [Website Lead] Saved to database: ${name}`);
+      console.log(`✅ [Website Lead] Saved to database: ${name} (${normalizedPhone})`);
     } catch (dbErr: any) {
       console.error('⚠️ [Website Lead] DB insert warning:', dbErr.message);
     }
@@ -79,7 +85,7 @@ router.post('/submit-form', async (req: Request, res: Response) => {
             <div style="background-color: #FFF7ED; border: 1px solid #FFEDD5; border-radius: 10px; padding: 24px; margin: 24px 0;">
               <table style="width: 100%; border-collapse: collapse;">
                 <tr><td style="padding: 6px 0; font-size: 14px; color: #6B7280;">Full Name:</td><td style="padding: 6px 0; font-size: 15px; color: #1F2937; font-weight: 500;">${name}</td></tr>
-                <tr><td style="padding: 6px 0; font-size: 14px; color: #6B7280;">Mobile:</td><td style="padding: 6px 0; font-size: 15px; color: #1F2937; font-weight: 500;">${phone}</td></tr>
+                <tr><td style="padding: 6px 0; font-size: 14px; color: #6B7280;">Mobile:</td><td style="padding: 6px 0; font-size: 15px; color: #1F2937; font-weight: 500;">${normalizedPhone}</td></tr>
                 <tr><td style="padding: 6px 0; font-size: 14px; color: #6B7280;">Email:</td><td style="padding: 6px 0; font-size: 15px; color: #1F2937; font-weight: 500;">${email}</td></tr>
                 <tr><td style="padding: 6px 0; font-size: 14px; color: #6B7280;">Pin Code:</td><td style="padding: 6px 0; font-size: 15px; color: #1F2937; font-weight: 500;">${pinCode}</td></tr>
                 <tr><td style="padding: 6px 0; font-size: 14px; color: #6B7280;">Submitted On:</td><td style="padding: 6px 0; font-size: 15px; color: #1F2937; font-weight: 500;">${submittedOn}</td></tr>
@@ -125,7 +131,7 @@ router.post('/submit-form', async (req: Request, res: Response) => {
       firstName,
       lastName,
       email,
-      phone,
+      phone: normalizedPhone,
       company: 'MaiHoonna Website Waitlist',
       description: `Waitlist Signup | Pincode: ${pinCode}`
     });
