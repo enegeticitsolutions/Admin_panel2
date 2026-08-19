@@ -55,6 +55,7 @@ function onAppStateChange(status: AppStateStatus) {
 function RootNavigator() {
   const { isLoading, isLoggedIn, role } = useAuth();
   const { resetStack } = useNavigationStack();
+  const router = useRouter();
 
   // Reset logical navigation stack when auth state changes
   useEffect(() => {
@@ -68,18 +69,30 @@ function RootNavigator() {
     }
   }, [isLoggedIn]);
 
-  // Real-time Query Cache Invalidation on Push Notification Delivery
+  // Real-time Query Cache Invalidation on Push Notification Delivery & Action Navigation
   useEffect(() => {
     if (!isLoggedIn || Platform.OS === 'web') return;
 
-    const sub = Notifications.addNotificationReceivedListener((notification) => {
+    const receivedSub = Notifications.addNotificationReceivedListener((notification) => {
       console.log('[Push Notification Received] Auto-refreshing dashboard queries:', notification.request.content.data);
       queryClient.invalidateQueries({ queryKey: ['subscriberDashboard'] });
       queryClient.invalidateQueries({ queryKey: ['beneficiaryDashboardInfo'] });
+      queryClient.invalidateQueries({ queryKey: ['medicationsToday'] });
     });
 
-    return () => sub.remove();
-  }, [isLoggedIn]);
+    const responseSub = Notifications.addNotificationResponseReceivedListener((response) => {
+      const data = response.notification.request.content.data;
+      if (data?.type === 'medication_reminder' || data?.medicationId) {
+        console.log('[Push Notification Response] Opening Medication Tracker:', data);
+        router.push('/(beneficiary)/meds');
+      }
+    });
+
+    return () => {
+      receivedSub.remove();
+      responseSub.remove();
+    };
+  }, [isLoggedIn, router]);
 
   // ─── SOS Background Persistent Notification (Beneficiary only) ───────────────
   useEffect(() => {

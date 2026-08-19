@@ -18,104 +18,11 @@ export interface SendNotificationOptions {
  * Creates an in-app database Notification record and dispatches
  * an Expo Push notification (FCM / APNs) if the user has an fcmToken.
  */
+import { PushNotificationDispatcher } from './notifications/PushNotificationDispatcher';
+
 export async function sendNotificationToUser(options: SendNotificationOptions): Promise<void> {
-  const { userId, title, body, type = NotificationType.system, channel = NotificationChannel.push, data = {} } = options;
-
-  if (!userId) return;
-
-  try {
-    // 1. Create In-App Notification Record in Database
-    const notif = await prisma.notification.create({
-      data: {
-        userId,
-        title,
-        body,
-        type,
-        channel,
-        data: data || {},
-      },
-    });
-
-    // 2. Fetch User's Push Token
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { fcmToken: true, name: true },
-    });
-
-    if (!user?.fcmToken) {
-      return;
-    }
-
-    const pushToken = user.fcmToken.trim();
-
-    const payload = JSON.stringify({
-      to: pushToken,
-      title,
-      body,
-      data,
-      sound: 'default',
-      badge: 1,
-      priority: 'high',
-      channelId: 'default',
-    });
-
-    return new Promise((resolve) => {
-      try {
-        const url = new URL(config.expoPushUrl || 'https://exp.host/--/api/v2/push/send');
-        const req = https.request(
-          {
-            hostname: url.hostname,
-            path: url.pathname,
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-              'Accept-Encoding': 'gzip, deflate',
-              'Content-Length': Buffer.byteLength(payload),
-            },
-          },
-          (res) => {
-            let resData = '';
-            res.on('data', (chunk) => (resData += chunk));
-            res.on('end', async () => {
-              try {
-                const parsed = JSON.parse(resData);
-                if (parsed?.data?.status === 'ok') {
-                  await prisma.notification.update({
-                    where: { id: notif.id },
-                    data: { sentAt: new Date() },
-                  });
-                  console.log(`📱 [PushNotification] Delivered push to ${user.name || userId}: "${title}"`);
-                } else if (parsed?.data?.status === 'error') {
-                  await prisma.notification.update({
-                    where: { id: notif.id },
-                    data: { failedAt: new Date(), failReason: JSON.stringify(parsed.data) },
-                  });
-                }
-              } catch (_) {}
-              resolve();
-            });
-          }
-        );
-
-        req.on('error', async (err) => {
-          await prisma.notification.update({
-            where: { id: notif.id },
-            data: { failedAt: new Date(), failReason: err.message },
-          });
-          resolve();
-        });
-
-        req.write(payload);
-        req.end();
-      } catch (err: any) {
-        console.error(`❌ [PushNotification] Error initializing push:`, err.message);
-        resolve();
-      }
-    });
-  } catch (err: any) {
-    console.error(`[Notification Error] Failed to process notification for user ${userId}:`, err.message);
-  }
+  const dispatcher = PushNotificationDispatcher.getInstance();
+  await dispatcher.send(options);
 }
 
 /**
