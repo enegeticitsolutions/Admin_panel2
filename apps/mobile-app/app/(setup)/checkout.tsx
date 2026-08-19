@@ -595,17 +595,32 @@ export default function CheckoutScreen() {
                     };
                 } catch (paymentErr: any) {
                     setIsProcessing(false);
-                    const errMessage = paymentErr?.description || paymentErr?.message || '';
                     const errCode = paymentErr?.code;
+                    const errMessage =
+                        paymentErr?.description ||
+                        paymentErr?.reason ||
+                        paymentErr?.message ||
+                        '';
 
-                    if (errCode === 0 || (typeof errMessage === 'string' && errMessage.toLowerCase().includes('cancel'))) {
-                        // User cancelled payment modal
+                    // code=0 or "PAYMENT_CANCELLED" / message contains "cancel" = user dismissed modal
+                    const cancelled =
+                        errCode === 0 ||
+                        errCode === 'PAYMENT_CANCELLED' ||
+                        (typeof errMessage === 'string' && errMessage.toLowerCase().includes('cancel'));
+
+                    if (cancelled) {
                         console.log('[Razorpay] Payment cancelled by user.');
                         return;
                     }
 
-                    console.error('[Razorpay Error]', errCode, errMessage, paymentErr);
-                    Alert.alert('Payment Failed', (typeof errMessage === 'string' && errMessage) ? errMessage : 'Payment could not be completed. Please try again.');
+                    // Only log as error for genuine failures (not user cancellations)
+                    console.error('[Razorpay Error] code:', errCode, 'message:', errMessage, JSON.stringify(paymentErr));
+
+                    const displayMsg = (typeof errMessage === 'string' && errMessage)
+                        ? errMessage
+                        : `Payment could not be completed (code: ${errCode}). Please try again.`;
+
+                    Alert.alert('Payment Failed', displayMsg);
                     return;
                 }
             }
