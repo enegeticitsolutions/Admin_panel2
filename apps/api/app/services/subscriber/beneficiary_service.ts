@@ -829,6 +829,17 @@ export const addMedication = async (beneficiaryId: string, data: {
   startDate?: string;
   endDate?: string;
 }) => {
+  // Helper: parse dates in either DD-MM-YYYY or ISO (YYYY-MM-DD) format safely
+  const parseDate = (raw: string): Date => {
+    // DD-MM-YYYY → YYYY-MM-DD
+    const ddmmyyyy = /^(\d{2})-(\d{2})-(\d{4})$/;
+    const match = raw.match(ddmmyyyy);
+    if (match) {
+      return new Date(`${match[3]}-${match[2]}-${match[1]}`);
+    }
+    return new Date(raw);
+  };
+
   return prisma.medication.create({
     data: {
       id: generateUUID(),
@@ -837,8 +848,8 @@ export const addMedication = async (beneficiaryId: string, data: {
       dosage: (data.dosage || 'Take as directed').trim(),
       frequency: (data.frequency as any) || 'once_daily',
       instructions: data.instructions ? data.instructions.trim() : null,
-      startDate: data.startDate ? new Date(data.startDate) : new Date(),
-      endDate: data.endDate ? new Date(data.endDate) : null,
+      startDate: data.startDate ? parseDate(data.startDate) : new Date(),
+      endDate: data.endDate ? parseDate(data.endDate) : null,
       isActive: true,
     }
   });
