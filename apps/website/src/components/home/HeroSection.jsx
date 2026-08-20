@@ -1,5 +1,4 @@
 import React from "react";
-import heroBg from "../../assets/herobg.png";
 import healthcareIcon from "../../assets/healthcare1.png";
 
 /**
@@ -7,7 +6,16 @@ import healthcareIcon from "../../assets/healthcare1.png";
  */
 const HeroSection = ({ openForm }) => {
   return (
-    <section className="hero" id="home" style={{ "--hero-bg": `url(${heroBg})` }}>
+    <section className="hero" id="home">
+      {/* Background video */}
+      <video
+        className="hero__bg-video"
+        src="/src/assets/Home-Header-Background-Video.mp4"
+        autoPlay
+        muted
+        loop
+        playsInline
+      />
       <div className="hero__inner">
         <div className="hero__copy">
           <div className="eyebrow">

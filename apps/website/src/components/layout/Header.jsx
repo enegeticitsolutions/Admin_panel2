@@ -14,6 +14,15 @@ const Header = ({ activePage, setActivePage, user, openForm }) => {
 
   return (
     <header className="topbar" role="banner">
+      {/* Background video */}
+      <video
+        className="topbar__bg-video"
+        src="/src/assets/Header Video.mp4"
+        autoPlay
+        muted
+        loop
+        playsInline
+      />
       <a
         href="#home"
         aria-label="MaiHoonNa home"

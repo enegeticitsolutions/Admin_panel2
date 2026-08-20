@@ -234,6 +234,7 @@ const ServicesSection = ({ openForm }) => {
               <span className="hm-cm__eyebrow">SERVICES</span>
               <h2 className="hm-cm__title">
                 Care Mitra
+                <br />
                 <span>Home Visits</span>
               </h2>
             </div>
