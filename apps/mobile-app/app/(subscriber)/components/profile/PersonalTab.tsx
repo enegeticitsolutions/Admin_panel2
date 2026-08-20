@@ -212,19 +212,26 @@ export const PersonalTab = ({ user, onUpdate }: PersonalTabProps) => {
                         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                             <Text style={styles.infoLabel}>Email Address</Text>
                             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                                {user.isVerified && (
+                                {user.email && user.isVerified && (
                                     <View style={styles.verifiedBadge}>
                                         <Text style={styles.verifiedText}>Verified</Text>
                                     </View>
                                 )}
                                 <TouchableOpacity onPress={() => setEmailModalVisible(true)} activeOpacity={0.7}>
                                     <Text style={styles.verifyActionText}>
-                                        {user.email ? 'Change Email' : 'Verify Email'}
+                                        {user.email && !user.isVerified ? 'Verify Email' : user.email ? 'Change Email' : 'Add Email'}
                                     </Text>
                                 </TouchableOpacity>
                             </View>
                         </View>
-                        <Text style={styles.infoValue}>{user.email || 'Not specified'}</Text>
+                        <Text style={[styles.infoValue, { color: user.email && !user.isVerified ? '#EF4444' : '#111111' }]}>
+                            {user.email || 'Not specified'}
+                        </Text>
+                        {user.email && !user.isVerified && (
+                            <Text style={{ fontSize: 12, color: '#EF4444', marginTop: 4, fontWeight: '500' }}>
+                                Please verify your email to secure your account.
+                            </Text>
+                        )}
                     </View>
                 </View>
 

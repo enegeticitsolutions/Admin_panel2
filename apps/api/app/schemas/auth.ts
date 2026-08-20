@@ -17,9 +17,14 @@ export const checkLocationSchema = Joi.object({
 
 export const registerPasswordSchema = Joi.object({
   phone: Joi.string().required(),
-  name: Joi.string().required(),
+  name: Joi.string().trim().min(2).required(),
   age: Joi.number().min(18).max(120).required(),
   password: Joi.string().min(6).required(),
+  email: Joi.string().email().required(),
+  pincode: Joi.string().allow(null, '').optional(),
+  location: Joi.string().allow(null, '').optional(),
+  latitude: Joi.number().allow(null).optional(),
+  longitude: Joi.number().allow(null).optional(),
 });
 
 export const loginPasswordSchema = Joi.object({

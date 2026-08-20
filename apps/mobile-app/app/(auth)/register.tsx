@@ -28,6 +28,7 @@ export default function RegisterScreen() {
 
     const [form, setForm] = useState({
         name: "",
+        email: "",
         phone: "",
         pincode: "",
         address: "",
@@ -206,9 +207,13 @@ export default function RegisterScreen() {
                     body: JSON.stringify({
                         phone: `+91${cleanPhone}`,
                         name: form.name,
+                        email: form.email,
                         age: ageNum,
                         pincode: form.pincode,
                         password: form.password,
+                        location: form.address,
+                        latitude: form.latitude,
+                        longitude: form.longitude,
                     }),
                 });
 
@@ -297,8 +302,12 @@ export default function RegisterScreen() {
                 body: JSON.stringify({
                     phone: `+91${cleanPhone}`,
                     name: form.name,
+                    email: form.email,
                     age: ageNum,
                     pincode: form.pincode,
+                    location: form.address,
+                    latitude: form.latitude,
+                    longitude: form.longitude,
                 }),
             });
 
@@ -373,6 +382,21 @@ export default function RegisterScreen() {
                                         autoCapitalize="words"
                                         value={form.name}
                                         onChangeText={(text) => setForm({ ...form, name: text })}
+                                        editable={!isLoading}
+                                    />
+                                </View>
+
+                                {/* Email */}
+                                <View style={styles.inputGroup}>
+                                    <Text style={styles.label}>Email Address</Text>
+                                    <TextInput
+                                        style={styles.input}
+                                        placeholder="Enter your email"
+                                        placeholderTextColor="#9CA3AF"
+                                        autoCapitalize="none"
+                                        keyboardType="email-address"
+                                        value={form.email}
+                                        onChangeText={(text) => setForm({ ...form, email: text })}
                                         editable={!isLoading}
                                     />
                                 </View>

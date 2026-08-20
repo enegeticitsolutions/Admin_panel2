@@ -10,6 +10,8 @@ import { useSafeBack } from '@/hooks/useSafeBack';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Location from 'expo-location';
 import { AddressPicker } from '@/components/ui/AddressPicker';
+import { serviceabilityService } from '@/services/serviceability.service';
+import { getAccurateLocation } from '@/services/location';
 import RazorpayCheckout from 'react-native-razorpay';
 import Constants from 'expo-constants';
 
@@ -229,35 +231,21 @@ export default function PackageUtilizationScreen() {
     }
   };
 
-  const handleCheckLocation = async (lat: number, lng: number) => {
+  const handleCheckLocation = async (lat?: number, lng?: number, pincode?: string) => {
     setCheckingLocation(true);
     try {
-      const res = await fetch(`${API_URL}/public/location/reverse-geocode?lat=${lat}&lng=${lng}`, {
-        headers: {
-          'x-app-secret': process.env.EXPO_PUBLIC_APP_SECRET || ''
-        }
-      });
-      const json = await res.json();
-      if (json.success && json.data.pincode) {
-        const pincode = json.data.pincode;
-        const svcRes = await fetch(`${API_URL}/public/zones/check-pincode?pincode=${pincode}`);
-        const svcJson = await svcRes.json();
-        
-        if (svcJson.success && svcJson.data.available) {
-          const regionId = svcJson.data.regionId || '';
-          const addr = json.data.address || `${svcJson.data.location} (${pincode})`;
-          setSelectedAddress(addr);
-          setSelectedPincode(pincode);
-          setSelectedRegionId(regionId);
-          await fetchAddons(regionId);
-        } else {
-          setSelectedAddress(json.data.address || `Pincode ${pincode}`);
-          setSelectedPincode(pincode);
-          setSelectedRegionId('');
-          await fetchAddons('');
-        }
+      const result = await serviceabilityService.checkLocation(lat, lng, pincode);
+      if (result.isServiceable) {
+        const regionId = result.region?.id || '';
+        setSelectedAddress(result.location || `Pincode ${pincode || ''}`);
+        if (pincode) setSelectedPincode(pincode);
+        setSelectedRegionId(regionId);
+        await fetchAddons(regionId);
       } else {
-        setSelectedAddress('Could not resolve address');
+        setSelectedAddress(result.location || `Pincode ${pincode || ''}`);
+        if (pincode) setSelectedPincode(pincode);
+        setSelectedRegionId('');
+        await fetchAddons('');
       }
     } catch (err) {
       console.error('Error checking location:', err);
@@ -270,15 +258,12 @@ export default function PackageUtilizationScreen() {
   const handleDirectDetectLocation = async () => {
     setCheckingLocation(true);
     try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permission Denied', 'Location permission is required to detect your current location.');
-        setCheckingLocation(false);
-        return;
-      }
-      const location = await Location.getCurrentPositionAsync({});
-      const { latitude, longitude } = location.coords;
-      await handleCheckLocation(latitude, longitude);
+      const loc = await getAccurateLocation();
+      const resolvedAddress = loc.address || [loc.city, loc.state].filter(Boolean).join(', ') || 'Current Location';
+      setSelectedAddress(resolvedAddress);
+      if (loc.pincode) setSelectedPincode(loc.pincode);
+      
+      await handleCheckLocation(loc.latitude, loc.longitude, loc.pincode);
     } catch (err) {
       console.error('Direct detect location failed:', err);
       Alert.alert('Error', 'Failed to auto-detect your location.');

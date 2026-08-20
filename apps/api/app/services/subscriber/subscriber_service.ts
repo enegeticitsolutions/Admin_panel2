@@ -169,6 +169,12 @@ export const updateProfile = async (subscriberId: string, data: {
       location: data.location,
       latitude: data.latitude,
       longitude: data.longitude,
+      flatPlot: data.flatPlot,
+      streetArea: data.streetArea,
+      landmark: data.landmark,
+      city: data.city,
+      state: data.state,
+      pincode: data.pincode,
     }
   });
   console.log(`[Backend] Update successful for ${subscriberId}`);

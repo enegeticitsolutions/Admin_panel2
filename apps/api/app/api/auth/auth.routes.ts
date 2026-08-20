@@ -44,20 +44,20 @@ router.post('/check-location', validate(checkLocationSchema), asyncHandler(async
 }));
 
 router.post('/register-password', loginLimiter as unknown as RequestHandler, validate(registerPasswordSchema), asyncHandler(async (req: Request, res: Response) => {
-  const { phone, name, age, password } = req.body;
-  const result = await authService.registerWithPassword(phone, name, age, password);
+  const { phone, name, age, password, email, location, latitude, longitude, pincode } = req.body;
+  const result = await authService.registerWithPassword(phone, name, age, password, email, location, latitude, longitude, pincode);
   res.json(new ApiResponse(201, result, 'Registration successful'));
 }));
 
 // POST /auth/register-otp — Production / OTP-only registration completion
 // Phone is already verified; we only need name + age (no password stored)
 router.post('/register-otp', loginLimiter as unknown as RequestHandler, asyncHandler(async (req: Request, res: Response) => {
-  const { phone, name, age } = req.body;
+  const { phone, name, age, email, location, latitude, longitude, pincode } = req.body;
   if (!phone || !name || !age) {
     res.status(400).json(new ApiResponse(400, null, 'phone, name, and age are required'));
     return;
   }
-  const result = await authService.registerWithOtp(phone, name, Number(age));
+  const result = await authService.registerWithOtp(phone, name, Number(age), email, location, latitude, longitude, pincode);
   res.json(new ApiResponse(201, result, 'Registration successful'));
 }));
 

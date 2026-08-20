@@ -8,6 +8,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AddressPicker } from '../../components/ui/AddressPicker';
 import { AddonCard } from '@/components/addons/AddonCard';
 import * as Location from 'expo-location';
+import { serviceabilityService } from '@/services/serviceability.service';
+import { getAccurateLocation } from '@/services/location';
 
 type PlanDuration = 'basic' | '6months' | 'annual';
 
@@ -50,56 +52,47 @@ export default function SubscriptionPackagesScreen() {
     const [serviceMessage, setServiceMessage] = useState('');
     const [isServiceable, setIsServiceable] = useState<boolean | null>(null);
 
-    const handleCheckLocation = async (lat: number, lng: number) => {
+    const handleCheckLocation = async (lat?: number, lng?: number, pincode?: string) => {
         setCheckingPin(true);
         setServiceMessage('');
         setIsServiceable(null);
         try {
-            const res = await fetch(`${API_URL}/public/location/reverse-geocode?lat=${lat}&lng=${lng}`, {
-                headers: {
-                    'x-app-secret': process.env.EXPO_PUBLIC_APP_SECRET || ''
+            const result = await serviceabilityService.checkLocation(lat, lng, pincode);
+            
+            if (result.isServiceable) {
+                const regionId = result.region?.id || '';
+                setServiceMessage(result.message || `Serving ${result.location}! Showing targeted packages.`);
+                setIsServiceable(true);
+                setSelectedAddress(result.location || `Pincode ${pincode || ''}`);
+                if (pincode) setSelectedPincode(pincode);
+                setSelectedRegionId(regionId);
+                if (lat !== undefined && lng !== undefined) {
+                    setSelectedLat(lat);
+                    setSelectedLng(lng);
                 }
-            });
-            const json = await res.json();
-            if (json.success && json.data.pincode) {
-                const pincode = json.data.pincode;
-                const svcRes = await fetch(`${API_URL}/public/zones/check-pincode?pincode=${pincode}`);
-                const svcJson = await svcRes.json();
                 
-                if (svcJson.success && svcJson.data.available) {
-                    const regionId = svcJson.data.region?.id || '';
-                    setServiceMessage(`Serving ${json.data.address || svcJson.data.location}! Showing targeted packages.`);
-                    setIsServiceable(true);
-                    setSelectedAddress(json.data.address || `${svcJson.data.location} (${pincode})`);
-                    setSelectedPincode(pincode);
-                    setSelectedRegionId(regionId);
-                    setSelectedLat(lat);
-                    setSelectedLng(lng);
-                    
-                    // Reload packages for this region
-                    const pkgRes = await fetch(`${API_URL}/subscriber/subscriptions/packages?regionId=${regionId}`);
-                    const pkgJson = await pkgRes.json();
-                    if (pkgJson.success) {
-                        setPackages(pkgJson.data);
-                    }
-                } else {
-                    setServiceMessage("We don't serve this location yet. Showing global packages only.");
-                    setIsServiceable(false);
-                    setSelectedAddress(json.data.address || `Pincode ${pincode}`);
-                    setSelectedPincode(pincode);
-                    setSelectedRegionId('');
-                    setSelectedLat(lat);
-                    setSelectedLng(lng);
-                    // Load global packages only
-                    const pkgRes = await fetch(`${API_URL}/subscriber/subscriptions/packages`);
-                    const pkgJson = await pkgRes.json();
-                    if (pkgJson.success) {
-                        setPackages(pkgJson.data);
-                    }
+                // Reload packages for this region
+                const pkgRes = await fetch(`${API_URL}/subscriber/subscriptions/packages?regionId=${regionId}`);
+                const pkgJson = await pkgRes.json();
+                if (pkgJson.success) {
+                    setPackages(pkgJson.data);
                 }
             } else {
-                setServiceMessage("Could not resolve location address.");
+                setServiceMessage(result.message || "We don't serve this location yet. Showing global packages only.");
                 setIsServiceable(false);
+                setSelectedAddress(result.location || `Pincode ${pincode || ''}`);
+                if (pincode) setSelectedPincode(pincode);
+                setSelectedRegionId('');
+                if (lat !== undefined && lng !== undefined) {
+                    setSelectedLat(lat);
+                    setSelectedLng(lng);
+                }
+                // Load global packages only
+                const pkgRes = await fetch(`${API_URL}/subscriber/subscriptions/packages`);
+                const pkgJson = await pkgRes.json();
+                if (pkgJson.success) {
+                    setPackages(pkgJson.data);
+                }
             }
         } catch (err) {
             console.error("Error checking location:", err);
@@ -114,18 +107,15 @@ export default function SubscriptionPackagesScreen() {
         setServiceMessage('');
         setIsServiceable(null);
         try {
-            const { status } = await Location.requestForegroundPermissionsAsync();
-            if (status !== 'granted') {
-                Alert.alert("Permission Denied", "Location permission is required to find your current location.");
-                setCheckingPin(false);
-                return;
-            }
-            const location = await Location.getCurrentPositionAsync({});
-            const { latitude, longitude } = location.coords;
-            await handleCheckLocation(latitude, longitude);
+            const loc = await getAccurateLocation();
+            const resolvedAddress = loc.address || [loc.city, loc.state].filter(Boolean).join(', ') || 'Current Location';
+            setSelectedAddress(resolvedAddress);
+            if (loc.pincode) setSelectedPincode(loc.pincode);
+            
+            await handleCheckLocation(loc.latitude, loc.longitude, loc.pincode);
         } catch (err) {
             console.error("Direct detect location failed:", err);
-            Alert.alert("Error", "Failed to auto-detect your location.");
+            Alert.alert("Error", "Failed to auto-detect your location. Please select it on the map.");
             setCheckingPin(false);
         }
     };
@@ -167,29 +157,9 @@ export default function SubscriptionPackagesScreen() {
                 if (hasCoords) {
                     await handleCheckLocation(defaultLat, defaultLng);
                 } else if (userPincode) {
-                    // fall back to checking user pincode
-                    try {
-                        const pinRes = await fetch(`${API_URL}/public/zones/check-pincode?pincode=${userPincode}`);
-                        const pinJson = await pinRes.json();
-                        if (pinJson.success && pinJson.data.available) {
-                            const regionId = pinJson.data.region?.id || '';
-                            setSelectedAddress(pinJson.data.location);
-                            setSelectedPincode(userPincode);
-                            setSelectedRegionId(regionId);
-                            setServiceMessage(`Serving ${pinJson.data.location}! Showing targeted packages.`);
-                            setIsServiceable(true);
-                            // Reload packages
-                            const pkgRes = await fetch(`${API_URL}/subscriber/subscriptions/packages?regionId=${regionId}`);
-                            const pkgJson = await pkgRes.json();
-                            if (pkgJson.success) {
-                                setPackages(pkgJson.data);
-                            }
-                        }
-                    } catch (e) {
-                        console.warn('Pincode initialization failed:', e);
-                    }
+                    await handleCheckLocation(undefined, undefined, userPincode);
                 } else {
-                    // Fetch available packages
+                    // Fetch available packages globally
                     const response = await fetch(`${API_URL}/subscriber/subscriptions/packages`);
                     const json = await response.json();
                     if (json.success) {

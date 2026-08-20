@@ -322,7 +322,17 @@ export class AuthService {
    * registerWithPassword — Creates a prospect account with a hashed password.
    * Used only for development / admin-seeded accounts.
    */
-  public async registerWithPassword(rawPhone: string, name: string, age: number, passwordRaw: string) {
+  public async registerWithPassword(
+    rawPhone: string,
+    name: string,
+    age: number,
+    passwordRaw: string,
+    email?: string,
+    location?: string,
+    latitude?: number,
+    longitude?: number,
+    pincode?: string
+  ) {
     const phone = this.normalizePhone(rawPhone);
 
     const existingUser = await prisma.user.findUnique({ where: { phone } });
@@ -340,6 +350,7 @@ export class AuthService {
         data: {
           name,
           age,
+          email: email || null,
           password: hashedPassword,
           role: 'prospect',
           isActive: true,
@@ -348,15 +359,15 @@ export class AuthService {
           fcmToken: null,
           refreshToken: null,
           profilePhoto: null,
-          location: null,
-          latitude: null,
-          longitude: null,
+          location: location || null,
+          latitude: latitude || null,
+          longitude: longitude || null,
+          pincode: pincode || null,
           flatPlot: null,
           streetArea: null,
           landmark: null,
           city: null,
           state: null,
-          pincode: null,
           createdAt: new Date(),
         },
       });
@@ -375,7 +386,19 @@ export class AuthService {
     const hashedPassword = await bcrypt.hash(passwordRaw, salt);
 
     const user = await prisma.user.create({
-      data: { id: generateUUID(), phone, name, age, password: hashedPassword, role: 'prospect' },
+      data: { 
+        id: generateUUID(), 
+        phone, 
+        name, 
+        age, 
+        email: email || null, 
+        password: hashedPassword, 
+        role: 'prospect',
+        location: location || null,
+        latitude: latitude || null,
+        longitude: longitude || null,
+        pincode: pincode || null,
+      },
     });
 
     const token = createToken({ sub: user.id, role: user.role });
@@ -392,7 +415,16 @@ export class AuthService {
    * registerWithOtp — Production OTP-only registration.
    * Creates a prospect account WITHOUT a stored password.
    */
-  public async registerWithOtp(rawPhone: string, name: string, age: number) {
+  public async registerWithOtp(
+    rawPhone: string, 
+    name: string, 
+    age: number, 
+    email?: string,
+    location?: string,
+    latitude?: number,
+    longitude?: number,
+    pincode?: string
+  ) {
     const phone = this.normalizePhone(rawPhone);
 
     const existingUser = await prisma.user.findUnique({ where: { phone } });
@@ -407,6 +439,7 @@ export class AuthService {
         data: {
           name,
           age,
+          email: email || null,
           password: null,
           role: 'prospect',
           isActive: true,
@@ -415,15 +448,15 @@ export class AuthService {
           fcmToken: null,
           refreshToken: null,
           profilePhoto: null,
-          location: null,
-          latitude: null,
-          longitude: null,
+          location: location || null,
+          latitude: latitude || null,
+          longitude: longitude || null,
+          pincode: pincode || null,
           flatPlot: null,
           streetArea: null,
           landmark: null,
           city: null,
           state: null,
-          pincode: null,
           createdAt: new Date(),
         },
       });
@@ -439,7 +472,19 @@ export class AuthService {
     }
 
     const user = await prisma.user.create({
-      data: { id: generateUUID(), phone, name, age, password: null, role: 'prospect' },
+      data: { 
+        id: generateUUID(), 
+        phone, 
+        name, 
+        age, 
+        email: email || null, 
+        password: null, 
+        role: 'prospect',
+        location: location || null,
+        latitude: latitude || null,
+        longitude: longitude || null,
+        pincode: pincode || null,
+      },
     });
 
     const token = createToken({ sub: user.id, role: user.role });
