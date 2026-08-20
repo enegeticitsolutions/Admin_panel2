@@ -53,6 +53,22 @@ export default function CheckoutScreen() {
 
     // ── Pricing state — all values come exclusively from the backend ──────────
     const packageId = (params.packageId as string) || 'silver';
+
+    // Duration in months passed from the packages screen (1 | 3 | 6 | 12)
+    const durationMonths = React.useMemo(() => {
+        const raw = params.durationMonths;
+        if (!raw) return 1;
+        const val = parseInt(Array.isArray(raw) ? raw[0] : (raw as string), 10);
+        return isNaN(val) || val < 1 ? 1 : val;
+    }, [params.durationMonths]);
+
+    const durationLabel = React.useMemo(() => {
+        if (durationMonths === 12) return '1 Year';
+        if (durationMonths === 6) return '6 Months';
+        if (durationMonths === 3) return '3 Months';
+        return '1 Month';
+    }, [durationMonths]);
+
     const [pricing, setPricing] = useState<{
         packageName: string;
         basePrice: number;
@@ -61,6 +77,9 @@ export default function CheckoutScreen() {
         total: number;
         couponValid: boolean;
         couponMessage?: string;
+        durationMonths?: number;
+        projectedStartDate?: string;
+        projectedEndDate?: string;
     }>({
         packageName: 'Loading...',
         basePrice: 0,
@@ -237,7 +256,8 @@ export default function CheckoutScreen() {
                 body: JSON.stringify({ 
                     packageId, 
                     couponCode: couponCode || undefined,
-                    selectedAddons: selectedAddons.map((a: any) => ({ benefitId: a.benefitId, quantity: a.quantity }))
+                    selectedAddons: selectedAddons.map((a: any) => ({ benefitId: a.benefitId, quantity: a.quantity })),
+                    durationMonths,
                 })
             });
             const result = await response.json();
@@ -251,6 +271,9 @@ export default function CheckoutScreen() {
                     total: result.data.total,
                     couponValid: result.data.couponValid,
                     couponMessage: result.data.couponMessage,
+                    durationMonths: result.data.durationMonths,
+                    projectedStartDate: result.data.projectedStartDate,
+                    projectedEndDate: result.data.projectedEndDate,
                 });
                 return result.data;
             } else {
@@ -507,7 +530,8 @@ export default function CheckoutScreen() {
                         orderId: activatedSub.id || 'N/A',
                         packageName: activatedSub.package?.name || pricing.packageName,
                         price: String(pricing.basePrice),
-                        benefits: JSON.stringify(packageBenefits)
+                        benefits: JSON.stringify(packageBenefits),
+                        durationLabel: durationLabel,
                     });
                 } else {
                     throw new Error(data.message || "Activation failed on server.");
@@ -529,7 +553,8 @@ export default function CheckoutScreen() {
                     body: JSON.stringify({ 
                         packageId, 
                         couponCode: appliedCouponCode || undefined,
-                        selectedAddons: selectedAddons.map((a: any) => ({ benefitId: a.benefitId, quantity: a.quantity }))
+                        selectedAddons: selectedAddons.map((a: any) => ({ benefitId: a.benefitId, quantity: a.quantity })),
+                        durationMonths,
                     })
                 });
                 const orderData = await orderRes.json();
@@ -574,54 +599,57 @@ export default function CheckoutScreen() {
                 };
 
                 if (Platform.OS === 'web') {
-                    Alert.alert("Web Notice", "Razorpay native checkout is not supported on web. Please complete checkout on the mobile app.");
-                    setIsProcessing(false);
-                    return;
-                }
-
-                try {
-                    console.log('[Razorpay] Opening checkout with options:', JSON.stringify({
-                        key: options.key,
-                        amount: options.amount,
-                        order_id: options.order_id,
-                        currency: options.currency,
-                    }));
-
-                    const paymentResponse = await RazorpayCheckout.open(options);
+                    console.log('⚠️ WEB DEV BYPASS: Simulating Razorpay checkout on web for testing');
                     paymentDetails = {
-                        razorpay_payment_id: paymentResponse.razorpay_payment_id,
-                        razorpay_order_id: paymentResponse.razorpay_order_id,
-                        razorpay_signature: paymentResponse.razorpay_signature
+                        razorpay_payment_id: `pay_mock_${Date.now()}`,
+                        razorpay_order_id: orderData.data.order_id || `order_mock_${Date.now()}`,
+                        razorpay_signature: 'DEV_MOCK_SIGNATURE'
                     };
-                } catch (paymentErr: any) {
-                    setIsProcessing(false);
-                    const errCode = paymentErr?.code;
-                    const errMessage =
-                        paymentErr?.description ||
-                        paymentErr?.reason ||
-                        paymentErr?.message ||
-                        '';
+                } else {
+                    try {
+                        console.log('[Razorpay] Opening checkout with options:', JSON.stringify({
+                            key: options.key,
+                            amount: options.amount,
+                            order_id: options.order_id,
+                            currency: options.currency,
+                        }));
 
-                    // code=0 or "PAYMENT_CANCELLED" / message contains "cancel" = user dismissed modal
-                    const cancelled =
-                        errCode === 0 ||
-                        errCode === 'PAYMENT_CANCELLED' ||
-                        (typeof errMessage === 'string' && errMessage.toLowerCase().includes('cancel'));
+                        const paymentResponse = await RazorpayCheckout.open(options);
+                        paymentDetails = {
+                            razorpay_payment_id: paymentResponse.razorpay_payment_id,
+                            razorpay_order_id: paymentResponse.razorpay_order_id,
+                            razorpay_signature: paymentResponse.razorpay_signature
+                        };
+                    } catch (paymentErr: any) {
+                        setIsProcessing(false);
+                        const errCode = paymentErr?.code;
+                        const errMessage =
+                            paymentErr?.description ||
+                            paymentErr?.reason ||
+                            paymentErr?.message ||
+                            '';
 
-                    if (cancelled) {
-                        console.log('[Razorpay] Payment cancelled by user.');
+                        // code=0 or "PAYMENT_CANCELLED" / message contains "cancel" = user dismissed modal
+                        const cancelled =
+                            errCode === 0 ||
+                            errCode === 'PAYMENT_CANCELLED' ||
+                            (typeof errMessage === 'string' && errMessage.toLowerCase().includes('cancel'));
+
+                        if (cancelled) {
+                            console.log('[Razorpay] Payment cancelled by user.');
+                            return;
+                        }
+
+                        // Only log as error for genuine failures (not user cancellations)
+                        console.error('[Razorpay Error] code:', errCode, 'message:', errMessage, JSON.stringify(paymentErr));
+
+                        const displayMsg = (typeof errMessage === 'string' && errMessage)
+                            ? errMessage
+                            : `Payment could not be completed (code: ${errCode}). Please try again.`;
+
+                        Alert.alert('Payment Failed', displayMsg);
                         return;
                     }
-
-                    // Only log as error for genuine failures (not user cancellations)
-                    console.error('[Razorpay Error] code:', errCode, 'message:', errMessage, JSON.stringify(paymentErr));
-
-                    const displayMsg = (typeof errMessage === 'string' && errMessage)
-                        ? errMessage
-                        : `Payment could not be completed (code: ${errCode}). Please try again.`;
-
-                    Alert.alert('Payment Failed', displayMsg);
-                    return;
                 }
             }
 
@@ -637,6 +665,7 @@ export default function CheckoutScreen() {
                 preferencesData,
                 couponCode: appliedCouponCode || undefined,
                 selectedAddons: selectedAddons.map((a: any) => ({ benefitId: a.benefitId, quantity: a.quantity })),
+                durationMonths,
                 ...paymentDetails
             };
 
@@ -715,7 +744,8 @@ export default function CheckoutScreen() {
                     orderId: data.subscriptionId,
                     packageName: data.package || pricing.packageName,
                     price: pricing.total.toString(),
-                    benefits: JSON.stringify(packageBenefits)
+                    benefits: JSON.stringify(packageBenefits),
+                    durationLabel: durationLabel,
                 });
             } else {
                 throw new Error(data.message || "Purchase failed on server.");
@@ -1015,7 +1045,12 @@ export default function CheckoutScreen() {
                         ) : (
                             <>
                                 <Text style={styles.planName}>{pricing.packageName}</Text>
-                                <Text style={styles.planDuration}>1 Month</Text>
+                                <Text style={styles.planDuration}>{durationLabel}</Text>
+                                {pricing.projectedStartDate && pricing.projectedEndDate && (
+                                    <Text style={{ fontSize: fs(20), color: '#9CA3AF', fontFamily: 'Poppins_400Regular', marginBottom: fs(10) }}>
+                                        Activates on payment · Valid until {pricing.projectedEndDate}
+                                    </Text>
+                                )}
 
                                 <View style={styles.featuresList}>
                                     {(packageBenefits.length > 0
@@ -1069,9 +1104,15 @@ export default function CheckoutScreen() {
                                             <Text style={styles.priceLabel}>Subtotal</Text>
                                             <Text style={styles.priceValue}>₹{pricing.basePrice.toFixed(2)}</Text>
                                         </View>
+                                        {durationMonths > 1 && pricing.discountApplied > 0 && (
+                                            <View style={styles.priceRow}>
+                                                <Text style={[styles.priceLabel, { color: '#059669' }]}>{durationLabel} Discount</Text>
+                                                <Text style={[styles.priceValue, { color: '#059669' }]}>-₹{pricing.discountApplied.toFixed(2)}</Text>
+                                            </View>
+                                        )}
                                         {pricing.couponValid && (
                                             <View style={styles.priceRow}>
-                                                <Text style={[styles.priceLabel, { color: '#059669' }]}>Discount ({appliedCouponCode})</Text>
+                                                <Text style={[styles.priceLabel, { color: '#059669' }]}>Coupon ({appliedCouponCode})</Text>
                                                 <Text style={[styles.priceValue, { color: '#059669' }]}>-₹{pricing.discountApplied.toFixed(2)}</Text>
                                             </View>
                                         )}

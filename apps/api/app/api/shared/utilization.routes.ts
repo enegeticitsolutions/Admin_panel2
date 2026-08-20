@@ -1,6 +1,8 @@
 import { Router, Request, Response } from 'express';
 import prisma from '../../core/database';
 import { authenticate, AuthRequest } from './deps';
+import { benefitPeriodManager } from '../../services/benefit/BenefitPeriodManager';
+import { benefitLedgerEngine } from '../../services/benefit/BenefitLedgerEngine';
 
 const router = Router();
 
@@ -252,7 +254,6 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
             isExhausted: bal.totalUnits > 0 && remaining === 0,
           };
         });
-
         return {
           type: 'summary',
           beneficiaryId: b.id,
@@ -288,24 +289,91 @@ async function buildDetailedUtilization(beneficiary: any) {
   
   let formattedBenefits: any[] = [];
   let recentLogs: any[] = [];
+  let periodInfo: any = null;
 
   if (activeSub) {
-    formattedBenefits = (activeSub.benefitBalances || []).map((bal: any) => {
-      const remaining = Math.max(0, bal.totalUnits - bal.usedUnits);
-      const usagePercent = bal.totalUnits > 0 ? Math.round((bal.usedUnits / bal.totalUnits) * 100) : 0;
-      return {
-        benefitId: bal.benefitId,
-        benefitName: bal.benefit?.name,
-        unitLabel: bal.benefit?.unitLabel || 'units',
-        benefitTypeName: bal.benefit?.benefitType?.name || null,
-        totalUnits: bal.totalUnits,
-        usedUnits: bal.usedUnits,
-        remainingUnits: remaining,
-        usagePercent,
-        isLowBalance: bal.totalUnits > 0 && (remaining / bal.totalUnits) < 0.2,
-        isExhausted: bal.totalUnits > 0 && remaining === 0,
+    // 1. Evaluate Just-In-Time active monthly period
+    const activePeriod = await benefitPeriodManager.evaluateAndTransitionJIT(activeSub.id);
+
+    if (activePeriod) {
+      const totalPeriods = await prisma.benefitPeriod.count({ where: { subscriptionId: activeSub.id } });
+      periodInfo = {
+        periodId: activePeriod.id,
+        periodNumber: activePeriod.periodNumber,
+        totalPeriods,
+        startDate: activePeriod.startDate,
+        endDate: activePeriod.endDate,
+        status: activePeriod.status,
       };
-    });
+
+      const periodBalances = await prisma.benefitPeriodBalance.findMany({
+        where: { periodId: activePeriod.id },
+        include: {
+          benefit: { select: { id: true, name: true, unitLabel: true, benefitType: { select: { name: true } } } }
+        }
+      });
+
+      if (periodBalances.length > 0) {
+        formattedBenefits = periodBalances.map((pb: any) => {
+          const remaining = pb.remainingQuantity;
+          const total = pb.totalAllocation;
+          const usagePercent = total > 0 ? Math.round((pb.usedQuantity / total) * 100) : 0;
+          return {
+            benefitId: pb.benefitId,
+            benefitName: pb.snapshotName || pb.benefit?.name,
+            unitLabel: pb.snapshotUnitLabel || pb.benefit?.unitLabel || 'units',
+            benefitTypeName: pb.benefit?.benefitType?.name || null,
+            baseAllocation: pb.baseAllocation,
+            rolloverAllocation: pb.rolloverAllocation,
+            totalUnits: total,
+            usedUnits: pb.usedQuantity,
+            remainingUnits: remaining,
+            usagePercent,
+            isLowBalance: total > 0 && (remaining / total) < 0.2,
+            isExhausted: total > 0 && remaining === 0,
+          };
+        });
+      }
+    }
+
+    // Fallback to subscriptionBenefitBalance if no period balances generated yet
+    if (formattedBenefits.length === 0) {
+      formattedBenefits = (activeSub.benefitBalances || []).map((bal: any) => {
+        const remaining = Math.max(0, bal.totalUnits - bal.usedUnits);
+        const usagePercent = bal.totalUnits > 0 ? Math.round((bal.usedUnits / bal.totalUnits) * 100) : 0;
+        return {
+          benefitId: bal.benefitId,
+          benefitName: bal.benefit?.name,
+          unitLabel: bal.benefit?.unitLabel || 'units',
+          benefitTypeName: bal.benefit?.benefitType?.name || null,
+          baseAllocation: bal.totalUnits,
+          rolloverAllocation: 0,
+          totalUnits: bal.totalUnits,
+          usedUnits: bal.usedUnits,
+          remainingUnits: remaining,
+          usagePercent,
+          isLowBalance: bal.totalUnits > 0 && (remaining / bal.totalUnits) < 0.2,
+          isExhausted: bal.totalUnits > 0 && remaining === 0,
+        };
+      });
+    }
+
+    // Fetch immutable usage ledger logs
+    const usageLedger = await benefitLedgerEngine.getSubscriptionLedger(activeSub.id);
+    const mappedUsage = usageLedger.map((u: any) => ({
+      id: u.id,
+      visitId: u.referenceId,
+      hoursConsumed: u.quantity,
+      balanceBefore: u.balanceBefore,
+      balanceAfter: u.balanceAfter,
+      description: u.notes || `${u.usageType.replace(/_/g, ' ')} (${u.quantity > 0 ? `-${u.quantity}` : `+${Math.abs(u.quantity)}`})`,
+      loggedAt: u.createdAt,
+      careCompanionName: 'Care Team',
+      ccType: u.usageType,
+      visitStatus: 'COMPLETED',
+      actualMinutes: null,
+      isRequest: false
+    }));
 
     const rawLogs = await prisma.packageHoursLog.findMany({
       where: { subscriptionId: activeSub.id, beneficiaryId: beneficiary.id },
@@ -349,32 +417,27 @@ async function buildDetailedUtilization(beneficiary: any) {
     const serviceReqs = await prisma.serviceRequest.findMany({
       where: { beneficiaryId: beneficiary.id },
       orderBy: { createdAt: 'desc' },
-      take: 30,
+      take: 20,
       include: {
-        benefit: { select: { name: true } },
-        requestedByUser: { select: { name: true } },
-        subscriber: { select: { name: true } }
+        benefit: { select: { name: true } }
       }
     });
 
     const mappedRequests = serviceReqs.map(sr => {
-      let requesterName = 'Beneficiary itself';
-      if (sr.requestedByRole === 'subscriber') {
-        requesterName = `Subscriber (${sr.requestedByUser?.name || sr.subscriber?.name || 'Subscriber'})`;
-      } else if (sr.requestedByRole === 'care_companion') {
-        requesterName = `Care Companion (${sr.requestedByUser?.name || 'Care Companion'})`;
-      } else if (!sr.requestedByRole && sr.subscriberId) {
-        requesterName = `Subscriber (${sr.subscriber?.name || 'Subscriber'})`;
-      }
+      const formattedDate = new Date(sr.preferredDate).toLocaleDateString('en-IN', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric'
+      });
       return {
         id: sr.id,
         visitId: null,
-        hoursConsumed: null,
+        hoursConsumed: 0,
         balanceBefore: null,
         balanceAfter: null,
-        description: `Requested service: ${sr.benefit?.name || 'Service'}`,
+        description: `Service Requested: ${sr.benefit?.name || 'Custom Service'} on ${formattedDate} (${sr.preferredTiming})`,
         loggedAt: sr.createdAt,
-        careCompanionName: requesterName,
+        careCompanionName: 'Requested by Subscriber',
         ccType: sr.preferredTiming,
         visitStatus: sr.isRead ? 'READ' : 'PENDING',
         actualMinutes: null,

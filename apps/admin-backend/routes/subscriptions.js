@@ -829,10 +829,8 @@ router.post('/:id/addons/allocate', async (req, res) => {
           data: { totalUnits: { increment: Number(units) || 1 } },
         });
       } else {
-        const { v4: uuidv4 } = require('uuid');
         balance = await tx.subscriptionBenefitBalance.create({
           data: {
-            id: uuidv4(),
             subscriptionId,
             benefitId,
             totalUnits: Number(units) || 1,
@@ -845,18 +843,25 @@ router.post('/:id/addons/allocate', async (req, res) => {
       // 2. Record Payment if amountPaid > 0
       const numericAmount = parseFloat(amountPaid);
       if (numericAmount > 0) {
-        const { v4: uuidv4 } = require('uuid');
+        const invoiceNumber = `ADDON-${Date.now()}`;
         await tx.payment.create({
           data: {
-            id: uuidv4(),
+            invoiceNumber,
             subscriptionId,
             subscriberId: subscription.subscriberId,
-            amount: numericAmount,
-            method: paymentMethod || 'Cash',
-            status: 'completed',
-            paymentDate: new Date(),
-            transactionId: transactionId || null,
-            notes: paymentNote || `Add-on Purchase: ${benefit.name} (${units} units)`,
+            beneficiaryId: subscription.beneficiaryId || undefined,
+            packageType: subscription.packageType || 'addon',
+            baseAmount: numericAmount,
+            amountPaid: numericAmount,
+            paymentMethod: paymentMethod || 'Cash',
+            paymentStatus: 'success',
+            paidAt: new Date(),
+            planStartDate: subscription.startDate || new Date(),
+            planEndDate: subscription.endDate || new Date(),
+            transactionId: transactionId || `ADDON-TXN-${Date.now()}`,
+            gatewayName: 'admin_addon',
+            failureReason: paymentNote || `Add-on Purchase: ${benefit.name} (${units} units)`,
+            isSubscriptionActive: true,
           },
         }).catch(err => {
           console.warn('[Addon Payment Record Warning]:', err.message);
@@ -1463,5 +1468,3 @@ router.post('/:id/renew', async (req, res) => {
 });
 
 module.exports = router;
-
-

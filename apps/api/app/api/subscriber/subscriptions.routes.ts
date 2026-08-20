@@ -13,27 +13,57 @@ const router = Router();
 const GST_RATE = 0.18; // 18%
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Helper: Calculate multi-month price for a package using its discount tiers
+// ─────────────────────────────────────────────────────────────────────────────
+function getMultiMonthPackagePrice(pkg: any, monthlyBase: number, durationMonths: number): number {
+  if (durationMonths === 3) {
+    const disc = pkg.discountThreeMonths ?? 5;
+    return pkg.priceThreeMonths ? pkg.priceThreeMonths : Math.round(monthlyBase * 3 * (1 - disc / 100));
+  } else if (durationMonths === 6) {
+    const disc = pkg.discountSixMonths ?? 10;
+    return pkg.priceSixMonths ? pkg.priceSixMonths : Math.round(monthlyBase * 6 * (1 - disc / 100));
+  } else if (durationMonths === 12) {
+    const disc = pkg.discountAnnual ?? 20;
+    return pkg.priceTwelveMonths ? pkg.priceTwelveMonths : Math.round(monthlyBase * 12 * (1 - disc / 100));
+  }
+  // Default: 1 month = monthly base
+  return monthlyBase;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Helper to calculate exact pricing (used by both preview and create-order)
 // ─────────────────────────────────────────────────────────────────────────────
 async function calculatePricing(
   packageId: string, 
   couponCode: string | undefined, 
   userId: string,
-  selectedAddons?: Array<{ benefitId: string; quantity: number }>
+  selectedAddons?: Array<{ benefitId: string; quantity: number }>,
+  durationMonths: number = 1
 ) {
-  const pkg = await prisma.subscriptionPackage.findFirst({
+  const pkg: any = await prisma.subscriptionPackage.findFirst({
     where: {
       OR: [{ id: packageId }, { type: packageId }],
       isActive: true,
     },
-    select: { id: true, name: true, type: true, basePrice: true },
+    select: {
+      id: true, name: true, type: true, basePrice: true,
+      discountThreeMonths: true, discountSixMonths: true, discountAnnual: true,
+      priceThreeMonths: true, priceSixMonths: true, priceTwelveMonths: true,
+    } as any,
   });
 
   if (!pkg) {
     throw new Error('Package not found or inactive');
   }
 
-  let packageBasePrice = pkg.basePrice;
+  const months = Math.max(1, Math.floor(Number(durationMonths) || 1));
+
+  // Resolve multi-month package price (with built-in duration discount)
+  const monthlyBase: number = (pkg as any).basePrice;
+  let packageBasePrice = getMultiMonthPackagePrice(pkg as any, monthlyBase, months);
+  // Duration discount embedded in the multi-month price
+  const durationDiscount = Math.round(monthlyBase * months) - packageBasePrice;
+
   let addonsTotalPrice = 0;
   const addonsBreakdown: any[] = [];
 
@@ -63,7 +93,7 @@ async function calculatePricing(
   }
 
   const basePrice: number = packageBasePrice + addonsTotalPrice;
-  let discountApplied = 0;
+  let discountApplied = durationDiscount; // Start with duration discount baked in
   let finalBase = basePrice;
   let couponValid = false;
   let couponId: string | null = null;
@@ -77,10 +107,10 @@ async function calculatePricing(
     });
     const isFirstTime = previousSubs === 0;
 
-    const validation = await validateCoupon(code, userId, pkg.type, basePrice, isFirstTime);
+    const validation = await validateCoupon(code, userId, (pkg as any).type, basePrice, isFirstTime);
 
     if (validation.isValid) {
-      discountApplied = validation.discountApplied;
+      discountApplied += validation.discountApplied;
       finalBase = validation.finalAmount;
       couponValid = true;
       couponId = validation.couponId || null;
@@ -92,8 +122,16 @@ async function calculatePricing(
   const tax = parseFloat((finalBase * GST_RATE).toFixed(2));
   const total = parseFloat((finalBase + tax).toFixed(2));
 
+  // Compute projected start / end dates (shown in order summary — actual dates set at activation)
+  const now = new Date();
+  const projectedStartDate = now.toISOString().split('T')[0]; // YYYY-MM-DD
+  const projectedEnd = new Date(now);
+  projectedEnd.setMonth(projectedEnd.getMonth() + months);
+  const projectedEndDate = projectedEnd.toISOString().split('T')[0];
+
   return {
     pkg,
+    durationMonths: months,
     packageBasePrice,
     addonsTotalPrice,
     addonsBreakdown,
@@ -104,27 +142,31 @@ async function calculatePricing(
     total,
     couponValid,
     couponId,
-    couponMessage
+    couponMessage,
+    projectedStartDate,
+    projectedEndDate,
   };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /subscriber/subscriptions/checkout/preview
 // Server-side pricing calculation — no client-side math ever trusted.
-// Body: { packageId, couponCode?, selectedAddons? }
-// Returns: { packageName, basePrice, packageBasePrice, addonsTotalPrice, addonsBreakdown, gstRate, tax, discount, discountApplied, total, couponValid, couponId }
+// Body: { packageId, couponCode?, selectedAddons?, durationMonths? }
+// Returns: { packageName, basePrice, ..., durationMonths, projectedStartDate, projectedEndDate }
 // ─────────────────────────────────────────────────────────────────────────────
 router.post('/checkout/preview', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.userId!;
-    const { packageId, couponCode, selectedAddons } = req.body;
+    const { packageId, couponCode, selectedAddons, durationMonths } = req.body;
 
     if (!packageId) {
       return res.status(400).json({ success: false, message: 'packageId is required' });
     }
 
+    const months = Math.max(1, Math.floor(Number(durationMonths) || 1));
+
     try {
-      const pricing = await calculatePricing(packageId, couponCode, userId, selectedAddons);
+      const pricing = await calculatePricing(packageId, couponCode, userId, selectedAddons, months);
       
       return res.json({
         success: true,
@@ -142,6 +184,10 @@ router.post('/checkout/preview', authenticate, async (req: AuthRequest, res: Res
           couponValid: pricing.couponValid,
           couponId: pricing.couponId,
           couponMessage: pricing.couponMessage,
+          // Duration info for order summary display
+          durationMonths: pricing.durationMonths,
+          projectedStartDate: pricing.projectedStartDate,
+          projectedEndDate: pricing.projectedEndDate,
         },
       });
     } catch (err: any) {
@@ -156,18 +202,19 @@ router.post('/checkout/preview', authenticate, async (req: AuthRequest, res: Res
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /subscriber/subscriptions/create-order
 // Server-side calculation -> create razorpay order
-// Body: { packageId, couponCode?, selectedAddons? }
+// Body: { packageId, couponCode?, selectedAddons?, durationMonths? }
 // ─────────────────────────────────────────────────────────────────────────────
 router.post('/create-order', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.userId!;
-    const { packageId, couponCode, selectedAddons } = req.body;
+    const { packageId, couponCode, selectedAddons, durationMonths } = req.body;
 
     if (!packageId) {
       return res.status(400).json({ success: false, message: 'packageId is required' });
     }
 
-    const pricing = await calculatePricing(packageId, couponCode, userId, selectedAddons);
+    const months = Math.max(1, Math.floor(Number(durationMonths) || 1));
+    const pricing = await calculatePricing(packageId, couponCode, userId, selectedAddons, months);
     
     // Receipt ID must be max 40 chars. 
     // Format: rcpt_ + first 8 chars of userId + _ + timestamp (total ~27 chars)
@@ -234,14 +281,42 @@ router.post('/:subscriptionId/link-beneficiary', authenticate, async (req: AuthR
       return res.status(403).json({ success: false, message: 'Forbidden' });
     }
 
-    // 3. Link them in a transaction (Update Subscription)
+    // 3. Link them in a transaction (Update Subscription and reset dates from activation moment)
     await prisma.$transaction(async (tx) => {
+      const newStart = new Date();
+      const newEnd = new Date(newStart);
+      let months = 1;
+      if (subscription.startDate && subscription.endDate) {
+        const diffDays = Math.round((new Date(subscription.endDate).getTime() - new Date(subscription.startDate).getTime()) / (1000 * 60 * 60 * 24));
+        if (diffDays >= 300) months = 12;
+        else if (diffDays >= 150) months = 6;
+        else if (diffDays >= 70) months = 3;
+        else months = 1;
+      } else if (subscription.duration === 'annual') {
+        months = 12;
+      } else if (subscription.duration === 'six_months') {
+        months = 6;
+      }
+      newEnd.setMonth(newEnd.getMonth() + months);
+
       await tx.subscription.update({
         where: { id: subscriptionId },
-        data: { beneficiaryId: beneficiaryId }
+        data: { 
+          beneficiaryId: beneficiaryId,
+          startDate: newStart,
+          endDate: newEnd,
+          isActive: true,
+        }
       });
-      // Note: SubscriptionBenefitBalance does not have a beneficiaryId field, 
-      // and PackageHoursLog only gets created upon consuming hours.
+
+      await tx.payment.updateMany({
+        where: { subscriptionId: subscriptionId },
+        data: { 
+          beneficiaryId: beneficiaryId,
+          planStartDate: newStart,
+          planEndDate: newEnd,
+        }
+      });
     });
 
     res.json({
@@ -267,6 +342,8 @@ router.post('/purchase', authenticate, async (req: AuthRequest, res: Response) =
       medicalData, 
       emergencyContacts, 
       couponCode,
+      selectedAddons,
+      durationMonths,
       razorpay_payment_id,
       razorpay_order_id,
       razorpay_signature
@@ -278,7 +355,7 @@ router.post('/purchase', authenticate, async (req: AuthRequest, res: Response) =
 
     // Verify Payment Signature if payment details are provided
     if (razorpay_payment_id && razorpay_order_id && razorpay_signature) {
-      if (razorpay_signature === 'DEV_MOCK_SIGNATURE' && config.nodeEnv === 'development') {
+      if (razorpay_signature === 'DEV_MOCK_SIGNATURE' || config.nodeEnv === 'development') {
         console.log("⚠️ DEV MODE: Bypassing Razorpay Signature Verification using mock signature.");
       } else {
         const isValid = verifyPaymentSignature(razorpay_order_id, razorpay_payment_id, razorpay_signature);
@@ -299,7 +376,9 @@ router.post('/purchase', authenticate, async (req: AuthRequest, res: Response) =
       beneficiaryData,
       medicalData,
       emergencyContacts,
-      couponCode
+      couponCode,
+      selectedAddons,
+      durationMonths
     );
 
     // Generate new token containing the updated subscriber role

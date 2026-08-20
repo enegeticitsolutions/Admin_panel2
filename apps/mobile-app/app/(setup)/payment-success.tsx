@@ -53,6 +53,8 @@ export default function PaymentSuccessScreen() {
         return ['1 visit per week', 'Vital monitoring', 'Medication reminders', 'Standard support'];
     }, [params.benefits, packageName]);
 
+    const durationLabel = (params.durationLabel as string) || '1 Month';
+
     return (
         <SafeAreaView style={styles.safeArea}>
             <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -82,11 +84,11 @@ export default function PaymentSuccessScreen() {
                     <View style={styles.invoiceHeader}>
                         <View>
                             <Text style={styles.packageName}>{packageName}</Text>
-                            <Text style={styles.packageDuration}>1 Month</Text>
+                            <Text style={styles.packageDuration}>{durationLabel}</Text>
                         </View>
                         <View style={{ alignItems: 'flex-end' }}>
                             <Text style={styles.packagePrice}>₹{price}</Text>
-                            <Text style={styles.perMonth}>/month</Text>
+                            <Text style={styles.perMonth}>{durationLabel === '1 Year' ? '/year' : durationLabel === '6 Months' ? '/6 months' : durationLabel === '3 Months' ? '/3 months' : '/month'}</Text>
                         </View>
                     </View>
 

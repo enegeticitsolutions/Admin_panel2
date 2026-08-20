@@ -5,6 +5,29 @@ const { prisma } = require('../lib/prisma');
 // ── GET /api/config ──────────────────────────────────────────────────────────
 router.get('/', async (req, res) => {
   try {
+    // Ensure default benefit rollover configs exist
+    const defaultConfigs = [
+      {
+        key: 'benefit_rollover_default_cap_months',
+        value: '1.0',
+        description: 'Maximum multiplier of monthly base quota that can roll forward into the next month (Default: 1.0 = 1 Month quota cap)',
+        group: 'BENEFITS'
+      },
+      {
+        key: 'benefit_rollover_enabled',
+        value: 'true',
+        description: 'Enable automatic monthly period refresh and 1-month rollover for multi-month care plans',
+        group: 'BENEFITS'
+      }
+    ];
+
+    for (const def of defaultConfigs) {
+      const existing = await prisma.systemConfig.findUnique({ where: { key: def.key } });
+      if (!existing) {
+        await prisma.systemConfig.create({ data: def });
+      }
+    }
+
     const configs = await prisma.systemConfig.findMany({
       orderBy: { key: 'asc' }
     });

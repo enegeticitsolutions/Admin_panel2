@@ -298,12 +298,31 @@ export default function SubscriptionPackagesScreen() {
             serviceAddress: JSON.stringify(selectedAddress),
             serviceLat: selectedLat ? String(selectedLat) : '',
             serviceLng: selectedLng ? String(selectedLng) : '',
-            selectedAddons: JSON.stringify(selectedAddonsPayload)
+            selectedAddons: JSON.stringify(selectedAddonsPayload),
+            // Duration: number of months selected on the packages screen
+            durationMonths: selectedCycle,
         });
     };
 
+    const calculatePackagePrice = (pkg: any, cycleKey: string) => {
+        if (!pkg) return 0;
+        const base = pkg.basePrice || 0;
+        const durNum = parseInt(cycleKey, 10);
+        if (durNum === 3) {
+            const disc = pkg.discountThreeMonths ?? 5;
+            return pkg.priceThreeMonths ? pkg.priceThreeMonths : Math.round(base * 3 * (1 - disc / 100));
+        } else if (durNum === 6) {
+            const disc = pkg.discountSixMonths ?? 10;
+            return pkg.priceSixMonths ? pkg.priceSixMonths : Math.round(base * 6 * (1 - disc / 100));
+        } else if (durNum === 12) {
+            const disc = pkg.discountAnnual ?? 20;
+            return pkg.priceTwelveMonths ? pkg.priceTwelveMonths : Math.round(base * 12 * (1 - disc / 100));
+        }
+        return base;
+    };
+
     const getPrice = (pkg: any) => {
-        return pkg.basePrice || 0;
+        return calculatePackagePrice(pkg, selectedCycle);
     };
 
     if (loading) {
@@ -680,9 +699,11 @@ export default function SubscriptionPackagesScreen() {
                                         <Ionicons name="cube-outline" size={20} color="#FF5B0A" />
                                     </View>
                                     <View style={{ flex: 1 }}>
-                                        <Text style={styles.selectedPkgName}>{selectedPackageForAddons.name}</Text>
+                                        <Text style={styles.selectedPkgName}>
+                                            {selectedPackageForAddons.name} ({selectedCycle === '12' ? '1 Year' : selectedCycle === '6' ? '6 Months' : selectedCycle === '3' ? '3 Months' : '1 Month'})
+                                        </Text>
                                         <Text style={styles.selectedPkgBenefitsCount}>
-                                            {selectedPackageForAddons.packageBenefits?.length || 3} Standard Benefits Included · ₹{selectedPackageForAddons.basePrice}
+                                            {selectedPackageForAddons.packageBenefits?.length || 3} Standard Benefits Included · ₹{calculatePackagePrice(selectedPackageForAddons, selectedCycle).toLocaleString('en-IN')}
                                         </Text>
                                     </View>
                                 </View>
@@ -735,7 +756,7 @@ export default function SubscriptionPackagesScreen() {
                                     <View style={{ alignItems: 'flex-end' }}>
                                         <Text style={styles.summaryPriceLabel}>TOTAL PRICE</Text>
                                         <Text style={styles.summaryPriceValue}>
-                                            ₹{(selectedPackageForAddons.basePrice + Object.values(selectedAddonsMap).reduce((sum: number, item: any) => sum + (item.unitPrice * item.quantity), 0)).toLocaleString('en-IN')}
+                                            ₹{(calculatePackagePrice(selectedPackageForAddons, selectedCycle) + Object.values(selectedAddonsMap).reduce((sum: number, item: any) => sum + (item.unitPrice * item.quantity), 0)).toLocaleString('en-IN')}
                                         </Text>
                                     </View>
                                 </View>

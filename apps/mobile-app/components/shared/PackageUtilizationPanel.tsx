@@ -9,6 +9,8 @@ export interface BenefitBalance {
   benefitName: string;
   unitLabel: string;
   benefitTypeName: string | null;
+  baseAllocation?: number;
+  rolloverAllocation?: number;
   totalUnits: number;
   usedUnits: number;
   remainingUnits: number;
@@ -44,6 +46,14 @@ export interface DetailedUtilization {
     endDate: string;
     isActive: boolean;
   } | null;
+  periodInfo?: {
+    periodId: string;
+    periodNumber: number;
+    totalPeriods: number;
+    startDate: string;
+    endDate: string;
+    status: string;
+  } | null;
   benefits: BenefitBalance[];
   recentLogs: LogEntry[];
 }
@@ -65,13 +75,31 @@ export default function PackageUtilizationPanel({ data, selectedBenefitId, onSel
     );
   }
 
-  const { subscription, benefits, recentLogs } = data;
+  const { subscription, periodInfo, benefits, recentLogs } = data;
   const hasWarnings = benefits.some((b) => b.isLowBalance || b.isExhausted);
   const exhaustedCount = benefits.filter(b => b.isExhausted).length;
   const lowCount = benefits.filter(b => b.isLowBalance).length;
 
   return (
     <View style={styles.container}>
+      {/* Monthly Cycle Progress Card */}
+      {periodInfo && (
+        <View style={styles.periodBanner}>
+          <View style={styles.periodHeader}>
+            <View style={styles.periodTag}>
+              <Ionicons name="calendar" size={14} color="#FF5B0A" />
+              <Text style={styles.periodTagText}>Month {periodInfo.periodNumber} of {periodInfo.totalPeriods}</Text>
+            </View>
+            <Text style={styles.periodRenewalText}>
+              Renews {new Date(periodInfo.endDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+            </Text>
+          </View>
+          <Text style={styles.periodSubText}>
+            Monthly quotas refresh on renewal date. Up to 1 month of unused care rolls forward automatically.
+          </Text>
+        </View>
+      )}
+
       {/* Warning Banner */}
       {hasWarnings && (
         <View style={styles.warningBanner}>
@@ -94,6 +122,8 @@ export default function PackageUtilizationPanel({ data, selectedBenefitId, onSel
         {benefits.length > 0 ? (
           benefits.map((b, i) => {
             const isSelected = selectedBenefitId === b.benefitId;
+            const hasRollover = (b.rolloverAllocation ?? 0) > 0;
+
             return (
               <TouchableOpacity 
                 key={b.benefitId} 
@@ -117,7 +147,18 @@ export default function PackageUtilizationPanel({ data, selectedBenefitId, onSel
                 ]}
               >
                 <View style={styles.benefitHeader}>
-                  <Text style={styles.benefitName}>{b.benefitName}</Text>
+                  <View style={{ flex: 1, marginRight: 8 }}>
+                    <Text style={styles.benefitName}>{b.benefitName}</Text>
+                    {hasRollover && (
+                      <View style={styles.rolloverBadge}>
+                        <Ionicons name="repeat-outline" size={12} color="#0284C7" />
+                        <Text style={styles.rolloverBadgeText}>
+                          Includes +{b.rolloverAllocation} rollover
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+
                   {b.isExhausted ? (
                     <View style={styles.badgeExhausted}><Text style={styles.badgeTextExhausted}>EXHAUSTED</Text></View>
                   ) : b.isLowBalance ? (
@@ -233,6 +274,61 @@ const styles = StyleSheet.create({
   emptyTitle: { fontSize: 18, fontWeight: '700', color: '#374151', marginTop: 12 },
   emptySubtitle: { fontSize: 14, color: '#9CA3AF', textAlign: 'center', marginTop: 8 },
   emptySubText: { fontSize: 13, color: '#9CA3AF', fontStyle: 'italic', paddingVertical: 12 },
+
+  periodBanner: {
+    backgroundColor: '#FFF7ED',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#FFEDD5',
+  },
+  periodHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  periodTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFEDD5',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  periodTagText: {
+    color: '#EA580C',
+    fontSize: 12,
+    fontWeight: '700',
+    marginLeft: 6,
+  },
+  periodRenewalText: {
+    color: '#9A3412',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  periodSubText: {
+    color: '#7C2D12',
+    fontSize: 12,
+    lineHeight: 18,
+  },
+  rolloverBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F0F9FF',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+    marginTop: 4,
+    alignSelf: 'flex-start',
+  },
+  rolloverBadgeText: {
+    color: '#0284C7',
+    fontSize: 11,
+    fontWeight: '600',
+    marginLeft: 4,
+  },
 
   warningBanner: {
     flexDirection: 'row',

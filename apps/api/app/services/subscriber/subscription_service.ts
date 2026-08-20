@@ -1,6 +1,7 @@
 import prisma from '../../core/database';
 import { generateUUID } from '../../utils/helpers';
 import { validateCoupon, applyCoupon } from '../coupon_service';
+import { benefitPeriodManager } from '../benefit/BenefitPeriodManager';
 import bcrypt from 'bcryptjs';
 
 function normalizeUnit(unitLabel: string | null | undefined): string {
@@ -139,6 +140,20 @@ async function publishPackageVersion(tx: any, packageId: string): Promise<any> {
   return versionWithBenefits!;
 }
 
+function getMultiMonthPackagePrice(pkg: any, monthlyBase: number, durationMonths: number): number {
+  if (durationMonths === 3) {
+    const disc = pkg.discountThreeMonths ?? 5;
+    return pkg.priceThreeMonths ? pkg.priceThreeMonths : Math.round(monthlyBase * 3 * (1 - disc / 100));
+  } else if (durationMonths === 6) {
+    const disc = pkg.discountSixMonths ?? 10;
+    return pkg.priceSixMonths ? pkg.priceSixMonths : Math.round(monthlyBase * 6 * (1 - disc / 100));
+  } else if (durationMonths === 12) {
+    const disc = pkg.discountAnnual ?? 20;
+    return pkg.priceTwelveMonths ? pkg.priceTwelveMonths : Math.round(monthlyBase * 12 * (1 - disc / 100));
+  }
+  return monthlyBase;
+}
+
 export const purchaseSubscription = async (
   userId: string,
   packageId: string, // We map this to the package type string
@@ -163,7 +178,8 @@ export const purchaseSubscription = async (
   medicalData?: any,
   emergencyContactsRaw?: any,
   couponCode?: string,
-  selectedAddons?: Array<{ benefitId: string; quantity: number }>
+  selectedAddons?: Array<{ benefitId: string; quantity: number }>,
+  durationMonths: number = 1
 ) => {
   // Look up the package directly by UUID (id) or by type slug — this works for
   // both global and regional packages, unlike getSubscriptionPackages() which
@@ -184,6 +200,9 @@ export const purchaseSubscription = async (
   if (!subPackage) {
     throw new Error(`Package id/type "${packageId}" not found or is inactive.`);
   }
+
+  const months = Math.max(1, Math.floor(Number(durationMonths) || 1));
+  const packageBasePrice = getMultiMonthPackagePrice(subPackage, subPackage.basePrice, months);
 
   // 1a. If beneficiaryData is provided, create the beneficiary user
   let newBeneficiaryUser: any = null;
@@ -235,8 +254,8 @@ export const purchaseSubscription = async (
   }
 
   // Calculate pricing & validate coupon
-  let finalAmountPaid = subPackage.basePrice;
-  let discountAmount = 0;
+  let finalAmountPaid = packageBasePrice;
+  let discountAmount = Math.max(0, (subPackage.basePrice * months) - packageBasePrice);
   let appliedCouponId: string | null = null;
 
   if (couponCode) {
@@ -249,7 +268,7 @@ export const purchaseSubscription = async (
       couponCode,
       userId,
       subPackage.type,
-      subPackage.basePrice,
+      packageBasePrice,
       isFirstTimeSubscriber
     );
 
@@ -258,7 +277,7 @@ export const purchaseSubscription = async (
     }
 
     finalAmountPaid = validation.finalAmount;
-    discountAmount = validation.discountApplied;
+    discountAmount += validation.discountApplied;
     appliedCouponId = validation.couponId || null;
   }
 
@@ -465,7 +484,12 @@ export const purchaseSubscription = async (
     }
     const versionObj = pVersion!;
 
-    // 2b. Create active Subscription record (beneficiaryId is optional now)
+    // 2b. Compute subscription activation dates based on duration
+    const startDate = new Date();
+    const endDate = new Date(startDate);
+    endDate.setMonth(endDate.getMonth() + months);
+
+    // Create active Subscription record (beneficiaryId is optional now)
     const subscription = await tx.subscription.create({
       data: {
         id: generateUUID(),
@@ -473,10 +497,10 @@ export const purchaseSubscription = async (
         beneficiaryId: beneficiary ? beneficiary.id : null,
         packageType: subPackage.type,
         packageVersionId: versionObj.id,
-        startDate: new Date(),
-        endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
-        visitsTotal: subPackage.visitsPerWeek * 4,
-        hoursTotal: subPackage.hoursPerMonth || 0,
+        startDate: startDate,
+        endDate: endDate,
+        visitsTotal: subPackage.visitsPerWeek * 4 * months,
+        hoursTotal: (subPackage.hoursPerMonth || 0) * months,
       },
       include: {
         package: true,
@@ -489,7 +513,7 @@ export const purchaseSubscription = async (
       data: { role: 'subscriber' },
     });
 
-    // 2c. Initialize snapshot benefit balances
+    // 2c. Initialize snapshot benefit balances scaled by durationMonths
     if (versionObj.versionBenefits && versionObj.versionBenefits.length > 0) {
       await tx.subscriptionBenefitBalance.createMany({
         data: versionObj.versionBenefits.map((vb: any) => ({
@@ -498,7 +522,8 @@ export const purchaseSubscription = async (
           benefitId: vb.benefitId,
           snapshotBenefitName: vb.snapshotName,
           snapshotUnitLabel: vb.snapshotUnitLabel,
-          totalUnits: vb.unitsIncluded,
+          totalUnits: vb.unitsIncluded * months,
+          availableUnits: vb.unitsIncluded * months,
           usedUnits: 0,
           unit: vb.snapshotUnitLabel ? normalizeUnit(vb.snapshotUnitLabel) : 'visits',
         })),
@@ -549,6 +574,24 @@ export const purchaseSubscription = async (
       }
     }
 
+    // 2e. Generate discrete monthly BenefitPeriods and initialize Period 1
+    if (versionObj.versionBenefits && versionObj.versionBenefits.length > 0) {
+      const periodBenefits = versionObj.versionBenefits.map((vb: any) => ({
+        benefitId: vb.benefitId,
+        name: vb.snapshotName || 'Benefit',
+        unitLabel: vb.snapshotUnitLabel || null,
+        monthlyUnits: vb.unitsIncluded || 1,
+      }));
+
+      await benefitPeriodManager.generatePeriodsForSubscription(
+        subscription.id,
+        months,
+        startDate,
+        periodBenefits,
+        tx
+      );
+    }
+
     // 3. Create a Payment record snapshotting details at enrollment
     await tx.payment.create({
       data: {
@@ -559,13 +602,13 @@ export const purchaseSubscription = async (
         packageType: subPackage.type,
         packageVersionId: versionObj.id,
         snapshotPackageName: versionObj.name,
-        snapshotBasePrice: versionObj.basePrice,
+        snapshotBasePrice: packageBasePrice,
         snapshotBenefits: (versionObj.versionBenefits || []).map((vb: any) => ({
           name: vb.snapshotName,
-          units: vb.unitsIncluded,
+          units: vb.unitsIncluded * months,
           unitLabel: vb.snapshotUnitLabel
         })),
-        baseAmount: subPackage.basePrice,
+        baseAmount: packageBasePrice,
         discountAmount: discountAmount,
         couponCode: couponCode || null,
         amountPaid: finalAmountPaid,
@@ -848,12 +891,32 @@ export const linkBeneficiaryToSubscription = async (
     if (subIdToLink) {
       const existingSub = await tx.subscription.findUnique({
         where: { id: subIdToLink },
-        include: { package: true, packageVersion: true }
+        include: { 
+          package: true, 
+          packageVersion: {
+            include: {
+              versionBenefits: true
+            }
+          }
+        }
       });
 
       const newStart = new Date();
       const newEnd = new Date(newStart);
-      const months = existingSub?.packageVersion?.durationMonths || existingSub?.package?.durationMonths || 1;
+      let months = 1;
+      if (existingSub?.startDate && existingSub?.endDate) {
+        const diffDays = Math.round((new Date(existingSub.endDate).getTime() - new Date(existingSub.startDate).getTime()) / (1000 * 60 * 60 * 24));
+        if (diffDays >= 300) months = 12;
+        else if (diffDays >= 150) months = 6;
+        else if (diffDays >= 70) months = 3;
+        else months = 1;
+      } else if (existingSub?.duration === 'annual') {
+        months = 12;
+      } else if (existingSub?.duration === 'six_months') {
+        months = 6;
+      } else if (existingSub?.packageVersion?.durationMonths || existingSub?.package?.durationMonths) {
+        months = existingSub?.packageVersion?.durationMonths || existingSub?.package?.durationMonths || 1;
+      }
       newEnd.setMonth(newEnd.getMonth() + months);
 
       await tx.subscription.update({
@@ -861,7 +924,8 @@ export const linkBeneficiaryToSubscription = async (
         data: { 
           beneficiaryId: beneficiary.id,
           startDate: newStart,
-          endDate: newEnd
+          endDate: newEnd,
+          isActive: true,
         }
       });
 
@@ -873,6 +937,23 @@ export const linkBeneficiaryToSubscription = async (
           planEndDate: newEnd
         }
       });
+
+      if (existingSub?.packageVersion?.versionBenefits && existingSub.packageVersion.versionBenefits.length > 0) {
+        const periodBenefits = existingSub.packageVersion.versionBenefits.map((vb: any) => ({
+          benefitId: vb.benefitId,
+          name: vb.snapshotName || 'Benefit',
+          unitLabel: vb.snapshotUnitLabel || null,
+          monthlyUnits: vb.unitsIncluded || 1,
+        }));
+
+        await benefitPeriodManager.generatePeriodsForSubscription(
+          subIdToLink,
+          months,
+          newStart,
+          periodBenefits,
+          tx
+        );
+      }
     }
 
     // Promote user from prospect to subscriber if they are currently a prospect
@@ -1243,6 +1324,7 @@ export const activateSubscription = async (
     let pVersion: any = existingSub?.packageVersion || null;
     let start = new Date();
     let end = new Date(start);
+    let months = 1;
 
     if (existingSub) {
       if (!pVersion && existingSub.packageType) {
@@ -1252,7 +1334,19 @@ export const activateSubscription = async (
         });
       }
 
-      const months = pVersion?.durationMonths || existingSub.packageVersion?.durationMonths || existingSub.package?.durationMonths || 1;
+      if (existingSub.startDate && existingSub.endDate) {
+        const diffDays = Math.round((new Date(existingSub.endDate).getTime() - new Date(existingSub.startDate).getTime()) / (1000 * 60 * 60 * 24));
+        if (diffDays >= 300) months = 12;
+        else if (diffDays >= 150) months = 6;
+        else if (diffDays >= 70) months = 3;
+        else months = 1;
+      } else if (existingSub.duration === 'annual') {
+        months = 12;
+      } else if (existingSub.duration === 'six_months') {
+        months = 6;
+      } else if (pVersion?.durationMonths || existingSub.packageVersion?.durationMonths || existingSub.package?.durationMonths) {
+        months = pVersion?.durationMonths || existingSub.packageVersion?.durationMonths || existingSub.package?.durationMonths || 1;
+      }
       end.setMonth(end.getMonth() + months);
 
       subscription = await tx.subscription.update({
@@ -1279,7 +1373,7 @@ export const activateSubscription = async (
         include: { versionBenefits: true }
       });
 
-      const months = pVersion?.durationMonths || defaultPackage?.durationMonths || 1;
+      months = pVersion?.durationMonths || defaultPackage?.durationMonths || 1;
       end.setMonth(end.getMonth() + months);
 
       subscription = await tx.subscription.create({
@@ -1321,6 +1415,21 @@ export const activateSubscription = async (
         })),
         skipDuplicates: true,
       });
+
+      const periodBenefits = versionObj.versionBenefits.map((vb: any) => ({
+        benefitId: vb.benefitId,
+        name: vb.snapshotName || 'Benefit',
+        unitLabel: vb.snapshotUnitLabel || null,
+        monthlyUnits: vb.unitsIncluded || 1,
+      }));
+
+      await benefitPeriodManager.generatePeriodsForSubscription(
+        subscription.id,
+        months,
+        start,
+        periodBenefits,
+        tx
+      );
     }
 
     // H. Create Payment record
@@ -1412,60 +1521,6 @@ export const getSubscriptionPackages = async (regionId?: string) => {
     },
     orderBy: { basePrice: 'asc' }
   });
-
-  // If there are no packages, create the default ones and return them
-  if (packages.length === 0) {
-    const defaultPackages = [
-      {
-        id: generateUUID(),
-        type: 'silver',
-        name: 'Basic Care',
-        description: 'Personalized plans designed for peace of mind.',
-        basePrice: 2999,
-        discountSixMonths: 10.0,
-        discountAnnual: 20.0,
-        durationMonths: 1,
-        visitsPerWeek: 1,
-        features: ['Weekly health checkups', 'Vitals monitoring', 'Emergency contact support', 'Basic companionship'],
-        isActive: true,
-        isGlobal: true,
-      },
-      {
-        id: generateUUID(),
-        type: 'gold',
-        name: 'Premium Care',
-        description: 'Personalized plans designed for peace of mind.',
-        basePrice: 5999,
-        discountSixMonths: 10.0,
-        discountAnnual: 20.0,
-        durationMonths: 1,
-        visitsPerWeek: 3,
-        features: ['Bi-weekly health checkups', 'Comprehensive vitals tracking', '24/7 emergency support'],
-        isActive: true,
-        isGlobal: true,
-      }
-    ];
-
-    await prisma.subscriptionPackage.createMany({
-      data: defaultPackages
-    });
-
-    packages = await prisma.subscriptionPackage.findMany({
-      where: { isActive: true, isGlobal: true },
-      include: {
-        packageBenefits: {
-          include: {
-            benefit: {
-              include: {
-                benefitType: true
-              }
-            }
-          }
-        }
-      },
-      orderBy: { basePrice: 'asc' }
-    }) as any;
-  }
 
   // Map Prisma relations to the format expected by Admin Frontend
   const mappedPackages = packages.map((pkg: any) => ({

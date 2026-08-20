@@ -588,6 +588,7 @@ model Benefit {
   packageVersionBenefits PackageVersionBenefit[]
   serviceRequests        ServiceRequest[]
   benefitRegions         BenefitRegion[]
+  periodBalances         BenefitPeriodBalance[]
 
   @@map("benefits")
 }
@@ -764,6 +765,7 @@ model Subscription {
   hoursLogs        PackageHoursLog[]
   payments         Payment[]
   benefitBalances  SubscriptionBenefitBalance[]
+  benefitPeriods   BenefitPeriod[]
   beneficiary      Beneficiary?                 @relation(fields: [beneficiaryId], references: [id])
   package          SubscriptionPackage          @relation(fields: [packageType], references: [type])
   packageVersion   PackageVersion?              @relation(fields: [packageVersionId], references: [id])
@@ -2160,3 +2162,95 @@ model VolunteerReview {
 
   @@map("volunteer_reviews")
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Periodic Benefit Entitlement & Ledger Models
+// Tracks discrete monthly benefit periods for multi-month subscriptions
+// ─────────────────────────────────────────────────────────────────────────────
+model BenefitPeriod {
+  id             String                 @id @default(uuid())
+  subscriptionId String
+  periodNumber   Int                    // 1, 2, 3...
+  startDate      DateTime
+  endDate        DateTime
+  status         PeriodStatus           @default(UPCOMING)
+
+  subscription   Subscription           @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  balances       BenefitPeriodBalance[]
+  usages         BenefitUsage[]
+
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+
+  @@unique([subscriptionId, periodNumber])
+  @@index([subscriptionId, status])
+  @@map("benefit_periods")
+}
+
+enum PeriodStatus {
+  UPCOMING
+  ACTIVE
+  CLOSED
+  EXPIRED
+}
+
+model BenefitPeriodBalance {
+  id                 String        @id @default(uuid())
+  periodId           String
+  benefitId          String
+  
+  snapshotName       String
+  snapshotUnitLabel  String?
+  
+  baseAllocation     Int
+  rolloverAllocation Int           @default(0)
+  totalAllocation    Int
+  
+  usedQuantity       Int           @default(0)
+  reservedQuantity   Int           @default(0)
+  remainingQuantity  Int
+  
+  rolloverCap        Int?          // Cap configured for this benefit or derived from SystemConfig
+  
+  period             BenefitPeriod @relation(fields: [periodId], references: [id], onDelete: Cascade)
+  benefit            Benefit       @relation(fields: [benefitId], references: [id])
+
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  @@unique([periodId, benefitId])
+  @@map("benefit_period_balances")
+}
+
+model BenefitUsage {
+  id                String        @id @default(uuid())
+  subscriptionId    String
+  periodId          String
+  benefitId         String
+  
+  quantity          Int           // Positive for consumption, negative for refunds
+  usageType         UsageType
+  referenceId       String?       // Visit ID / Appointment ID / Sathi ID
+  
+  balanceBefore     Int
+  balanceAfter      Int
+  
+  notes             String?
+  performedByUserId String?
+  
+  period            BenefitPeriod @relation(fields: [periodId], references: [id], onDelete: Cascade)
+  createdAt         DateTime      @default(now())
+
+  @@index([periodId, benefitId])
+  @@index([subscriptionId])
+  @@map("benefit_usages")
+}
+
+enum UsageType {
+  VISIT_COMPLETED
+  SATHI_HOURS
+  EMERGENCY
+  MANUAL_ADJUSTMENT
+  CANCELLATION_REFUND
+}
+
