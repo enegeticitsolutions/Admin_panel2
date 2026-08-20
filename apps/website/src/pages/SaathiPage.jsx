@@ -182,6 +182,15 @@ const SaathiPage = () => {
     <div className="saathi-page">
       {/* ── HERO SECTION (FIGMA EXACT) ── */}
       <section className="saathi-hero">
+        {/* Background video */}
+        <video
+          className="saathi-hero__bg-video"
+          src="/src/assets/Sathi-Header-Background-Video.mp4"
+          autoPlay
+          muted
+          loop
+          playsInline
+        />
         <div className="saathi-hero__inner">
           <div className="saathi-hero__badge">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FE6700" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

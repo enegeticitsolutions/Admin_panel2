@@ -120,6 +120,15 @@ export default function PlansPage({
     <main className="plans-page">
       {/* ── Plans Hero ── */}
       <section className="plans-hero">
+        {/* Background video */}
+        <video
+          className="plans-hero__bg-video"
+          src="/src/assets/Plan-Header-Background-Video.mp4"
+          autoPlay
+          muted
+          loop
+          playsInline
+        />
         <div className="plans-hero__inner">
           <div className="plans-hero__copy">
             <span>Plans</span>
