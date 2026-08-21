@@ -4,6 +4,11 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { CallbackButton } from '../../components/CallbackButton';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { ActivityIndicator, Alert } from 'react-native';
+import { API_URL } from '@/constants/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { generateInvoicePDF } from '../../components/invoice/InvoiceGenerator';
+import type { InvoiceData } from '../../components/invoice/InvoiceGenerator';
 
 import { useNavigationStack } from '@/contexts/NavigationStackContext';
 import { useAndroidBackHandler } from '@/hooks/useAndroidBackHandler';
@@ -12,6 +17,7 @@ export default function PaymentSuccessScreen() {
     const router = useRouter();
     const params = useLocalSearchParams();
     const { resetStack } = useNavigationStack();
+    const [isDownloading, setIsDownloading] = React.useState(false);
 
     React.useEffect(() => {
         resetStack();
@@ -54,6 +60,75 @@ export default function PaymentSuccessScreen() {
     }, [params.benefits, packageName]);
 
     const durationLabel = (params.durationLabel as string) || '1 Month';
+
+    const handleDownloadInvoice = async () => {
+        try {
+            setIsDownloading(true);
+            const token = await AsyncStorage.getItem('userToken');
+            
+            // 1. Fetch Company Config
+            const configResRaw = await fetch(`${API_URL}/public/company/config`);
+            const configRes = await configResRaw.json();
+            const cConfig = configRes.data || {};
+
+            // 2. Fetch Invoice By OrderId
+            // The Razorpay order ID is what we saved in the backend as transactionId during creation
+            const invoiceResRaw = await fetch(`${API_URL}/subscriber/invoices/order/${orderId}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            const invoiceRes = await invoiceResRaw.json();
+            const invoice = invoiceRes.data;
+
+            if (!invoice) {
+                Alert.alert('Not Found', 'Invoice not found for this order.');
+                return;
+            }
+
+            const invoiceData: InvoiceData = {
+                invoiceNumber: invoice.invoiceNumber,
+                issuedAt: invoice.issuedAt,
+                status: invoice.status,
+                companyName: cConfig.COMPANY_NAME,
+                companyAddress: cConfig.COMPANY_ADDRESS,
+                companyGstin: cConfig.COMPANY_GSTIN,
+                companyPan: cConfig.COMPANY_PAN,
+                companyCin: cConfig.COMPANY_CIN,
+                companyEmail: cConfig.COMPANY_EMAIL,
+                companyPhone: cConfig.COMPANY_PHONE,
+                companyBankName: cConfig.COMPANY_BANK_NAME,
+                companyBankAccount: cConfig.COMPANY_BANK_ACCOUNT,
+                companyBankIfsc: cConfig.COMPANY_BANK_IFSC,
+                companyUpiId: cConfig.COMPANY_UPI_ID,
+                subscriberName: invoice.subscriber?.name || 'Subscriber',
+                subscriberAddress: invoice.subscriber?.address || 'Haryana',
+                placeOfSupply: invoice.placeOfSupply || 'Haryana',
+                items: invoice.items.map((i: any) => ({
+                    description: i.description,
+                    hsnSacCode: i.hsnSacCode,
+                    quantity: i.quantity,
+                    unitPrice: i.unitPrice,
+                    taxRate: i.taxRate,
+                    amount: i.amount
+                })),
+                baseAmount: invoice.baseAmount,
+                discountAmount: invoice.discountAmount,
+                cgstAmount: invoice.cgstAmount,
+                sgstAmount: invoice.sgstAmount,
+                igstAmount: invoice.igstAmount,
+                taxAmount: invoice.taxAmount,
+                totalAmount: invoice.totalAmount,
+            };
+
+            await generateInvoicePDF(invoiceData);
+        } catch (error) {
+            console.error('Invoice Download Error:', error);
+            Alert.alert('Error', 'Could not download invoice. Please try again later.');
+        } finally {
+            setIsDownloading(false);
+        }
+    };
 
     return (
         <SafeAreaView style={styles.safeArea}>
@@ -186,9 +261,13 @@ export default function PaymentSuccessScreen() {
                     <Text style={styles.addBeneficiaryBtnText}>Add Beneficiary to this Package</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.linkBtn}>
-                    <Ionicons name="download-outline" size={16} color="#050505" style={{ marginRight: 6 }} />
-                    <Text style={styles.linkBtnText}>Download Invoice</Text>
+                <TouchableOpacity style={styles.linkBtn} onPress={handleDownloadInvoice} disabled={isDownloading}>
+                    {isDownloading ? (
+                        <ActivityIndicator size="small" color="#FE6700" style={{ marginRight: 6 }} />
+                    ) : (
+                        <Ionicons name="download-outline" size={16} color="#050505" style={{ marginRight: 6 }} />
+                    )}
+                    <Text style={styles.linkBtnText}>{isDownloading ? 'Downloading...' : 'Download Invoice'}</Text>
                 </TouchableOpacity>
 
                 {/*<TouchableOpacity style={styles.linkBtn}>

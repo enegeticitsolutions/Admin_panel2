@@ -10,7 +10,7 @@ import { useLogoutWithConfirm } from '@/utils/logout';
 // Components
 import { ProfileHero } from './components/profile/ProfileHero';
 import { PersonalTab } from './components/profile/PersonalTab';
-import { SecurityTab } from './components/profile/SecurityTab';
+import SecurityTab from './components/profile/SecurityTab';
 import SubscriptionTab from './components/profile/SubscriptionTab';
 import GlobalDrawer from './components/shared/GlobalDrawer';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -132,7 +132,7 @@ export default function ProfileScreen() {
                 />
 
                 {/* Tabs Selector */}
-                <View style={styles.tabsWrapper}>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabsScroll} contentContainerStyle={{ paddingHorizontal: 15, paddingBottom: 23 }}>
                     <View style={styles.tabsContainer}>
                         {(['Personal', 'Security', 'Subscription'] as TabType[]).map((tab) => (
                             <TouchableOpacity
@@ -150,12 +150,14 @@ export default function ProfileScreen() {
                             </TouchableOpacity>
                         ))}
                     </View>
-                </View>
+                </ScrollView>
 
                 {/* Tab Content */}
-                {activeTab === 'Personal' && <PersonalTab user={profileData.user} onUpdate={fetchProfile} />}
-                {activeTab === 'Security' && <SecurityTab />}
-                {activeTab === 'Subscription' && <SubscriptionTab plan={profileData.currentPlan} beneficiaries={profileData.beneficiaries} />}
+                <View style={styles.tabContent}>
+                    {activeTab === 'Personal' && <PersonalTab user={profileData.user} onUpdate={fetchProfile} />}
+                    {activeTab === 'Security' && <SecurityTab />}
+                    {activeTab === 'Subscription' && <SubscriptionTab plan={profileData.currentPlan} beneficiaries={profileData.beneficiaries} />}
+                </View>
 
                 {/* Logout Button */}
                 <TouchableOpacity style={styles.logoutBtn} onPress={logoutWithConfirm}>
@@ -201,7 +203,8 @@ const styles = StyleSheet.create({
     },
     badgeText: { color: '#FFF', fontSize: 8, fontWeight: '800' },
     scrollView: { flex: 1 },
-    tabsWrapper: { paddingHorizontal: 15, marginTop: 22, marginBottom: 23 },
+    tabsScroll: { marginTop: 22, marginBottom: 23 },
+    tabContent: { paddingHorizontal: 15 },
     tabsContainer: {
         flexDirection: 'row',
         backgroundColor: '#FFFFFF',

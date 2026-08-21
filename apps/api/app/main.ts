@@ -19,6 +19,7 @@ import subscriberRouter from './api/subscriber/subscriber.routes';
 import serviceRequestsRouter from './api/subscriber/service-requests.routes';
 import addressesRouter from './api/subscriber/addresses.routes';
 import subscriberVitalsRouter from './api/subscriber/vitals.routes';
+import invoicesRouter from './api/subscriber/invoices.routes';
 
 // Care Companion Routes
 import visitsRouter from './api/care_companion/visits.routes';
@@ -50,6 +51,7 @@ import subscriberVisitsRouter from './api/subscriber/visits.routes';
 // Public Routes
 import publicVitalsRouter from './api/public/vitals.routes';
 import publicZonesRouter from './api/public/zones.routes';
+import companyRouter from './api/public/company.routes';
 import publicEnrollmentRouter from './api/public/enrollment.routes';
 import publicLocationRouter from './api/public/location.routes';
 import publicHobbiesRouter from './api/public/hobbies.routes';
@@ -131,6 +133,7 @@ app.use(`${API}/subscriber/coupons`, couponsRouter);
 app.use(`${API}/subscriber/service-requests`, serviceRequestsRouter);
 app.use(`${API}/subscriber/addresses`, addressesRouter);
 app.use(`${API}/subscriber/vitals`, subscriberVitalsRouter);
+app.use(`${API}/subscriber/invoices`, invoicesRouter);
 app.use(`${API}/subscriber`, subscriberRouter);
 
 // Role: Care Companion endpoints
@@ -170,6 +173,7 @@ app.use(`${API}/public/sathi-guide`, publicGuideRouter);
 app.use(`${API}/public/hobbies`, publicHobbiesRouter);
 app.use(`${API}/public/zones`, publicZonesRouter);
 app.use(`${API}/public/location`, publicLocationRouter);
+app.use(`${API}/public/company`, companyRouter);
 app.use(`${API}/public`, publicEnrollmentRouter);
 
 // Sathi Network endpoints

@@ -209,6 +209,13 @@ const GlobalDrawer = ({ isOpen, onClose, drawerAnim, userData: _userDataProp }: 
                                     color="#7C3AED"
                                     onPress={() => navigateTo('/(setup)/subscription-packages')} 
                                 />
+                                <DrawerItem 
+                                    label="Order Summary" 
+                                    icon="receipt-outline" 
+                                    bg="#FFF1F2"
+                                    color="#BE123C"
+                                    onPress={() => navigateTo('/(subscriber)/order-history')} 
+                                />
 
                                 <View style={styles.sectionDivider} />
                                 <Text style={styles.sectionLabel}>PREFERENCES</Text>
