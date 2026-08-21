@@ -649,6 +649,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalContainer: {
+    flexShrink: 1,
     backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
@@ -817,7 +818,7 @@ const styles = StyleSheet.create({
 
   // Scroll Content
   scrollBody: {
-    flex: 1,
+    flexShrink: 1,
     backgroundColor: '#F8FAFC',
   },
   scrollContent: {

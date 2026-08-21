@@ -38,32 +38,33 @@ const SubscriptionTab = ({ plan, beneficiaries }: SubscriptionTabProps) => {
             {/* Current Plan Card */}
             {plan ? (
                 <TouchableOpacity onPress={() => push('/package-utilization')} activeOpacity={0.9}>
-                <LinearGradient colors={['#F97316', '#EA580C']} style={styles.planCard}>
-                    <View style={styles.planHeader}>
-                        <View>
-                            <Text style={styles.planLabel}>Current Plan</Text>
-                            <Text style={styles.planName}>{plan.name}</Text>
+                    <LinearGradient colors={['#F97316', '#EA580C']} style={styles.planCard}>
+                        <View style={styles.planHeader}>
+                            <View style={styles.planTitleContainer}>
+                                <Text style={styles.planLabel}>Current Plan</Text>
+                                <Text style={styles.planName} numberOfLines={2}>{plan.name}</Text>
+                            </View>
+                            <View style={styles.activeBadge}>
+                                <View style={styles.activeDot} />
+                                <Text style={styles.activeText}>Active</Text>
+                            </View>
                         </View>
-                        <View style={styles.activeBadge}>
-                            <Text style={styles.activeText}>Active</Text>
-                        </View>
-                    </View>
 
-                    <View style={styles.progressSection}>
-                        <View style={styles.progressLabels}>
-                            <Text style={styles.progressText}>Hours Used</Text>
-                            <Text style={styles.progressText}>{formatHours(plan.hoursUsed)} / {formatHours(plan.hoursTotal)}</Text>
+                        <View style={styles.progressSection}>
+                            <View style={styles.progressLabels}>
+                                <Text style={styles.progressText}>Hours Used</Text>
+                                <Text style={styles.progressText}>{formatHours(plan.hoursUsed)} / {formatHours(plan.hoursTotal)}</Text>
+                            </View>
+                            <View style={styles.progressBarBg}>
+                                <View style={[styles.progressBarFill, { width: `${progress * 100}%` }]} />
+                            </View>
                         </View>
-                        <View style={styles.progressBarBg}>
-                            <View style={[styles.progressBarFill, { width: `${progress * 100}%` }]} />
-                        </View>
-                    </View>
 
-                    <View style={styles.planFooter}>
-                        <Text style={styles.footerLabel}>Next Billing Date</Text>
-                        <Text style={styles.footerValue}>{formatDate(plan.nextBillingDate)}</Text>
-                    </View>
-                </LinearGradient>
+                        <View style={styles.planFooter}>
+                            <Text style={styles.footerLabel}>Next Billing Date</Text>
+                            <Text style={styles.footerValue}>{formatDate(plan.nextBillingDate)}</Text>
+                        </View>
+                    </LinearGradient>
                 </TouchableOpacity>
             ) : (
                 <View style={[styles.planEmptyCard]}>
@@ -109,8 +110,8 @@ const SubscriptionTab = ({ plan, beneficiaries }: SubscriptionTabProps) => {
 
                 {beneficiaries?.length > 0 ? (
                     beneficiaries.map((b, i) => (
-                        <TouchableOpacity 
-                            key={b.id || i} 
+                        <TouchableOpacity
+                            key={b.id || i}
                             style={styles.benCard}
                             onPress={() => push({ pathname: '/(subscriber)/beneficiary-profile', params: { id: b.id } })}
                         >
@@ -147,14 +148,14 @@ const manageToneByTitle: Record<string, { color: string; box: object }> = {
 const styles = StyleSheet.create({
     container: { paddingHorizontal: 15, paddingTop: 2 },
     planCard: {
-        borderRadius: 13,
-        paddingHorizontal: 24,
-        paddingTop: 23,
-        paddingBottom: 25,
+        borderRadius: 16,
+        paddingHorizontal: 20,
+        paddingTop: 20,
+        paddingBottom: 20,
         marginBottom: 12,
         ...Platform.select({
-            ios: { shadowColor: '#FF5B0A', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.26, shadowRadius: 14 },
-            android: { elevation: 8 }
+            ios: { shadowColor: '#FF5B0A', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.22, shadowRadius: 10 },
+            android: { elevation: 6 }
         })
     },
     planEmptyCard: { 
@@ -164,21 +165,41 @@ const styles = StyleSheet.create({
     emptyText: { color: '#9CA3AF', fontWeight: '600', marginTop: 10 },
     emptySubText: { color: '#9CA3AF', fontSize: 13, textAlign: 'center', marginTop: 10 },
 
-    planHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 },
-    planLabel: { fontSize: 15, color: '#FFFFFF', marginBottom: 6, fontWeight: '400' },
-    planName: { fontSize: 25, fontWeight: '800', color: '#FFFFFF' },
-    activeBadge: { backgroundColor: '#FFFFFF', paddingHorizontal: 13, paddingVertical: 7, borderRadius: 16 },
-    activeText: { color: '#16A34A', fontSize: 14, fontWeight: '600' },
+    planHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 18 },
+    planTitleContainer: { flex: 1, marginRight: 10 },
+    planLabel: { fontSize: 13, color: 'rgba(255, 255, 255, 0.85)', marginBottom: 4, fontWeight: '500' },
+    planName: { fontSize: 20, fontWeight: '800', color: '#FFFFFF', lineHeight: 25 },
+    activeBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#FFFFFF',
+        paddingHorizontal: 10,
+        paddingVertical: 5,
+        borderRadius: 14,
+        flexShrink: 0,
+        ...Platform.select({
+            ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 3 },
+            android: { elevation: 2 },
+        }),
+    },
+    activeDot: {
+        width: 6,
+        height: 6,
+        borderRadius: 3,
+        backgroundColor: '#16A34A',
+        marginRight: 5,
+    },
+    activeText: { color: '#16A34A', fontSize: 12, fontWeight: '700' },
     
-    progressSection: { marginBottom: 17 },
-    progressLabels: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 14 },
-    progressText: { fontSize: 16, color: '#FFFFFF', fontWeight: '600' },
-    progressBarBg: { height: 8, backgroundColor: 'rgba(17,17,17,0.55)', borderRadius: 4 },
+    progressSection: { marginBottom: 16 },
+    progressLabels: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
+    progressText: { fontSize: 14, color: '#FFFFFF', fontWeight: '600' },
+    progressBarBg: { height: 8, backgroundColor: 'rgba(0,0,0,0.18)', borderRadius: 4, overflow: 'hidden' },
     progressBarFill: { height: 8, backgroundColor: '#FFFFFF', borderRadius: 4 },
 
-    planFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 16, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.55)' },
-    footerLabel: { fontSize: 15, color: '#FFFFFF' },
-    footerValue: { fontSize: 15, color: '#FFFFFF', fontWeight: '700' },
+    planFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 14, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.25)' },
+    footerLabel: { fontSize: 13, color: 'rgba(255,255,255,0.85)', fontWeight: '500' },
+    footerValue: { fontSize: 14, color: '#FFFFFF', fontWeight: '700' },
 
     section: {
         backgroundColor: '#FFFFFF',

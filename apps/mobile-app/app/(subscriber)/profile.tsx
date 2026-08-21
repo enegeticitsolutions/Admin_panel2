@@ -132,7 +132,7 @@ export default function ProfileScreen() {
                 />
 
                 {/* Tabs Selector */}
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabsScroll} contentContainerStyle={{ paddingHorizontal: 15, paddingBottom: 23 }}>
+                <View style={styles.tabsWrapper}>
                     <View style={styles.tabsContainer}>
                         {(['Personal', 'Security', 'Subscription'] as TabType[]).map((tab) => (
                             <TouchableOpacity
@@ -142,15 +142,15 @@ export default function ProfileScreen() {
                             >
                                 <Ionicons
                                     name={tab === 'Personal' ? 'person-outline' : tab === 'Security' ? 'lock-closed-outline' : 'ribbon-outline'}
-                                    size={17}
+                                    size={15}
                                     color={activeTab === tab ? '#FFF' : '#3A3A3A'}
-                                    style={{ marginRight: 6 }}
+                                    style={{ marginRight: 4 }}
                                 />
-                                <Text style={[styles.tabText, activeTab === tab && styles.tabTextActive]}>{tab}</Text>
+                                <Text style={[styles.tabText, activeTab === tab && styles.tabTextActive]} numberOfLines={1}>{tab}</Text>
                             </TouchableOpacity>
                         ))}
                     </View>
-                </ScrollView>
+                </View>
 
                 {/* Tab Content */}
                 <View style={styles.tabContent}>
@@ -203,27 +203,35 @@ const styles = StyleSheet.create({
     },
     badgeText: { color: '#FFF', fontSize: 8, fontWeight: '800' },
     scrollView: { flex: 1 },
-    tabsScroll: { marginTop: 22, marginBottom: 23 },
+    tabsWrapper: {
+        marginHorizontal: 15,
+        marginTop: 18,
+        marginBottom: 18,
+    },
     tabContent: { paddingHorizontal: 15 },
     tabsContainer: {
         flexDirection: 'row',
         backgroundColor: '#FFFFFF',
         borderRadius: 15,
-        padding: 5,
+        padding: 4,
         borderWidth: 1,
         borderColor: '#F1DED0',
         ...Platform.select({
-            ios: { shadowColor: '#4A2B17', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 8 },
+            ios: { shadowColor: '#4A2B17', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.12, shadowRadius: 8 },
             android: { elevation: 3 }
         })
     },
     tabBtn: {
-        flex: 1, flexDirection: 'row',
-        minHeight: 46, alignItems: 'center', justifyContent: 'center',
-        borderRadius: 13
+        flex: 1,
+        paddingHorizontal: 4,
+        minHeight: 44,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: 12,
     },
     tabBtnActive: { backgroundColor: '#FF5B0A' },
-    tabText: { fontSize: 15, fontWeight: '500', color: '#4B5563' },
+    tabText: { fontSize: 13, fontWeight: '600', color: '#4B5563' },
     tabTextActive: { color: '#FFFFFF' },
 
     logoutBtn: {

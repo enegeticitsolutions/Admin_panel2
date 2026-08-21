@@ -41,6 +41,7 @@ export default function SubscriberDashboardScreen() {
     const [linkModalVisible, setLinkModalVisible] = useState(false);
     const [selectedUnlinkedSubId, setSelectedUnlinkedSubId] = useState<string | null>(null);
     const [isLinking, setIsLinking] = useState(false);
+    const pullAnim = useRef(new Animated.Value(0)).current;
 
     const handleSwitchToBeneficiary = async () => {
         try {
@@ -182,6 +183,16 @@ export default function SubscriberDashboardScreen() {
         }, [refetch])
     );
 
+    useEffect(() => {
+        if (!refreshing) {
+            Animated.timing(pullAnim, {
+                toValue: 0,
+                duration: 200,
+                useNativeDriver: true,
+            }).start();
+        }
+    }, [refreshing]);
+
     /* ─── Drawer helpers ─────────────────────────────────── */
     const openDrawer = () => {
         setDrawerOpen(true);
@@ -241,6 +252,22 @@ export default function SubscriberDashboardScreen() {
         return b.age ? `${b.age} years` : '';
     };
 
+    const handleScroll = (event: any) => {
+        const y = event.nativeEvent.contentOffset.y;
+        if (y < 0) {
+            pullAnim.setValue(Math.min(-y, 80));
+        } else {
+            pullAnim.setValue(0);
+        }
+    };
+
+    const handleScrollEndDrag = (event: any) => {
+        const y = event.nativeEvent.contentOffset.y;
+        if (y < -50 && !refreshing) {
+            onRefresh();
+        }
+    };
+
     return (
         <SafeAreaView style={styles.safeArea}>
             {/* ── Inline Dashboard Header (Figma) ── */}
@@ -254,10 +281,76 @@ export default function SubscriberDashboardScreen() {
                 </View>
             </View>
 
+            {/* ── Floating Circle Arrow Indicator (iOS) ── */}
+            {Platform.OS === 'ios' && (
+                <Animated.View
+                    pointerEvents="none"
+                    style={[
+                        styles.floatingRefreshCircle,
+                        {
+                            opacity: refreshing
+                                ? 1
+                                : pullAnim.interpolate({
+                                      inputRange: [0, 20, 50],
+                                      outputRange: [0, 0.4, 1],
+                                      extrapolate: 'clamp',
+                                  }),
+                            transform: [
+                                {
+                                    translateY: refreshing
+                                        ? scale(18)
+                                        : pullAnim.interpolate({
+                                              inputRange: [0, 50],
+                                              outputRange: [-scale(90), scale(18)],
+                                              extrapolate: 'clamp',
+                                          }),
+                                },
+                                {
+                                    scale: refreshing
+                                        ? 1
+                                        : pullAnim.interpolate({
+                                              inputRange: [0, 25, 50],
+                                              outputRange: [0.5, 0.85, 1],
+                                              extrapolate: 'clamp',
+                                          }),
+                                },
+                            ],
+                        },
+                    ]}
+                >
+                    {refreshing ? (
+                        <ActivityIndicator size="small" color="#FE6700" />
+                    ) : (
+                        <Animated.View
+                            style={{
+                                transform: [
+                                    {
+                                        rotate: pullAnim.interpolate({
+                                            inputRange: [0, 50],
+                                            outputRange: ['0deg', '360deg'],
+                                            extrapolate: 'clamp',
+                                        }),
+                                    },
+                                ],
+                            }}
+                        >
+                            <Feather name="rotate-cw" size={scale(18)} color="#FE6700" />
+                        </Animated.View>
+                    )}
+                </Animated.View>
+            )}
+
             <ScrollView
                 contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
-                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#FE6700']} />}
+                scrollEventThrottle={16}
+                onScroll={Platform.OS === 'ios' ? handleScroll : undefined}
+                onScrollEndDrag={Platform.OS === 'ios' ? handleScrollEndDrag : undefined}
+                refreshControl={
+                    Platform.OS === 'android' ? (
+                        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#FE6700']} />
+                    ) : undefined
+                }
             >
                 {/* ── Hero Banner (top 2 stats only) ── */}
                 <ImageBackground
@@ -635,6 +728,29 @@ const styles = StyleSheet.create({
         justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#FFF',
     },
     headerBadgeText: { color: '#FFF', fontSize: scale(9), fontWeight: '800' },
+    floatingRefreshCircle: {
+        position: 'absolute',
+        top: scale(64),
+        alignSelf: 'center',
+        width: scale(38),
+        height: scale(38),
+        borderRadius: scale(19),
+        backgroundColor: '#FFFFFF',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 999,
+        ...Platform.select({
+            ios: {
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 3 },
+                shadowOpacity: 0.2,
+                shadowRadius: 5,
+            },
+            android: {
+                elevation: 6,
+            },
+        }),
+    },
 
     scrollContent: { paddingBottom: scale(40) },
 
