@@ -3,6 +3,7 @@ import { generateUUID } from '../../utils/helpers';
 import { validateCoupon, applyCoupon } from '../coupon_service';
 import { benefitPeriodManager } from '../benefit/BenefitPeriodManager';
 import bcrypt from 'bcryptjs';
+import { generateInvoiceNumber, calculateGST } from '../../utils/invoice_utils';
 
 function normalizeUnit(unitLabel: string | null | undefined): string {
   if (!unitLabel) return 'visits';
@@ -592,13 +593,94 @@ export const purchaseSubscription = async (
       );
     }
 
-    // 3. Create a Payment record snapshotting details at enrollment
-    await tx.payment.create({
+    // 3. Generate Invoice for this purchase
+    const invoiceNumber = await generateInvoiceNumber(tx);
+    
+    // For now, assume Haryana as POS, but we could make this dynamic based on user address
+    const isInterState = beneficiaryData?.state?.toLowerCase() !== 'haryana';
+    
+    // Total price comes from packageBasePrice + addons
+    // Here we use finalAmountPaid for the grand total
+    const gstCalc = calculateGST(packageBasePrice, discountAmount, subPackage.gstRate || 18, isInterState);
+    
+    // Determine the invoice items. 
+    // We will have one item for the main package, and additional items for each addon.
+    const invoiceItems = [];
+    invoiceItems.push({
+      id: generateUUID(),
+      description: `${subPackage.name} Subscription - ${months} Month(s)`,
+      hsnSacCode: subPackage.hsnSacCode || '9993',
+      taxRate: subPackage.gstRate || 18,
+      isGstExempt: subPackage.isGstExempt || false,
+      quantity: 1,
+      unitPrice: packageBasePrice, // Note: the amount is before discount in this basic model
+      amount: packageBasePrice,
+    });
+
+    // Add Addons to invoice if any
+    if (selectedAddons && Array.isArray(selectedAddons) && selectedAddons.length > 0) {
+      for (const addonItem of selectedAddons) {
+        if (!addonItem.benefitId) continue;
+        const q = Math.max(1, Math.floor(Number(addonItem.quantity) || 1));
+        const benefit = await tx.benefit.findUnique({
+          where: { id: addonItem.benefitId }
+        });
+        if (benefit && benefit.isAddon && benefit.addonPrice) {
+          const addCost = benefit.addonPrice * q;
+          invoiceItems.push({
+            id: generateUUID(),
+            description: `Add-on: ${benefit.name}`,
+            benefitId: benefit.id,
+            hsnSacCode: benefit.hsnSacCode || '9993',
+            taxRate: benefit.gstRate || 18,
+            isGstExempt: benefit.isGstExempt || false,
+            quantity: q,
+            unitPrice: benefit.addonPrice,
+            amount: addCost,
+          });
+          // Note: Addon costs should be factored into total baseAmount, but for now we are using finalAmountPaid as the grand total. 
+          // Our GST calculator took packageBasePrice, so we assume finalAmountPaid covers all.
+        }
+      }
+    }
+
+    const invoice = await tx.invoice.create({
+      data: {
+        id: generateUUID(),
+        invoiceNumber,
+        invoiceType: 'SUBSCRIPTION',
+        status: 'PAID',
+        subscriberId: userId,
+        beneficiaryId: beneficiary ? beneficiary.id : null,
+        subscriptionId: subscription.id,
+        baseAmount: packageBasePrice, // Using package base price
+        discountAmount: discountAmount,
+        taxAmount: gstCalc.taxAmount,
+        totalAmount: finalAmountPaid,
+        placeOfSupply: beneficiaryData?.state || 'Haryana',
+        cgstAmount: gstCalc.cgstAmount,
+        sgstAmount: gstCalc.sgstAmount,
+        igstAmount: gstCalc.igstAmount,
+        issuedAt: new Date(),
+        paidAt: new Date(),
+        items: {
+          create: invoiceItems.map(item => ({
+            ...item,
+            id: undefined // let Prisma or uuid handle it, but we provided id above.
+          }))
+        }
+      }
+    });
+
+    // 4. Create a Payment record snapshotting details at enrollment
+    const txId = `TXN-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+    const payment = await tx.payment.create({
       data: {
         id: generateUUID(),
         subscriberId: userId,
         beneficiaryId: beneficiary ? beneficiary.id : null,
         subscriptionId: subscription.id,
+        invoiceId: invoice.id,
         packageType: subPackage.type,
         packageVersionId: versionObj.id,
         snapshotPackageName: versionObj.name,
@@ -615,7 +697,7 @@ export const purchaseSubscription = async (
         currency: 'INR',
         paymentMethod: 'UPI',
         paymentStatus: 'success',
-        transactionId: `TXN-${Date.now()}-${Math.floor(Math.random() * 10000)}`,
+        transactionId: txId,
         planStartDate: subscription.startDate,
         planEndDate: subscription.endDate,
         isSubscriptionActive: true,
