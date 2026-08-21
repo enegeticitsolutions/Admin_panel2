@@ -10,6 +10,17 @@ export const getBeneficiarySathiEligibility = async (beneficiaryId: string) => {
       isActive: true
     },
     include: {
+      package: {
+        include: {
+          packageBenefits: {
+            include: {
+              benefit: {
+                include: { benefitType: true }
+              }
+            }
+          }
+        }
+      },
       packageVersion: {
         include: {
           versionBenefits: {
@@ -40,10 +51,10 @@ export const getBeneficiarySathiEligibility = async (beneficiaryId: string) => {
       for (const bal of sub.benefitBalances) {
         if (isSathiBenefit(bal.benefit)) {
           const remaining = bal.totalUnits - bal.usedUnits;
-          if (remaining > 0) {
+          if (remaining > 0 || (bal.availableUnits || 0) > 0) {
             eligible = true;
-            remainingUnits += remaining;
-            sathiBalanceId = bal.id;
+            remainingUnits += remaining > 0 ? remaining : (bal.availableUnits || 0);
+            if (!sathiBalanceId) sathiBalanceId = bal.id;
           }
         }
       }
@@ -56,6 +67,18 @@ export const getBeneficiarySathiEligibility = async (beneficiaryId: string) => {
           if (remaining > 0 || pvb.isUnlimited) {
             eligible = true;
             remainingUnits += pvb.isUnlimited ? 999 : remaining;
+          }
+        }
+      }
+    }
+
+    if (!eligible && sub.package?.packageBenefits) {
+      for (const pb of sub.package.packageBenefits) {
+        if (isSathiBenefit(pb.benefit)) {
+          const remaining = pb.unitsIncluded;
+          if (remaining > 0 || pb.isUnlimited) {
+            eligible = true;
+            remainingUnits += pb.isUnlimited ? 999 : remaining;
           }
         }
       }

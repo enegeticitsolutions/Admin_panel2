@@ -49,13 +49,17 @@ function isEmergencyBenefit(benefit) {
 function isSathiBenefit(benefit) {
   if (!benefit) return false;
   const bCode = benefit.code?.toUpperCase() || '';
+  const bName = (benefit.name || '').toLowerCase();
   const bType = benefit.benefitType;
   const bTypeCode = bType?.code?.toUpperCase() || '';
   const bTypeName = bType?.name?.toLowerCase() || '';
 
   return (
     SYSTEM_BENEFITS.SATHI_COMPANION.MATCH_PREFIXES.some(prefix => bCode.startsWith(prefix) || bTypeCode === prefix) ||
-    bTypeName.includes('sathi')
+    bTypeName.includes('sathi') ||
+    bTypeName.includes('saathi') ||
+    bName.includes('sathi') ||
+    bName.includes('saathi')
   );
 }
 

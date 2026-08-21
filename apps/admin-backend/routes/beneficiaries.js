@@ -9,6 +9,7 @@ const { notifyMany } = require('../services/notifications');
 const { calculateAge } = require('../utils/age');
 const { dispatchCareCompanionAssigned } = require('../services/notification.dispatcher');
 const { rosterEvents } = require('../services/events');
+const { isSathiBenefit } = require('../utils/systemBenefits');
 
 // ── GET /api/beneficiaries ───────────────────────────────────────────────────
 router.get('/', async (req, res) => {
@@ -109,7 +110,7 @@ router.get('/', async (req, res) => {
 
     const allBeneficiaries = await prisma.beneficiary.findMany(listQuery);
 
-    // Fetch subscriptions to calculate dynamic package status
+    // Fetch subscriptions to calculate dynamic package status and benefit entitlements
     const beneficiaryIds = allBeneficiaries.map((b) => b.id);
     const subscriptions = await prisma.subscription.findMany({
       where: { beneficiaryId: { in: beneficiaryIds } },
@@ -122,9 +123,31 @@ router.get('/', async (req, res) => {
               include: {
                 benefit: {
                   include: {
-                    benefitType: { select: { code: true } }
+                    benefitType: { select: { code: true, name: true } }
                   }
                 }
+              }
+            }
+          }
+        },
+        packageVersion: {
+          include: {
+            versionBenefits: {
+              include: {
+                benefit: {
+                  include: {
+                    benefitType: { select: { code: true, name: true } }
+                  }
+                }
+              }
+            }
+          }
+        },
+        benefitBalances: {
+          include: {
+            benefit: {
+              include: {
+                benefitType: { select: { code: true, name: true } }
               }
             }
           }
@@ -141,7 +164,8 @@ router.get('/', async (req, res) => {
 
     let mapped = allBeneficiaries.map((b) => {
       const benSubs = subMap[b.id] || [];
-      const activeSub = benSubs.find((s) => s.isActive && new Date(s.endDate) > now);
+      const activeSubs = benSubs.filter((s) => s.isActive && new Date(s.endDate) > now);
+      const activeSub = activeSubs[0] || null;
       const expiredSub = benSubs.find((s) => new Date(s.endDate) <= now || !s.isActive);
 
       let packageStatus = 'none'; // 'active' | 'expired' | 'none'
@@ -150,6 +174,29 @@ router.get('/', async (req, res) => {
       } else if (expiredSub || benSubs.length > 0) {
         packageStatus = 'expired';
       }
+
+      // Check if senior has Sathi Benefit either via package, package version, or purchased add-on
+      const hasSathiBenefit = activeSubs.some((sub) => {
+        // 1. Add-on purchases / Ledger balances (creates/updates SubscriptionBenefitBalance)
+        const hasAddonOrBalance = (sub.benefitBalances || []).some(
+          (bal) => isSathiBenefit(bal.benefit) && ((bal.totalUnits - bal.usedUnits) > 0 || (bal.availableUnits || 0) > 0 || (bal.totalUnits || 0) > 0)
+        );
+        if (hasAddonOrBalance) return true;
+
+        // 2. Package Version Benefits
+        const hasVersionBenefit = (sub.packageVersion?.versionBenefits || []).some(
+          (pvb) => isSathiBenefit(pvb.benefit)
+        );
+        if (hasVersionBenefit) return true;
+
+        // 3. Base Package Benefits
+        const hasPackageBenefit = (sub.package?.packageBenefits || []).some(
+          (pb) => isSathiBenefit(pb.benefit)
+        );
+        if (hasPackageBenefit) return true;
+
+        return false;
+      });
 
       // Calculate distance to nearest managed zone
       let minDistance = null;
@@ -204,10 +251,7 @@ router.get('/', async (req, res) => {
         createdAt: b.createdAt,
         distance: minDistance ? parseFloat(minDistance.toFixed(2)) : null,
         nearestZone: nearestZoneName,
-        hasSathiBenefit: (activeSub?.package?.packageBenefits || []).some(
-          (pb) => pb.benefit?.benefitType?.code === 'SATHI_COMPANION' ||
-                  pb.benefit?.benefitType?.code?.startsWith('SATHI_')
-        )
+        hasSathiBenefit
       };
     });
 
