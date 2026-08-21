@@ -74,11 +74,12 @@ router.get('/', authenticate, async (req: Request, res: Response) => {
 
     const formatVisitItem = (v: any) => {
       const ben = v.beneficiary;
-      const formattedTime = v.scheduledTime.toLocaleTimeString('en-US', {
+      const formattedTime = new Intl.DateTimeFormat('en-IN', {
+        timeZone: 'Asia/Kolkata',
         hour: 'numeric',
         minute: '2-digit',
         hour12: true,
-      });
+      }).format(v.scheduledTime);
 
       const fullAddress = [ben?.flatPlot, ben?.streetArea, ben?.landmark, ben?.city]
         .filter(Boolean)
@@ -100,6 +101,8 @@ router.get('/', authenticate, async (req: Request, res: Response) => {
         longitude: ben?.longitude || null,
         time: formattedTime,
         scheduledTime: v.scheduledTime.toISOString(),
+        checkInTime: v.checkInTime ? v.checkInTime.toISOString() : null,
+        checkOutTime: v.checkOutTime ? v.checkOutTime.toISOString() : null,
         durationMinutes: v.durationMinutes,
         distance: '—',
         status: v.status,

@@ -132,9 +132,28 @@ router.get('/:visitId/details', authenticate, async (req: AuthRequest, res: Resp
             taken: mar.taken === true
         }));
 
-        // Check-in & Check-out formatting
-        const checkInTimeFormatted = visit.checkInTime ? new Date(visit.checkInTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }) : null;
-        const checkOutTimeFormatted = visit.checkOutTime ? new Date(visit.checkOutTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }) : null;
+        // Check-in & Check-out formatting with Indian Standard Time (IST)
+        const istDateFormatter = new Intl.DateTimeFormat('en-IN', { timeZone: 'Asia/Kolkata', day: 'numeric', month: 'short', year: 'numeric' });
+        const istTimeFormatter = new Intl.DateTimeFormat('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: true });
+
+        const schedDate = new Date(visit.scheduledTime);
+        const schedDateStr = istDateFormatter.format(schedDate);
+        const schedStartTime = istTimeFormatter.format(schedDate);
+        const schedEndTime = istTimeFormatter.format(new Date(schedDate.getTime() + (visit.durationMinutes || 60) * 60000));
+
+        const checkInTimeFormatted = visit.checkInTime ? istTimeFormatter.format(new Date(visit.checkInTime)) : null;
+        const checkOutTimeFormatted = visit.checkOutTime ? istTimeFormatter.format(new Date(visit.checkOutTime)) : null;
+
+        // Calculate actual duration
+        let actualDurationMinutes: number | null = null;
+        let durationText = `${visit.durationMinutes || 60} mins`;
+        if (visit.checkInTime && visit.checkOutTime) {
+            const diffMs = new Date(visit.checkOutTime).getTime() - new Date(visit.checkInTime).getTime();
+            let diffMins = Math.round(diffMs / 60000);
+            if (diffMins <= 0 && diffMs > 0) diffMins = 1;
+            actualDurationMinutes = diffMins;
+            durationText = diffMins < 60 ? `${diffMins} mins` : `${parseFloat((diffMins / 60).toFixed(1))} hours`;
+        }
 
         let checkInType = 'Standard Check-in';
         if (visit.checkInTime) {
@@ -179,14 +198,22 @@ router.get('/:visitId/details', authenticate, async (req: AuthRequest, res: Resp
                 companionName: visit.careCompanion?.name,
                 companionPhoto: visit.careCompanion?.photo,
                 companionPhone: visit.careCompanion?.user?.phone || null,
+                scheduledDate: schedDateStr,
                 scheduledTime: visit.scheduledTime,
+                scheduledStartTime: schedStartTime,
+                scheduledEndTime: schedEndTime,
+                scheduledTimeRange: `${schedStartTime} – ${schedEndTime}`,
                 durationMinutes: visit.durationMinutes,
+                actualDurationMinutes,
+                durationText,
                 checkInTime: checkInTimeFormatted,
+                checkInTimeIso: visit.checkInTime,
                 checkInType,
                 isGeoVerified: visit.isGeoVerified === true,
                 geoDistanceMeters: visit.geoDistanceMeters ?? null,
                 manualCheckInReason: visit.manualCheckInReason || null,
                 checkOutTime: checkOutTimeFormatted,
+                checkOutTimeIso: visit.checkOutTime,
                 checkOutType,
                 manualCheckOutReason: visit.manualCheckOutReason || null,
                 mood: visit.mood ? (visit.mood.charAt(0).toUpperCase() + visit.mood.slice(1).toLowerCase()) : 'Neutral',

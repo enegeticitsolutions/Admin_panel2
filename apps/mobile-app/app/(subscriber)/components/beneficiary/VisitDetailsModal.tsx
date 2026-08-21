@@ -24,8 +24,15 @@ export interface VisitDetailData {
   companionName?: string;
   companionPhoto?: string;
   companionPhone?: string | null;
+  scheduledDate?: string;
+  scheduledTime?: string;
+  scheduledStartTime?: string;
+  scheduledEndTime?: string;
+  scheduledTimeRange?: string;
   dateStr?: string;
   duration?: string;
+  actualDurationMinutes?: number | null;
+  durationText?: string;
   rated?: boolean;
   rating?: number | null;
   beneficiaryRating?: number | null;
@@ -36,11 +43,13 @@ export interface VisitDetailData {
   notes?: string | null;
   // Detailed fields
   checkInTime?: string | null;
+  checkInTimeIso?: string | null;
   checkInType?: string;
   isGeoVerified?: boolean;
   geoDistanceMeters?: number | null;
   manualCheckInReason?: string | null;
   checkOutTime?: string | null;
+  checkOutTimeIso?: string | null;
   checkOutType?: string;
   manualCheckOutReason?: string | null;
   mood?: string;
@@ -284,9 +293,35 @@ export function VisitDetailsModal({
             {/* ── 2. Arrival & Departure Verification ── */}
             <View style={styles.sectionCard}>
               <View style={styles.sectionHeader}>
-                <Ionicons name="location" size={18} color="#0284C7" />
-                <Text style={styles.sectionTitle}>Arrival & Departure Verification</Text>
+                <Ionicons name="time" size={18} color="#0284C7" />
+                <Text style={styles.sectionTitle}>Visit Timing & Verification</Text>
               </View>
+
+              {/* Scheduled Timing Banner */}
+              {(visit.scheduledTimeRange || visit.scheduledStartTime) ? (
+                <View style={{
+                  backgroundColor: '#F0FDF4',
+                  borderWidth: 1,
+                  borderColor: '#BBF7D0',
+                  borderRadius: 10,
+                  paddingHorizontal: 12,
+                  paddingVertical: 8,
+                  marginBottom: 14,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between'
+                }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Ionicons name="calendar-outline" size={15} color="#16A34A" />
+                    <Text style={{ fontSize: 13, fontWeight: '600', color: '#166534' }}>
+                      Scheduled: {visit.scheduledTimeRange || visit.scheduledStartTime}
+                    </Text>
+                  </View>
+                  <Text style={{ fontSize: 12, fontWeight: '700', color: '#15803D' }}>
+                    {visit.duration || '60 mins'}
+                  </Text>
+                </View>
+              ) : null}
 
               <View style={styles.checkInOutGrid}>
                 {/* Check-in Block */}

@@ -55,6 +55,22 @@ router.get('/me', authenticate, async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ success: false, message: 'Beneficiary profile not found' });
     }
 
+    // IST formatter helpers
+    const istFmt = new Intl.DateTimeFormat('en-IN', {
+      timeZone: 'Asia/Kolkata',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+    });
+    const istDateFmt = new Intl.DateTimeFormat('en-IN', {
+      timeZone: 'Asia/Kolkata',
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    });
+    const formatIST = (d: Date | null | undefined) => d ? istFmt.format(d).toUpperCase() : null;
+    const formatDateIST = (d: Date | null | undefined) => d ? istDateFmt.format(d) : null;
+
     const completedVisits = await prisma.visit.findMany({
       where: { beneficiaryId: beneficiary.id, status: 'completed' },
       include: {
@@ -62,6 +78,9 @@ router.get('/me', authenticate, async (req: AuthRequest, res: Response) => {
         vitalReadings: {
           include: { vitalDefinition: true },
           orderBy: { capturedAt: 'asc' },
+        },
+        medicationAdherenceRecords: {
+          include: { medication: true },
         },
       },
       orderBy: { checkOutTime: 'desc' },
@@ -76,69 +95,162 @@ router.get('/me', authenticate, async (req: AuthRequest, res: Response) => {
     const defaultTitles = ['Medication Review', 'Regular Check-up', 'Wellness Visit', 'Physiotherapy Session'];
 
     const formattedVisits = completedVisits.map((v: any, index: number) => {
-      const dateObj = v.checkOutTime || v.scheduledTime || new Date();
-      const dateStr = dateObj.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
+      const scheduledTime: Date | null = v.scheduledTime ? new Date(v.scheduledTime) : null;
+      const checkInTime: Date | null = v.checkInTime ? new Date(v.checkInTime) : null;
+      const checkOutTime: Date | null = v.checkOutTime ? new Date(v.checkOutTime) : null;
 
-      let timeStr = '';
-      if (v.checkInTime && v.checkOutTime) {
-        const fmt = (d: Date) => {
-          let h = d.getHours();
-          const m = d.getMinutes().toString().padStart(2, '0');
-          const ap = h >= 12 ? 'PM' : 'AM';
-          h = h % 12 || 12;
-          return `${h}:${m} ${ap}`;
-        };
-        timeStr = `${fmt(v.checkInTime)} - ${fmt(v.checkOutTime)}`;
+      const scheduledStartStr = formatIST(scheduledTime);
+      let scheduledEndStr: string | null = null;
+      if (scheduledTime) {
+        const durationMin = v.duration ? parseInt(v.duration) : 60;
+        const endDate = new Date(scheduledTime.getTime() + durationMin * 60000);
+        scheduledEndStr = formatIST(endDate);
+      }
+      const scheduledTimeRange = (scheduledStartStr && scheduledEndStr)
+        ? `${scheduledStartStr} – ${scheduledEndStr}`
+        : scheduledStartStr;
+
+      const checkInStr = formatIST(checkInTime);
+      const checkOutStr = formatIST(checkOutTime);
+
+      let actualDurationMinutes: number | null = null;
+      let durationText = '';
+      if (checkInTime && checkOutTime) {
+        const diffMins = Math.max(1, Math.round((checkOutTime.getTime() - checkInTime.getTime()) / 60000));
+        actualDurationMinutes = diffMins;
+        if (diffMins < 60) {
+          durationText = `${diffMins} min${diffMins !== 1 ? 's' : ''}`;
+        } else {
+          const hrs = Math.floor(diffMins / 60);
+          const mins = diffMins % 60;
+          durationText = mins > 0 ? `${hrs}h ${mins}min` : `${hrs} hr${hrs !== 1 ? 's' : ''}`;
+        }
+      }
+
+      const dateObj = checkOutTime || scheduledTime || new Date();
+      const dateStr = formatDateIST(dateObj);
+      const isExternalService = !v.careCompanionId && !v.careCompanion;
+
+      let checkInType = 'Standard Check-in';
+      if (v.checkInTime) {
+        if (v.isGeoVerified) {
+          checkInType = `Auto Geofence (Verified${v.geoDistanceMeters != null ? ` • ${v.geoDistanceMeters}m` : ''})`;
+        } else if (v.manualCheckInReason) {
+          checkInType = 'Manual Check-in (Flagged)';
+        }
+      }
+      let checkOutType = 'Standard Check-out';
+      if (v.checkOutTime) {
+        if (v.manualCheckOutReason) { checkOutType = 'Manual Check-out'; }
+        else if (v.isGeoVerified) { checkOutType = 'Auto Geofence (Verified)'; }
       }
 
       const vitals = (v.vitalReadings || []).map(formatVitalReading);
+      const medications = (v.medicationAdherenceRecords || []).map((mar: any) => ({
+        id: mar.medicationId,
+        name: mar.medication?.name || 'Medication',
+        dosage: mar.medication?.dosage || null,
+        taken: mar.taken === true,
+      }));
+
+      const photos: string[] = (() => {
+        const raw = (v as any).imageUrls;
+        if (!raw) return [];
+        if (Array.isArray(raw)) return raw;
+        if (typeof raw === 'string') {
+          try { const p = JSON.parse(raw); if (Array.isArray(p)) return p; } catch {}
+          return raw.split(',').map((s: string) => s.trim()).filter(Boolean);
+        }
+        return [];
+      })();
 
       return {
         id: v.id,
-        visitCode: v.visitCode,
+        encounterId: v.visitCode || v.encounterId,
+        status: 'completed',
         title: v.visitSummary || defaultTitles[index % defaultTitles.length],
-        rating: v.rating ?? null,
-        beneficiaryRating: v.beneficiaryRating ?? null,
-        date: dateStr,
-        time: timeStr,
-        companionName: v.careCompanion?.name || 'Care Companion',
+        companionName: isExternalService ? '3rd Party / External Service' : (v.careCompanion?.name || 'Care Companion'),
+        companionPhone: isExternalService ? null : (v.careCompanion?.phone || null),
+        companionPhoto: isExternalService ? null : (v.careCompanion?.photoUrl || null),
+        isExternalService,
+        scheduledDate: dateStr,
+        scheduledStartTime: scheduledStartStr,
+        scheduledEndTime: scheduledEndStr,
+        scheduledTimeRange,
+        dateStr: `${dateStr}${scheduledStartStr ? ' • ' + scheduledStartStr : ''}`,
+        duration: durationText || '60 mins',
+        actualDurationMinutes,
+        durationText,
+        checkInTime: checkInStr,
+        checkInTimeIso: v.checkInTime ? new Date(v.checkInTime).toISOString() : null,
+        checkInType,
+        isGeoVerified: v.isGeoVerified || false,
+        geoDistanceMeters: v.geoDistanceMeters || null,
+        manualCheckInReason: v.manualCheckInReason || null,
+        checkOutTime: checkOutStr,
+        checkOutTimeIso: v.checkOutTime ? new Date(v.checkOutTime).toISOString() : null,
+        checkOutType,
+        manualCheckOutReason: v.manualCheckOutReason || null,
         vitals,
+        medications,
         notes: v.notes || '',
         feedback: v.feedback || '',
-        timestamp: dateObj.getTime()
+        mood: v.mood || null,
+        activities: v.activities || [],
+        photos,
+        rating: v.rating ?? null,
+        beneficiaryRating: v.beneficiaryRating ?? null,
+        rated: !!v.rating,
+        timestamp: dateObj.getTime(),
       };
     });
 
     const formattedSathiVisits = completedSathiVisits.map((s: any) => {
       const dateObj = new Date(s.dateTime);
-      const dateStr = dateObj.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
-      
-      let timeStr = dateObj.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-
+      const dateStr = formatDateIST(dateObj);
+      const timeStr = formatIST(dateObj);
       return {
         id: s.id,
+        encounterId: null,
+        status: 'completed',
         title: 'Saathi Companionship Visit',
-        rating: null,
-        beneficiaryRating: (s as any).beneficiaryRating ?? null,
-        date: dateStr,
-        time: timeStr,
         companionName: s.volunteer?.name || 'Saathi Volunteer',
+        companionPhone: null,
+        companionPhoto: null,
+        isExternalService: false,
+        isSathiVisit: true,
+        scheduledDate: dateStr,
+        scheduledStartTime: timeStr,
+        scheduledTimeRange: timeStr,
+        dateStr: `${dateStr}${timeStr ? ' • ' + timeStr : ''}`,
+        duration: null,
+        actualDurationMinutes: null,
+        durationText: '',
+        checkInTime: null,
+        checkOutTime: null,
+        isGeoVerified: false,
         vitals: [],
+        medications: [],
         notes: s.reason || 'Companionship interaction.',
         feedback: (s as any).feedback ?? '',
-        timestamp: dateObj.getTime()
+        activities: [],
+        photos: [],
+        rating: null,
+        beneficiaryRating: (s as any).beneficiaryRating ?? null,
+        rated: false,
+        timestamp: dateObj.getTime(),
       };
     });
 
-    const formattedInteractions = [...formattedVisits, ...formattedSathiVisits].sort((a, b) => b.timestamp - a.timestamp);
-
-    res.json({ success: true, data: formattedInteractions });
+    const all = [...formattedVisits, ...formattedSathiVisits].sort((a, b) => b.timestamp - a.timestamp);
+    res.json({ success: true, data: all });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
   }
 });
 
 // ── POST /beneficiary/interactions/:visitId/rate ──────────────────────────────
+
 router.post('/:visitId/rate', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.userId as string;

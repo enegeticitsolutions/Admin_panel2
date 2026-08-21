@@ -693,11 +693,12 @@ export const getCareCompanionSchedule = async (userId: string) => {
     }
 
     const ben = v.beneficiary;
-    const formattedTime = scheduledTime.toLocaleTimeString('en-US', {
+    const formattedTime = new Intl.DateTimeFormat('en-IN', {
+      timeZone: 'Asia/Kolkata',
       hour: 'numeric',
       minute: '2-digit',
       hour12: true,
-    });
+    }).format(scheduledTime);
 
     const fullAddress = [ben?.flatPlot, ben?.streetArea, ben?.landmark, ben?.city]
       .filter(Boolean)
@@ -719,6 +720,8 @@ export const getCareCompanionSchedule = async (userId: string) => {
       longitude: ben?.longitude || null,
       time: formattedTime,
       scheduledTime: v.scheduledTime.toISOString(),
+      checkInTime: v.checkInTime ? v.checkInTime.toISOString() : null,
+      checkOutTime: v.checkOutTime ? v.checkOutTime.toISOString() : null,
       durationMinutes: v.durationMinutes,
       distance: null,
       type: v.notes ? 'Special Care' : 'Home Visit',

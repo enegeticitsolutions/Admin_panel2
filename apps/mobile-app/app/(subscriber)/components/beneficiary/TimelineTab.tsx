@@ -224,7 +224,15 @@ export const TimelineTab = ({ visits: initialVisits }: { visits: VisitProps[] })
                                 />
                             </View>
                             <Text style={styles.visitDate}>{formatDisplayDate(visit.dateStr)}</Text>
-                            <Text style={styles.visitDuration}>{visit.duration || '1.5 hours'}</Text>
+                            <View style={styles.timingBadgeRow}>
+                                <View style={styles.scheduledPill}>
+                                    <Ionicons name="time-outline" size={12} color="#D97706" style={{ marginRight: 3 }} />
+                                    <Text style={styles.scheduledPillText}>
+                                        {visit.scheduledTimeRange || visit.scheduledStartTime || 'Scheduled'}
+                                    </Text>
+                                </View>
+                                <Text style={styles.visitDuration}>{visit.duration || '60 mins'}</Text>
+                            </View>
                         </View>
 
                         {/* Subscriber Rating */}
@@ -263,6 +271,34 @@ export const TimelineTab = ({ visits: initialVisits }: { visits: VisitProps[] })
                             </TouchableOpacity>
                         )}
                     </View>
+
+                    {/* Actual Check-In & Check-Out Timing Strip (if checked in) */}
+                    {(visit.checkInTime || visit.checkOutTime) && (
+                        <View style={styles.actualTimeStrip}>
+                            {visit.checkInTime ? (
+                                <View style={styles.timePoint}>
+                                    <Ionicons name="log-in-outline" size={14} color="#059669" />
+                                    <Text style={styles.timePointLabel}>In: </Text>
+                                    <Text style={styles.timePointValue}>{visit.checkInTime}</Text>
+                                </View>
+                            ) : null}
+
+                            {visit.checkOutTime ? (
+                                <View style={styles.timePoint}>
+                                    <Ionicons name="log-out-outline" size={14} color="#0284C7" />
+                                    <Text style={styles.timePointLabel}>Out: </Text>
+                                    <Text style={styles.timePointValue}>{visit.checkOutTime}</Text>
+                                </View>
+                            ) : null}
+
+                            {visit.isGeoVerified ? (
+                                <View style={styles.geoVerifiedChip}>
+                                    <Ionicons name="shield-checkmark" size={11} color="#16A34A" />
+                                    <Text style={styles.geoVerifiedText}>Geo-Verified</Text>
+                                </View>
+                            ) : null}
+                        </View>
+                    )}
 
                     {/* Beneficiary Rating Chip */}
                     {(visit.beneficiaryRating !== null && visit.beneficiaryRating !== undefined) && (
@@ -371,8 +407,47 @@ const styles = StyleSheet.create({
     visitHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
     visitCompanionPhoto: { width: 48, height: 48, borderRadius: 24, marginRight: 14, backgroundColor: '#D1D5DB' },
     visitCompanionName: { fontSize: 17, fontWeight: '700', color: '#111111', marginBottom: 3 },
-    visitDate: { fontSize: 15, color: '#333333', fontWeight: '400', marginBottom: 2 },
-    visitDuration: { fontSize: 15, color: '#333333', fontWeight: '400' },
+    visitDate: { fontSize: 15, color: '#111111', fontWeight: '600', marginBottom: 3 },
+    visitDuration: { fontSize: 13, color: '#4B5563', fontWeight: '500' },
+
+    timingBadgeRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
+    scheduledPill: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#FEF3C7',
+        borderRadius: 6,
+        paddingHorizontal: 7,
+        paddingVertical: 2,
+    },
+    scheduledPillText: { fontSize: 12, fontWeight: '700', color: '#B45309' },
+
+    actualTimeStrip: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#FFFFFF',
+        borderRadius: 8,
+        paddingHorizontal: 10,
+        paddingVertical: 7,
+        marginBottom: 12,
+        gap: 12,
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+        flexWrap: 'wrap',
+    },
+    timePoint: { flexDirection: 'row', alignItems: 'center' },
+    timePointLabel: { fontSize: 12, color: '#6B7280', fontWeight: '500', marginLeft: 3 },
+    timePointValue: { fontSize: 12, color: '#111827', fontWeight: '700' },
+    geoVerifiedChip: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#DCFCE7',
+        borderRadius: 4,
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        marginLeft: 'auto',
+        gap: 3,
+    },
+    geoVerifiedText: { fontSize: 11, color: '#15803D', fontWeight: '600' },
 
     ratedBox: { alignItems: 'center' },
     yourRatingLabel: { fontSize: 10, color: '#6B7280', marginTop: 3, fontWeight: '500' },

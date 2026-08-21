@@ -33,8 +33,8 @@ function formatVisitTime(scheduledTime) {
   const d = new Date(scheduledTime);
   if (isNaN(d.getTime())) return { formattedDate: 'Scheduled Date', formattedTime: 'Scheduled Time', fullString: 'Scheduled Date' };
   
-  const formattedDate = d.toLocaleDateString('en-IN', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
-  const formattedTime = d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+  const formattedDate = d.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+  const formattedTime = d.toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: true });
   const fullString = `${formattedDate} at ${formattedTime}`;
 
   return { formattedDate, formattedTime, fullString };

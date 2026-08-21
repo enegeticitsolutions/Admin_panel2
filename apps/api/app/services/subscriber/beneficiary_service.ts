@@ -579,40 +579,48 @@ export const getBeneficiaryProfile = async (beneficiaryId: string) => {
       companionName: nextVisit.careCompanion?.name,
       companionPhoto: nextVisit.careCompanion?.photo,
       companionPhone: nextVisit.careCompanion?.user?.phone || null,
-      dateStr: nextVisit.scheduledTime.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' }),
-      timeStr: nextVisit.scheduledTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      dateStr: new Intl.DateTimeFormat('en-IN', { timeZone: 'Asia/Kolkata', weekday: 'short', month: 'short', day: 'numeric' }).format(nextVisit.scheduledTime),
+      timeStr: new Intl.DateTimeFormat('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: true }).format(nextVisit.scheduledTime),
+      scheduledTime: nextVisit.scheduledTime.toISOString(),
+      durationMinutes: nextVisit.durationMinutes,
     } : null,
     timeline: pastVisits.map((v: any) => {
-      // Use check-in time for start time if completed, otherwise fallback to scheduledTime
-      const startTime = (v.status === 'completed' && v.checkInTime) ? new Date(v.checkInTime) : new Date(v.scheduledTime);
-      
-      // Use check-out time for end time if completed, otherwise calculate from scheduledTime + durationMinutes
-      const endTime = (v.status === 'completed' && v.checkOutTime) 
-        ? new Date(v.checkOutTime) 
-        : new Date(startTime.getTime() + (v.durationMinutes || 90) * 60000);
+      const istDateFormatter = new Intl.DateTimeFormat('en-IN', { timeZone: 'Asia/Kolkata', day: 'numeric', month: 'short', year: 'numeric' });
+      const istTimeFormatter = new Intl.DateTimeFormat('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: true });
 
-      const datePart = startTime.toISOString().split('T')[0];
-      const startStr = startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
-      const endStr = endTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+      const schedDate = new Date(v.scheduledTime);
+      const schedDateStr = istDateFormatter.format(schedDate);
+      const schedStartTime = istTimeFormatter.format(schedDate);
+      const schedEndTime = istTimeFormatter.format(new Date(schedDate.getTime() + (v.durationMinutes || 60) * 60000));
+
+      const checkInTime = v.checkInTime ? new Date(v.checkInTime) : null;
+      const checkOutTime = v.checkOutTime ? new Date(v.checkOutTime) : null;
+
+      const checkInTimeFormatted = checkInTime ? istTimeFormatter.format(checkInTime) : null;
+      const checkOutTimeFormatted = checkOutTime ? istTimeFormatter.format(checkOutTime) : null;
 
       // Calculate actual duration strictly from check-in and check-out times
       let durationText = '';
-      if (v.status === 'completed' && v.checkInTime && v.checkOutTime) {
-        const diffMs = new Date(v.checkOutTime).getTime() - new Date(v.checkInTime).getTime();
+      let actualDurationMinutes: number | null = null;
+      if (checkInTime && checkOutTime) {
+        const diffMs = checkOutTime.getTime() - checkInTime.getTime();
         let diffMins = Math.round(diffMs / 60000);
-        if (diffMins <= 0 && diffMs > 0) {
-          diffMins = 1; // minimum 1 min if check-in/out are not identical
-        }
+        if (diffMins <= 0 && diffMs > 0) diffMins = 1;
+        actualDurationMinutes = diffMins;
         if (diffMins < 60) {
-          durationText = `Duration: ${diffMins} min${diffMins !== 1 ? 's' : ''}`;
+          durationText = `${diffMins} min${diffMins !== 1 ? 's' : ''}`;
         } else {
           const durationHours = parseFloat((diffMins / 60).toFixed(1));
-          durationText = `Duration: ${durationHours} hour${durationHours !== 1 ? 's' : ''}`;
+          durationText = `${durationHours} hour${durationHours !== 1 ? 's' : ''}`;
         }
       } else {
-        const defaultMins = v.durationMinutes || 90;
-        const durationHours = parseFloat((defaultMins / 60).toFixed(1));
-        durationText = `Duration: ${durationHours} hour${durationHours !== 1 ? 's' : ''}`;
+        const defaultMins = v.durationMinutes || 60;
+        if (defaultMins < 60) {
+          durationText = `${defaultMins} mins`;
+        } else {
+          const durationHours = parseFloat((defaultMins / 60).toFixed(1));
+          durationText = `${durationHours} hour${durationHours !== 1 ? 's' : ''}`;
+        }
       }
 
       // Extract vital readings
@@ -660,10 +668,6 @@ export const getBeneficiaryProfile = async (beneficiaryId: string) => {
         taken: mar.taken === true
       }));
 
-      // Check-in & Check-out formatting
-      const checkInTimeFormatted = v.checkInTime ? new Date(v.checkInTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }) : null;
-      const checkOutTimeFormatted = v.checkOutTime ? new Date(v.checkOutTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }) : null;
-
       let checkInType = 'Standard Check-in';
       if (v.checkInTime) {
         if (v.isGeoVerified) {
@@ -705,8 +709,14 @@ export const getBeneficiaryProfile = async (beneficiaryId: string) => {
         companionName: v.careCompanion?.name,
         companionPhoto: v.careCompanion?.photo,
         companionPhone: v.careCompanion?.user?.phone || null,
-        dateStr: `${datePart} • ${startStr} - ${endStr}`,
+        scheduledDate: schedDateStr,
+        scheduledTime: v.scheduledTime ? new Date(v.scheduledTime).toISOString() : null,
+        scheduledStartTime: schedStartTime,
+        scheduledEndTime: schedEndTime,
+        scheduledTimeRange: `${schedStartTime} – ${schedEndTime}`,
+        dateStr: `${schedDateStr} • ${schedStartTime} – ${schedEndTime}`,
         duration: durationText,
+        actualDurationMinutes,
         rated: v.subscriberRating !== null && v.subscriberRating !== undefined,
         rating: v.subscriberRating ?? null,          // subscriber's rating of the CC
         beneficiaryRating: v.beneficiaryRating ?? null, // beneficiary's rating of the CC
@@ -717,11 +727,13 @@ export const getBeneficiaryProfile = async (beneficiaryId: string) => {
         notes: v.visitSummary || v.notes,
         // Detailed fields for Subscriber encounter modal
         checkInTime: checkInTimeFormatted,
+        checkInTimeIso: v.checkInTime ? new Date(v.checkInTime).toISOString() : null,
         checkInType,
         isGeoVerified: v.isGeoVerified === true,
         geoDistanceMeters: v.geoDistanceMeters ?? null,
         manualCheckInReason: v.manualCheckInReason || null,
         checkOutTime: checkOutTimeFormatted,
+        checkOutTimeIso: v.checkOutTime ? new Date(v.checkOutTime).toISOString() : null,
         checkOutType,
         manualCheckOutReason: v.manualCheckOutReason || null,
         mood: v.mood ? (v.mood.charAt(0).toUpperCase() + v.mood.slice(1).toLowerCase()) : 'Neutral',

@@ -7,6 +7,7 @@ export const getCurrentLocation = async (): Promise<{
 }> => {
   try {
     if (Platform.OS !== 'web') {
+      // Request foreground permission
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
         Alert.alert(
@@ -19,11 +20,31 @@ export const getCurrentLocation = async (): Promise<{
         );
         throw new Error('Permission to access location was denied');
       }
-      
-      // Use high accuracy for real production coordinates
-      const location = await Location.getCurrentPositionAsync({
+
+      // Check if location services are enabled on the device
+      const enabled = await Location.hasServicesEnabledAsync();
+      if (!enabled) {
+        Alert.alert(
+          'Location Services Disabled',
+          'Please turn on Location Services in your device settings.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Open Settings', onPress: () => Linking.openSettings() }
+          ]
+        );
+        throw new Error('Location services are disabled on the device');
+      }
+
+      // Use Balanced accuracy; wrap with a 15 second timeout to avoid hanging on real devices
+      const locationPromise = Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.Balanced,
       });
+
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Location request timed out after 15 seconds')), 15000)
+      );
+
+      const location = await Promise.race([locationPromise, timeoutPromise]) as Location.LocationObject;
 
       return {
         latitude: location.coords.latitude,
