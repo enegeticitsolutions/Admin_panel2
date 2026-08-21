@@ -1,21 +1,29 @@
 const Razorpay = require('razorpay');
-
-const RAZORPAY_KEY_ID = (process.env.RAZORPAY_KEY_ID || '').trim();
-const RAZORPAY_KEY_SECRET = (process.env.RAZORPAY_KEY_SECRET || '').trim();
+const clean = (s) => (s || '').toString().replace(/^["']|["']$/g, '').trim();
 
 let razorpayInstance = null;
-if (RAZORPAY_KEY_ID && RAZORPAY_KEY_SECRET) {
-  razorpayInstance = new Razorpay({
-    key_id: RAZORPAY_KEY_ID,
-    key_secret: RAZORPAY_KEY_SECRET,
-  });
+
+function getRazorpayInstance() {
+  const key_id = clean(process.env.RAZORPAY_KEY_ID);
+  const key_secret = clean(process.env.RAZORPAY_KEY_SECRET);
+
+  if (key_id && key_secret && key_secret !== 'PASTE_FULL_SECRET_HERE') {
+    if (!razorpayInstance || razorpayInstance.key_id !== key_id) {
+      razorpayInstance = new Razorpay({
+        key_id,
+        key_secret,
+      });
+    }
+  }
+  return razorpayInstance;
 }
 
 /**
  * Creates a Razorpay Payment Link using the official SDK.
  */
 async function createPaymentLink(payload) {
-  if (!razorpayInstance) {
+  const rzp = getRazorpayInstance();
+  if (!rzp) {
     console.warn('[Razorpay Service] Credentials missing. Cannot generate SDK link.');
     return null;
   }
@@ -58,11 +66,12 @@ async function createPaymentLink(payload) {
  * Fetches current live status of a Razorpay Payment Link by ID (e.g. plink_xxx).
  */
 async function fetchPaymentLink(linkId) {
-  if (!razorpayInstance || !linkId || !linkId.startsWith('plink_')) {
+  const rzp = getRazorpayInstance();
+  if (!rzp || !linkId || !linkId.startsWith('plink_')) {
     return null;
   }
   try {
-    const rzpData = await razorpayInstance.paymentLink.fetch(linkId);
+    const rzpData = await rzp.paymentLink.fetch(linkId);
     return rzpData;
   } catch (err) {
     console.warn('[Razorpay Service Fetch Warning]:', err.message || err);
@@ -73,5 +82,5 @@ async function fetchPaymentLink(linkId) {
 module.exports = {
   createPaymentLink,
   fetchPaymentLink,
-  isConfigured: () => !!razorpayInstance,
+  isConfigured: () => !!getRazorpayInstance(),
 };

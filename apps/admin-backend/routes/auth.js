@@ -26,8 +26,17 @@ router.post(
       throw new ApiError(400, 'Phone number and password are required');
     }
 
-    const user = await prisma.user.findUnique({
-      where: { phone },
+    const cleanedPhone = phone.toString().trim().replace(/[\s-]/g, '');
+    const plainPhone = cleanedPhone.replace(/^\+91/, '');
+
+    const user = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { phone: cleanedPhone },
+          { phone: plainPhone },
+          { phone: `+91${plainPhone}` },
+        ],
+      },
       include: { staffProfile: true },
     });
 

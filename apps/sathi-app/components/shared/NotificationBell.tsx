@@ -39,11 +39,13 @@ export default function NotificationBell() {
     const subscription = addNotificationReceivedListener(() => {
       fetchUnreadCount();
     });
-    return () => subscription.remove();
+    return () => {
+      subscription?.remove();
+    };
   }, []);
 
   return (
-    <TouchableOpacity style={styles.container} onPress={() => router.push('/notifications')}>
+    <TouchableOpacity style={styles.container} onPress={() => router.push('/(sathi)/notifications')}>
       <Ionicons name="notifications-outline" size={24} color="#111827" />
       {unreadCount > 0 && (
         <View style={styles.badge}>

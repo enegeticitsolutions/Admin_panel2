@@ -135,6 +135,29 @@ router.post(['/push-token', '/shared/users/push-token'], async (req, res) => {
   }
 });
 
+// ── DELETE /api/users/push-token ── Unregister Expo FCM push token on logout ──
+router.delete(['/push-token', '/shared/users/push-token'], async (req, res) => {
+  try {
+    const { userId: bodyUserId } = req.body || {};
+    const userId = req.user?.id || bodyUserId;
+
+    if (!userId) {
+      return res.status(400).json({ success: false, message: 'User ID is required' });
+    }
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: { fcmToken: null }
+    });
+
+    console.log(`[PushToken] Cleared FCM token for user ${userId}`);
+    res.json({ success: true, message: 'Push token cleared successfully' });
+  } catch (err) {
+    console.error('DELETE /push-token error:', err.message);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 function asTrimmedString(value) {
   if (value === undefined || value === null) return '';
   if (typeof value !== 'string' && typeof value !== 'number') return '';

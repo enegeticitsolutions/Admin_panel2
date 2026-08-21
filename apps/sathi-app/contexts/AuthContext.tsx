@@ -13,7 +13,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
+import { registerForPushNotifications, unregisterPushToken } from '@/services/notifications';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -104,6 +104,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       user: userData,
       role: userData.role,
     });
+
+    // Synchronize push notification token for this device with backend immediately
+    registerForPushNotifications(token).catch(err => {
+      console.warn('[AuthContext] Push token registration on login failed:', err);
+    });
   }, []);
 
   // Updates current user profile details dynamically
@@ -129,6 +134,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Called from logout button — clears everything
   const logout = useCallback(async () => {
+    const currentToken = state.token;
+    try {
+      // Inform backend to clear fcmToken for this user session
+      await unregisterPushToken(currentToken || undefined);
+    } catch (e) {
+      console.warn('[AuthContext] Failed to unregister push token during logout:', e);
+    }
+
     try {
       await AsyncStorage.removeItem('userToken');
       await AsyncStorage.removeItem('userData');
@@ -147,7 +160,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       user: null,
       role: null,
     });
-  }, []);
+  }, [state.token]);
 
   const value: AuthContextValue = {
     ...state,

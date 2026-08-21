@@ -1,12 +1,15 @@
-const crypto = require('crypto');
+const clean = (s) => (s || '').toString().replace(/^["']|["']$/g, '').trim();
 
-const RAZORPAY_WEBHOOK_SECRET = (process.env.RAZORPAY_WEBHOOK_SECRET || 'maihoonna_webhook_secret_2026').trim();
+function getWebhookSecret() {
+  return clean(process.env.RAZORPAY_WEBHOOK_SECRET || 'maihoonna_webhook_secret_2026');
+}
 
 /**
  * Verifies Razorpay Webhook HMAC SHA-256 Signature.
  */
 function verifySignature(bodyBuffer, signature) {
-  if (!RAZORPAY_WEBHOOK_SECRET || !signature) {
+  const secret = getWebhookSecret();
+  if (!secret || !signature) {
     // If secret or signature is absent in local dev, allow processing with warning
     console.warn('[Webhook Service] Signature verification skipped (secret or signature missing)');
     return true;
@@ -14,7 +17,7 @@ function verifySignature(bodyBuffer, signature) {
 
   try {
     const expectedSignature = crypto
-      .createHmac('sha256', RAZORPAY_WEBHOOK_SECRET)
+      .createHmac('sha256', secret)
       .update(bodyBuffer)
       .digest('hex');
 

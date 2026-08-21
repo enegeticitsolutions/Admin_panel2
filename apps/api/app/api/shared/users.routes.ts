@@ -30,6 +30,26 @@ router.post('/push-token', authenticate, async (req, res, next) => {
   }
 });
 
+// DELETE /api/users/push-token (Unregister token on logout)
+router.delete('/push-token', authenticate, async (req, res, next) => {
+  try {
+    const authReq = req as AuthRequest;
+    const userId = authReq.userId;
+    if (!userId) {
+      return res.status(401).json({ success: false, message: 'Unauthorized' });
+    }
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: { fcmToken: null },
+    });
+
+    res.json({ success: true, message: 'Push token cleared successfully' });
+  } catch (error) {
+    next(error);
+  }
+});
+
 // Helper handler for notification list
 const getNotificationsHandler = async (req: any, res: any, next: any) => {
   try {

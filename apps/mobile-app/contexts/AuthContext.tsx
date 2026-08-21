@@ -17,6 +17,7 @@ import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import { API_URL } from '@/constants/api';
+import { registerForPushNotifications, unregisterPushToken } from '@/services/notifications';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -135,6 +136,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       selfBeneficiaryId,
       isSwitchingRole: false,
     });
+
+    // Synchronize push notification token for this device with backend immediately
+    registerForPushNotifications(token).catch(err => {
+      console.warn('[AuthContext] Push token registration on login failed:', err);
+    });
   }, []);
 
   // Updates current user profile details dynamically
@@ -216,6 +222,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         selfBeneficiaryId: selfBeneficiaryId ?? null,
         isSwitchingRole: false,
       });
+
+      registerForPushNotifications(token).catch(err => {
+        console.warn('[AuthContext] Push token sync on switchRole failed:', err);
+      });
     } catch (err) {
       setState(prev => ({ ...prev, isSwitchingRole: false }));
       throw err;
@@ -224,6 +234,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Called from logout button — clears everything
   const logout = useCallback(async () => {
+    const currentToken = state.token;
+    try {
+      // Inform backend to clear fcmToken for this user session
+      await unregisterPushToken(currentToken || undefined);
+    } catch (e) {
+      console.warn('[AuthContext] Failed to unregister push token during logout:', e);
+    }
+
     try {
       await AsyncStorage.removeItem('userToken');
       await AsyncStorage.removeItem('userData');
@@ -243,7 +261,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       selfBeneficiaryId: null,
       isSwitchingRole: false,
     });
-  }, []);
+  }, [state.token]);
 
   const value: AuthContextValue = {
     ...state,

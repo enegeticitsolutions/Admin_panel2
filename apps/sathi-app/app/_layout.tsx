@@ -15,7 +15,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
-import { registerForPushNotifications } from '@/services/notifications';
+import { registerForPushNotifications, addNotificationReceivedListener, addNotificationResponseListener } from '@/services/notifications';
 import { NavigationStackProvider, useNavigationStack } from '@/contexts/NavigationStackContext';
 
 // Keep splash screen visible while we load fonts + session
@@ -52,6 +52,7 @@ function onAppStateChange(status: AppStateStatus) {
 function RootNavigator() {
   const { isLoading, isLoggedIn } = useAuth();
   const { resetStack } = useNavigationStack();
+  const router = useRouter();
 
   // Reset logical navigation stack when auth state changes
   useEffect(() => {
@@ -62,8 +63,36 @@ function RootNavigator() {
   useEffect(() => {
     if (isLoggedIn) {
       registerForPushNotifications();
+
+      // Listen for incoming notifications while app is in foreground
+      const subReceived = addNotificationReceivedListener((notification) => {
+        console.log('🔔 [SathiApp] Notification received in foreground:', notification.request.content.title);
+      });
+
+      // Handle user tapping on a notification
+      const subResponse = addNotificationResponseListener((response) => {
+        const data = response.notification.request.content.data;
+        console.log('👉 [SathiApp] User tapped notification:', data);
+
+        if (data?.screen) {
+          try {
+            router.push(data.screen as any);
+          } catch (e) {
+            console.warn('[SathiApp] Failed to route to screen:', data.screen);
+          }
+        } else {
+          try {
+            router.push('/(sathi)/notifications');
+          } catch (_) {}
+        }
+      });
+
+      return () => {
+        subReceived?.remove();
+        subResponse?.remove();
+      };
     }
-  }, [isLoggedIn]);
+  }, [isLoggedIn, router]);
 
   // While we're checking AsyncStorage, show a native splash-compatible loader
   if (isLoading) {

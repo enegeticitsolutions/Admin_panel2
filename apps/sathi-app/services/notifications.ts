@@ -39,7 +39,11 @@ const API_BASE = API_URL;
  * Register for push notifications and store the Expo push token on the backend.
  * Safe to call multiple times — skips on web and simulator.
  */
-export async function registerForPushNotifications(): Promise<string | null> {
+/**
+ * Register for push notifications and store the Expo push token on the backend.
+ * Safe to call multiple times — skips on web and simulator.
+ */
+export async function registerForPushNotifications(explicitAuthToken?: string): Promise<string | null> {
   // Expo push tokens are native-only; skip silently on web
   if (Platform.OS === 'web') {
     console.log('[Notifications] Skipping push registration on web.');
@@ -74,20 +78,28 @@ export async function registerForPushNotifications(): Promise<string | null> {
       return null;
     }
 
-    // Android: create notification channel
+    // Android: create notification channels
     if (Platform.OS === 'android') {
       await Notifications.setNotificationChannelAsync('default', {
-        name: 'MaiHoonNa',
+        name: 'MaiHoonNa Notifications',
         importance: Notifications.AndroidImportance.MAX,
         vibrationPattern: [0, 250, 250, 250],
         lightColor: '#FF7A00',
+      });
+      await Notifications.setNotificationChannelAsync('visits', {
+        name: 'Visits & Schedules',
+        importance: Notifications.AndroidImportance.HIGH,
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: '#FE6700',
       });
     }
 
     // Get Expo Push Token
     const projectId: string | undefined =
       Constants.expoConfig?.extra?.eas?.projectId ??
-      (Constants as any).easConfig?.projectId;
+      (Constants as any).easConfig?.projectId ??
+      process.env.EXPO_PUBLIC_EAS_PROJECT_ID ??
+      '7c449368-29dc-48a2-9387-83f1e3858fbb';
 
     if (!projectId) {
       console.warn('[Notifications] No EAS projectId found in app config.');
@@ -103,7 +115,7 @@ export async function registerForPushNotifications(): Promise<string | null> {
     await AsyncStorage.setItem('expo_push_token', expoPushToken);
 
     // Sync to backend
-    await syncTokenToBackend(expoPushToken);
+    await syncTokenToBackend(expoPushToken, explicitAuthToken);
 
     return expoPushToken;
   } catch (err: any) {
@@ -116,12 +128,10 @@ export async function registerForPushNotifications(): Promise<string | null> {
  * POST the Expo push token to the backend so the server can send pushes.
  * Stores it in User.fcmToken on the backend.
  */
-async function syncTokenToBackend(token: string): Promise<void> {
+export async function syncTokenToBackend(token: string, explicitAuthToken?: string): Promise<void> {
   try {
-    const savedAuth = await AsyncStorage.getItem('userToken');
-    if (!savedAuth) return;
-
-    let authToken: string | undefined = savedAuth;
+    const authToken = explicitAuthToken || (await AsyncStorage.getItem('userToken'));
+    if (!authToken) return;
 
     const res = await fetch(`${API_BASE}/shared/users/push-token`, {
       method: 'POST',
@@ -139,6 +149,34 @@ async function syncTokenToBackend(token: string): Promise<void> {
     }
   } catch (err: any) {
     console.warn('[Notifications] syncTokenToBackend error:', err.message ?? err);
+  }
+}
+
+/**
+ * Unregister the push token from backend on logout.
+ * Clears User.fcmToken so the logged-out device stops receiving push notifications.
+ */
+export async function unregisterPushToken(explicitAuthToken?: string): Promise<void> {
+  try {
+    const authToken = explicitAuthToken || (await AsyncStorage.getItem('userToken'));
+    if (!authToken) return;
+
+    const res = await fetch(`${API_BASE}/shared/users/push-token`, {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${authToken}`,
+      },
+    });
+
+    if (!res.ok) {
+      console.warn('[Notifications] Failed to unregister push token:', res.status);
+    } else {
+      console.log('[Notifications] Push token unregistered from backend.');
+    }
+
+    await AsyncStorage.removeItem('expo_push_token');
+  } catch (err: any) {
+    console.warn('[Notifications] unregisterPushToken error:', err.message ?? err);
   }
 }
 

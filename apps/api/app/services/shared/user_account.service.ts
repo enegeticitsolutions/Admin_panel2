@@ -33,6 +33,11 @@ export class UserAccountService {
       throw new ApiError(404, 'User account not found.');
     }
 
+    // Safeguard: Prevent accidental deletion of master admins and staff
+    if (['master_admin', 'admin', 'super_admin', 'manager', 'ops_admin'].includes(user.role)) {
+      throw new ApiError(403, 'Administrative accounts cannot be deleted from the mobile app.');
+    }
+
     await prisma.$transaction(async (tx) => {
       // 1. Soft-delete the user with explicit 'deleted' status and deletedAt timestamp
       await tx.user.update({

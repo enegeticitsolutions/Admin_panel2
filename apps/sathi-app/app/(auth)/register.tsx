@@ -320,7 +320,9 @@ export default function RegisterVolunteerScreen() {
                   {otp.map((digit, index) => (
                     <TextInput
                       key={`otp-${index}`}
-                      ref={(ref) => (otpInputs.current[index] = ref)}
+                      ref={(ref) => {
+                        otpInputs.current[index] = ref;
+                      }}
                       style={styles.otpInput}
                       value={digit}
                       onChangeText={(text) => handleOtpChange(text, index)}
