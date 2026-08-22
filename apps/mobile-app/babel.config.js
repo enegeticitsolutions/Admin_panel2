@@ -1,12 +1,14 @@
 module.exports = function (api) {
   api.cache(true);
-  
-  if (!process.env.EXPO_ROUTER_APP_ROOT) {
-    process.env.EXPO_ROUTER_APP_ROOT = __dirname + '/app';
-  }
 
   return {
     presets: ['babel-preset-expo'],
-    plugins: ['react-native-reanimated/plugin'],
+    // In this monorepo, babel-preset-expo is hoisted to the repository root
+    // while expo-router lives in this app. Add the preset's router transform
+    // explicitly so EAS can replace EXPO_ROUTER_APP_ROOT when bundling.
+    plugins: [
+      require('babel-preset-expo/build/expo-router-plugin').expoRouterBabelPlugin,
+      'react-native-reanimated/plugin',
+    ],
   };
 };
