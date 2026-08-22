@@ -43,25 +43,25 @@ MaiHoonNa is structured as a unified monorepo containing 6 application services 
            │   apps/admin-backend     │                  │         apps/api         │
            │   Port: 3001 (Express)   │                  │   Port: 8001 (Express)   │
            └────────────┬─────────────┘                  └─────────────┬────────────┘
-                        │                                             │
-           ┌────────────┴─────────────┐                  ┌────────────┴─────────────┐
-           ▼                          ▼                  ▼                          ▼
-┌────────────────────┐    ┌────────────────────┐┌────────────────────┐    ┌────────────────────┐
-│apps/admin-frontend │    │   apps/website     ││  apps/mobile-app   │    │  apps/sathi-app    │
-│ Port: 5173 (React) │    │ Port: 5174 (Vite)  ││ (Subscriber/Senior)│    │(Volunteer/Saathi)  │
-└────────────────────┘    └────────────────────┘└────────────────────┘    └────────────────────┘
+                        │                                              │
+                        ▼                        ┌─────────────────────┼─────────────────────┐
+             ┌────────────────────┐              ▼                     ▼                     ▼
+             │apps/admin-frontend │    ┌────────────────────┐┌────────────────────┐┌────────────────────┐
+             │ Port: 5173 (React) │    │   apps/website     ││  apps/mobile-app   ││   apps/sathi-app   │
+             └────────────────────┘    │ Port: 5174 (Vite)  ││ (Subscriber/Senior)││ (Volunteer/Saathi) │
+                                       └────────────────────┘└────────────────────┘└────────────────────┘
 ```
 
 ### Application & Service Matrix
 
 | Module | Type | Port | Main Technologies | Purpose / Target Audience | Key Entry Files |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **`apps/admin-backend`** | REST API | `3001` | Express, Node.js, Prisma ORM | Operational backend for zone, staff, packages, payments, and emergency dispatches | [`server.js`](file:///c:/Users/91930/OneDrive/Desktop/Mai-Hoonaa/apps/admin-backend/server.js), [`routes/`](file:///c:/Users/91930/OneDrive/Desktop/Mai-Hoonaa/apps/admin-backend/routes/) |
+| **`apps/admin-backend`** | REST API | `3001` | Express, Node.js, Prisma ORM | Operational backend for zone, staff, packages, payments, and emergency dispatches (Dedicated to Admin Frontend) | [`server.js`](file:///c:/Users/91930/OneDrive/Desktop/Mai-Hoonaa/apps/admin-backend/server.js), [`routes/`](file:///c:/Users/91930/OneDrive/Desktop/Mai-Hoonaa/apps/admin-backend/routes/) |
 | **`apps/admin-frontend`** | Web SPA | `5173` | React 18, Vite, TypeScript, TailwindCSS | Control tower for operations managers, field managers, and admins | [`src/main.tsx`](file:///c:/Users/91930/OneDrive/Desktop/Mai-Hoonaa/apps/admin-frontend/src/main.tsx), [`src/app/pages/`](file:///c:/Users/91930/OneDrive/Desktop/Mai-Hoonaa/apps/admin-frontend/src/app/pages/) |
-| **`apps/api`** | REST API | `8001` | Express, TypeScript, Prisma ORM | Client API servicing subscribers, senior beneficiaries, and mobile client apps | [`app/main.ts`](file:///c:/Users/91930/OneDrive/Desktop/Mai-Hoonaa/apps/api/app/main.ts), [`app/api/`](file:///c:/Users/91930/OneDrive/Desktop/Mai-Hoonaa/apps/api/app/api/) |
+| **`apps/api`** | REST API | `8001` | Express, TypeScript, Prisma ORM | Client API servicing subscribers, website, senior beneficiaries, and mobile client apps | [`app/main.ts`](file:///c:/Users/91930/OneDrive/Desktop/Mai-Hoonaa/apps/api/app/main.ts), [`app/api/`](file:///c:/Users/91930/OneDrive/Desktop/Mai-Hoonaa/apps/api/app/api/) |
 | **`apps/mobile-app`** | Native App | Expo | React Native, Expo Go, TypeScript | Mobile app for Subscribers (Purchasers) & Beneficiaries (Seniors) | [`app/(beneficiary)/`](file:///c:/Users/91930/OneDrive/Desktop/Mai-Hoonaa/apps/mobile-app/app/(beneficiary)/), [`app.json`](file:///c:/Users/91930/OneDrive/Desktop/Mai-Hoonaa/apps/mobile-app/app.json) |
 | **`apps/sathi-app`** | Native App | Expo | React Native, Expo Go, TypeScript | Mobile app for verified Saathi companions & community volunteers | [`app/(sathi)/`](file:///c:/Users/91930/OneDrive/Desktop/Mai-Hoonaa/apps/sathi-app/app/(sathi)/), [`app.json`](file:///c:/Users/91930/OneDrive/Desktop/Mai-Hoonaa/apps/sathi-app/app.json) |
-| **`apps/website`** | Web SPA | `5174` | React 18, Vite, JavaScript | Public marketing portal, plan showcase, interactive comparison & web checkout | [`src/main.jsx`](file:///c:/Users/91930/OneDrive/Desktop/Mai-Hoonaa/apps/website/src/main.jsx), [`src/pages/`](file:///c:/Users/91930/OneDrive/Desktop/Mai-Hoonaa/apps/website/src/pages/) |
+| **`apps/website`** | Web SPA | `5174` | React 18, Vite, JavaScript | Public marketing portal, plan showcase, interactive comparison & web checkout (Connects to `apps/api`) | [`src/main.jsx`](file:///c:/Users/91930/OneDrive/Desktop/Mai-Hoonaa/apps/website/src/main.jsx), [`src/pages/`](file:///c:/Users/91930/OneDrive/Desktop/Mai-Hoonaa/apps/website/src/pages/) |
 | **`packages/database`** | Library | N/A | Prisma 7, PostgreSQL | Central schema definitions, seed files, and DB migration scripts | [`prisma/schema.prisma`](file:///c:/Users/91930/OneDrive/Desktop/Mai-Hoonaa/packages/database/prisma/schema.prisma) |
 | **`packages/notifications`** | Engine | N/A | Node.js, Webhooks, Push SDKs | Multi-channel dispatch engine (Push Notifications, SMS, WhatsApp alerts) | [`src/`](file:///c:/Users/91930/OneDrive/Desktop/Mai-Hoonaa/packages/notifications/src/) |
 
@@ -84,7 +84,7 @@ MaiHoonNa is structured as a unified monorepo containing 6 application services 
 ### 🌐 3. Public Marketing & Plan Portal (`apps/website`)
 - **Card Carousel & Plans Showcase**: Auto-play right-to-left plan carousel featuring billing duration selectors (1, 3, 6, 12 months with dynamic discounts).
 - **100% Dynamic Side-by-Side Comparison Table**: Pulls top packages (`isCompared: true`) and compares them against the global Benefits Library directly from PostgreSQL.
-- **Native Web Checkout**: Integrated Razorpay modal checkout supporting coupon validation and automatic role upgrade from `prospect` to `subscriber`.
+- **Native Web Checkout**: Integrated Razorpay modal checkout supporting coupon validation and automatic role upgrade from `prospect` to `subscriber`. Connects to `apps/api` (Port 8001).
 
 ### 🖥️ 4. Operational Admin Dashboard (`apps/admin-frontend`)
 - **Product Factory 2.0**: Formulates subscription packages, sets base pricing, auto-calculates MRP, configures duration discount rules, and assigns unit benefits.
@@ -93,12 +93,14 @@ MaiHoonNa is structured as a unified monorepo containing 6 application services 
 - **Pincode & Staff Allocation**: Assigns Operations Managers and Field Managers to designated geographic zones based on 6-digit postal pincodes.
 
 ### ⚙️ 5. Express Operational Backend (`apps/admin-backend`)
+- **Dedicated Admin Control Tower Backend**: Exclusively powers `apps/admin-frontend` for operations managers, field managers, and master admins.
 - **Modular Payment Architecture**: Decoupled modules (`razorpay.service.js`, `webhook.service.js`, `payment.repository.js`, `subscription.service.js`) supporting link generation (`https://rzp.io/i/...`) and HMAC-SHA256 webhooks.
 - **Atomic Transactions**: Database operations execute inside `prisma.$transaction()` to guarantee idempotency and audit log consistency.
 - **Pincode Lookup Service**: Proxies requests to `api.postalpincode.in` to auto-resolve city, state, and area defaults.
 
 ### 🔌 6. Primary API Backend (`apps/api`)
-- **Subscriber & Mobile Services**: Handles authentication, profile setup, vitals logging, and beneficiary management.
+- **Client & Mobile API Services**: Serves all end-user client applications: **`apps/website`**, **`apps/mobile-app`**, and **`apps/sathi-app`**.
+- **Subscriber & Mobile Services**: Handles authentication, profile setup, vitals logging, beneficiary management, package browsing, and web/in-app checkout.
 - **Security Hardening**: Enforces `JWT_SECRET` presence in production, rate limiters, strict CORS policies, and ownership check middleware.
 
 ---
@@ -129,20 +131,27 @@ sequenceDiagram
     participant AdminAPI as Admin Backend (3001)
     participant DB as PostgreSQL Database
     participant WebApp as Website Portal (5174)
+    participant API as Primary API Backend (8001)
     participant RZP as Razorpay Payment Gateway
 
     Admin->>AdminApp: Create Package in Product Factory
     AdminApp->>AdminAPI: POST /api/packages (basePrice, MRP, packageBenefits)
     AdminAPI->>DB: Save Package & PackageBenefit relations
-    WebApp->>DB: GET /api/subscriber/subscriptions/packages
-    DB-->>WebApp: Return dynamic packages & benefits
+    WebApp->>API: GET /api/subscriber/subscriptions/packages
+    API->>DB: Fetch active packages & benefits
+    DB-->>API: Return package data
+    API-->>WebApp: Return dynamic packages & benefits
     WebApp->>WebApp: Render Plan Carousel & Comparison Table
     actor Customer
     Customer->>WebApp: Select Package & Click Purchase
+    WebApp->>API: POST /api/subscriber/subscriptions/create-order
+    API->>RZP: Create Razorpay Order
+    RZP-->>API: Return order_id & amount
+    API-->>WebApp: Return Razorpay order details
     WebApp->>RZP: Open Razorpay Checkout Modal
-    RZP-->>WebApp: Payment Success + HMAC Signature
-    WebApp->>AdminAPI: POST /api/payments/webhook
-    AdminAPI->>DB: Execute prisma.$transaction() (Activate Subscription, Upgrade Role to subscriber)
+    RZP-->>WebApp: Payment Success (razorpay_payment_id, signature)
+    WebApp->>API: POST /api/subscriber/subscriptions/purchase
+    API->>DB: Execute prisma.$transaction() (Activate Subscription, Upgrade Role to subscriber)
 ```
 
 ---
