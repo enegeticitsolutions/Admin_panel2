@@ -94,6 +94,10 @@ export default function OrderHistoryScreen() {
         igstAmount: invoice.igstAmount,
         taxAmount: invoice.taxAmount,
         totalAmount: invoice.totalAmount,
+        paymentMethod: invoice.payments?.[0]?.paymentMethod || 'Online',
+        transactionId: invoice.payments?.[0]?.transactionId || invoice.payments?.[0]?.gatewayPaymentId,
+        paymentStatus: invoice.payments?.[0]?.paymentStatus,
+        gatewayName: invoice.payments?.[0]?.gatewayName,
       };
 
       await generateInvoicePDF(invoiceData);
@@ -116,7 +120,9 @@ export default function OrderHistoryScreen() {
         
         <View style={styles.cardBody}>
           <Text style={styles.packageText}>
-            {item.subscription?.package?.name || 'Subscription Package'}
+            {item.invoiceType === 'SERVICE' 
+              ? (item.items?.[0]?.description || 'Service Invoice')
+              : (item.subscription?.package?.name || 'Subscription Package')}
           </Text>
           <Text style={styles.amountText}>₹{item.totalAmount.toFixed(2)}</Text>
         </View>

@@ -6,6 +6,8 @@ import prisma from '../../core/database';
 import { createOrder, verifyPaymentSignature } from '../../services/razorpay_service';
 import { config } from '../../core/config';
 import { sendAddonPurchaseNotifications } from '../../services/notification_service';
+import { generateUUID } from '../../utils/helpers';
+import { generateInvoiceNumber, calculateGST } from '../../utils/invoice_utils';
 
 const router = Router();
 
@@ -820,6 +822,70 @@ router.post('/addon/purchase', authenticate, async (req: AuthRequest, res: Respo
           }
         });
       }
+
+      // Generate invoice
+      const invoiceNumber = await generateInvoiceNumber(tx as any);
+      const gstCalc = calculateGST(p.basePrice, 0, GST_RATE, false);
+      const invoiceId = generateUUID();
+      const beneficiaryId = p.subscription.beneficiaryId || null;
+
+      await tx.invoice.create({
+        data: {
+          id: invoiceId,
+          invoiceNumber,
+          invoiceType: 'SERVICE',
+          status: 'PAID',
+          subscriberId: userId,
+          beneficiaryId,
+          subscriptionId: subscriptionId,
+          baseAmount: p.basePrice,
+          discountAmount: 0,
+          taxAmount: gstCalc.taxAmount,
+          totalAmount: p.total,
+          placeOfSupply: 'Haryana', // Default state for add-on unless fetched
+          cgstAmount: gstCalc.cgstAmount,
+          sgstAmount: gstCalc.sgstAmount,
+          igstAmount: gstCalc.igstAmount,
+          issuedAt: new Date(),
+          paidAt: new Date(),
+          items: {
+            create: [{
+              description: `Add-on: ${p.benefit.name}`,
+              quantity: p.quantity || 1,
+              unitPrice: p.unitPrice,
+              amount: p.basePrice,
+              taxRate: GST_RATE * 100
+            }]
+          }
+        }
+      });
+
+      // Create Payment Record
+      const txId = razorpay_payment_id || `TXN-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+      await tx.payment.create({
+        data: {
+          id: generateUUID(),
+          subscriberId: userId,
+          beneficiaryId,
+          subscriptionId: subscriptionId,
+          invoiceId: invoiceId,
+          packageType: 'ADD_ON',
+          baseAmount: p.basePrice,
+          taxAmount: gstCalc.taxAmount,
+          amountPaid: p.total,
+          currency: 'INR',
+          paymentStatus: 'success',
+          transactionId: txId,
+          gatewayName: 'RAZORPAY',
+          gatewayOrderId: razorpay_order_id,
+          gatewayPaymentId: razorpay_payment_id,
+          gatewaySignature: razorpay_signature,
+          planStartDate: new Date(),
+          planEndDate: p.subscription.endDate || new Date(),
+          isSubscriptionActive: true,
+          paidAt: new Date()
+        }
+      });
 
       return balance;
     });
