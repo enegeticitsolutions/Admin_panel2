@@ -51,7 +51,16 @@ const Footer = ({ setActivePage }) => {
           <div>
             <h3>ABOUT US</h3>
             {SITE_LINKS.about.map((item, idx) => (
-              <a key={idx} href={item.href}>
+              <a
+                key={idx}
+                href={item.href || "#"}
+                onClick={(e) => {
+                  if (item.page && setActivePage) {
+                    e.preventDefault();
+                    setActivePage(item.page);
+                  }
+                }}
+              >
                 {item.label}
               </a>
             ))}
@@ -88,18 +97,9 @@ const Footer = ({ setActivePage }) => {
       <div className="footer-bottom">
         <div className="footer-bottom__left">
           <span>2026 MaiHoonNa Eldercare Private Limited. All rights reserved.</span>
-          <small>Pilot area: {SITE_LINKS.contact.address}</small>
         </div>
         <div className="footer-bottom__right">
           <span>Made with <span className="heart-icon">❤️</span> for every Indian family</span>
-          <div className="footer-legal-links">
-            {SITE_LINKS.footerLegal.map((item, idx) => (
-              <React.Fragment key={idx}>
-                {idx > 0 && <span>|</span>}
-                <a href={item.href}>{item.label}</a>
-              </React.Fragment>
-            ))}
-          </div>
         </div>
       </div>
     </footer>

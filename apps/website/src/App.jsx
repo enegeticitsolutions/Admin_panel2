@@ -5,6 +5,7 @@ import WaitlistModal from "./components/modals/WaitlistModal";
 import HomePage from "./pages/HomePage";
 import ServicesPage from "./pages/ServicesPage";
 import SaathiPage from "./pages/SaathiPage";
+import AboutPage from "./pages/AboutPage";
 import AuthPage from "./pages/AuthPage";
 import AccountPage from "./pages/AccountPage";
 import CheckoutPage from "./pages/CheckoutPage";
@@ -22,7 +23,7 @@ const App = () => {
   const getPageFromHash = () => {
     const rawHash = (window.location.hash || "").replace("#", "").toLowerCase();
     if (!rawHash) return "home";
-    const validPages = ["home", "services", "saathi", "plans", "auth", "account", "checkout"];
+    const validPages = ["home", "services", "saathi", "plans", "auth", "account", "checkout", "story"];
     return validPages.includes(rawHash) ? rawHash : "not-found";
   };
 
@@ -174,6 +175,8 @@ const App = () => {
           <ServicesPage setActivePage={setActivePage} openForm={openForm} />
         ) : activePage === "saathi" ? (
           <SaathiPage />
+        ) : activePage === "story" ? (
+          <AboutPage openForm={openForm} setActivePage={setActivePage} />
         ) : activePage === "plans" ? (
           <PlansPage
             livePackages={livePackages}

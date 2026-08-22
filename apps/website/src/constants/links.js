@@ -28,12 +28,12 @@ export const SITE_LINKS = {
 
   // About Us Links
   about: [
-    { label: "Our Story", href: "#story" },
-    { label: "Mission and Vision", href: "#mission" },
-    { label: "Leadership Team", href: "#team" },
-    { label: "Careers", href: "#careers" },
-    { label: "Press and Media", href: "#press" },
-    { label: "Investors", href: "#investors" },
+    { label: "Our Story", page: "story" },
+    // { label: "Mission and Vision", page: "story" },
+    // { label: "Leadership Team", href: "#team" },
+    // { label: "Careers", href: "#careers" },
+    // { label: "Press and Media", href: "#press" },
+    // { label: "Investors", href: "#investors" },
     { label: "Contact Us", href: "mailto:info@maihoonna.in" },
   ],
 
@@ -41,21 +41,21 @@ export const SITE_LINKS = {
   services: [
     { label: "Care Mitra Visits", page: "services" },
     { label: "Saathi Network", page: "saathi" },
-    { label: "Legacy Circles", page: "services" },
-    { label: "Hobby Circles", page: "services" },
+    // { label: "Legacy Circles", page: "services" },
+    // { label: "Hobby Circles", page: "services" },
     { label: "Plans and Pricing", page: "plans" },
-    { label: "Become a Partner", href: "#partner" },
+    // { label: "Become a Partner", href: "#partner" },
   ],
 
   // Legal & Terms Policies
   policies: [
     { label: "Privacy Policy", href: "#privacy" },
     { label: "Terms of Service", href: "#terms" },
-    { label: "Subscription Terms", href: "#subscription-terms" },
+    // { label: "Subscription Terms", href: "#subscription-terms" },
     { label: "Refund Policy", href: "#refund-policy" },
-    { label: "Care Mitra Code of Conduct", href: "#code-of-conduct" },
+    // { label: "Care Mitra Code of Conduct", href: "#code-of-conduct" },
     { label: "Cookie Policy", href: "#cookie-policy" },
-    { label: "Grievance Redressal", href: "#grievance" },
+    // { label: "Grievance Redressal", href: "#grievance" },
   ],
 
   // Footer Bottom Legal Links
