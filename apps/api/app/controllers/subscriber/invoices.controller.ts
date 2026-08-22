@@ -45,6 +45,7 @@ export const getInvoiceById = async (req: AuthRequest, res: Response) => {
       },
       beneficiary: true,
       subscriber: true,
+      payments: true,
     },
   });
 

@@ -35,6 +35,10 @@ export interface InvoiceData {
   igstAmount: number;
   taxAmount: number;
   totalAmount: number;
+  paymentMethod?: string;
+  transactionId?: string;
+  paymentStatus?: string;
+  gatewayName?: string;
 }
 
 export const generateInvoicePDF = async (data: InvoiceData) => {
@@ -255,11 +259,19 @@ export const generateInvoicePDF = async (data: InvoiceData) => {
 
       <div class="footer-details">
         <div class="bank-details">
-          <p><strong>Bank Details</strong></p>
-          <p>Bank Name: ${data.companyBankName}</p>
-          <p>Account No: ${data.companyBankAccount}</p>
-          <p>IFSC: ${data.companyBankIfsc}</p>
-          <p>UPI ID: ${data.companyUpiId}</p>
+          ${data.transactionId ? `
+            <p><strong>Payment Details</strong></p>
+            <p>Mode: ${data.paymentMethod || 'Online'}</p>
+            ${data.gatewayName ? `<p>Gateway: ${data.gatewayName}</p>` : ''}
+            <p>Transaction ID: ${data.transactionId}</p>
+            <p>Status: ${(data.paymentStatus || 'SUCCESS').toUpperCase()}</p>
+          ` : `
+            <p><strong>Bank Details</strong></p>
+            <p>Bank Name: ${data.companyBankName}</p>
+            <p>Account No: ${data.companyBankAccount}</p>
+            <p>IFSC: ${data.companyBankIfsc}</p>
+            <p>UPI ID: ${data.companyUpiId}</p>
+          `}
         </div>
         <div class="auth-sign">
           <p>For ${data.companyName}</p>
