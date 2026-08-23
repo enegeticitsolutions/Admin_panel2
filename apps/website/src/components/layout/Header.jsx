@@ -138,22 +138,9 @@ const Header = ({ activePage, setActivePage, user, openForm }) => {
           >
             📋 View Plans
           </button>
-
-          {user ? (
-            <button
-              className={activePage === "account" ? "active" : ""}
-              onClick={() => handleNavClick("account")}
-            >
-              👤 My Account ({user.name})
-            </button>
-          ) : (
-            <button
-              className={activePage === "auth" ? "active" : ""}
-              onClick={() => handleNavClick("auth")}
-            >
-              🔑 Sign Up
-            </button>
-          )}
+          <button onClick={() => { openForm(); setMobileMenuOpen(false); }}>
+            📝 Join Waitlist
+          </button>
         </div>
       )}
     </header>

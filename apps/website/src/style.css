@@ -71,7 +71,7 @@ a {
   justify-content: space-between;
   padding: 0 max(24px, calc((100vw - 1300px) / 2));
   border-bottom: 1px solid rgba(17, 17, 17, 0.08);
-  overflow: hidden;
+  overflow: visible;
   box-shadow: 0 2px 14px rgba(0, 0, 0, 0.08);
 }
 
