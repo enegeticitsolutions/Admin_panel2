@@ -528,14 +528,19 @@ export default function SubscriptionPackagesScreen() {
 
                             <View style={styles.featureList}>
                                 {(pkg.packageBenefits || []).map((pb: any, fIdx: number) => {
-                                    const label = (pb.benefit?.unitLabel || '').replace(/^per\s+/i, '');
+                                    const rawLabel = (pb.benefit?.unitLabel || '').replace(/^per\s+/i, '').trim();
+                                    const formattedLabel = rawLabel ? ' ' + rawLabel.charAt(0).toUpperCase() + rawLabel.slice(1).toLowerCase() + (pb.unitsIncluded > 1 && !rawLabel.toLowerCase().endsWith('s') ? 's' : '') : '';
+                                    
+                                    const rawName = pb.benefit?.name || '';
+                                    const formattedName = rawName.replace(/\b\w/g, (char: string) => char.toUpperCase()).replace(/\B\w/g, (char: string) => char.toLowerCase());
+
                                     return (
                                         <View key={fIdx} style={styles.featureRow}>
-                                            <Ionicons name="checkmark-circle" size={18} color={isRegional ? "#0D9488" : "#F97316"} />
+                                            <Ionicons name="checkmark-circle" size={18} color={isRegional ? "#F97316" : "#0D9488"} />
                                             <Text style={styles.featureText}>
-                                                {pb.benefit?.name}{' '}
+                                                {formattedName}{' '}
                                                 <Text style={{ fontWeight: '800', color: '#111827' }}>
-                                                    {pb.unitsIncluded}{label}
+                                                    {pb.unitsIncluded}{formattedLabel}
                                                 </Text>
                                             </Text>
                                         </View>
@@ -826,13 +831,13 @@ const styles = StyleSheet.create({
     card: { backgroundColor: '#FFFFFF', borderRadius: 20, padding: 24, marginBottom: 24, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 },
     cardHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
     planName: { fontSize: 18, fontWeight: '700', color: '#111827', marginBottom: 6 },
-    planPrice: { fontSize: 28, fontWeight: '800', color: '#F97316' },
-    planPriceColor: { fontSize: 28, fontWeight: '800', color: '#F97316' },
+    planPrice: { fontSize: 28, fontWeight: '800', color: '#0D9488' },
+    planPriceColor: { fontSize: 28, fontWeight: '800', color: '#0D9488' },
     priceRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 10 },
     discountInfo: { marginBottom: 4 },
     mrpText: { fontSize: 14, color: '#9CA3AF', textDecorationLine: 'line-through', marginBottom: 2 },
-    discountBadge: { backgroundColor: '#FDE6D5', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
-    discountBadgeText: { fontSize: 10, fontWeight: '700', color: '#EA580C' },
+    discountBadge: { backgroundColor: '#F0FDFA', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
+    discountBadgeText: { fontSize: 10, fontWeight: '700', color: '#0D9488' },
 
     illustrationPlaceholder: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#FFF5ED', alignItems: 'center', justifyContent: 'center' },
     iconCircleBasic: { width: 50, height: 50, borderRadius: 25, backgroundColor: '#F3F4F6', alignItems: 'center', justifyContent: 'center' },
@@ -845,24 +850,24 @@ const styles = StyleSheet.create({
 
     cardActions: { flexDirection: 'row', gap: 12, marginTop: 10 },
     detailsBtn: { 
-        flex: 1, borderWidth: 1, borderColor: '#F97316', 
+        flex: 1, borderWidth: 1, borderColor: '#0D9488', 
         borderRadius: 12, justifyContent: 'center', alignItems: 'center', height: 48 
     },
-    detailsBtnText: { color: '#F97316', fontSize: 13, fontWeight: '700' },
+    detailsBtnText: { color: '#0D9488', fontSize: 13, fontWeight: '700' },
 
     selectBtnOutline: { 
-        flex: 1, borderWidth: 1, borderColor: '#F97316', height: 48, 
+        flex: 1, borderWidth: 1, borderColor: '#0D9488', height: 48, 
         borderRadius: 12, alignItems: 'center', justifyContent: 'center' 
     },
-    selectBtnOutlineText: { color: '#F97316', fontSize: 13, fontWeight: '700' },
+    selectBtnOutlineText: { color: '#0D9488', fontSize: 13, fontWeight: '700' },
     selectBtnSolid: { 
-        flex: 1, backgroundColor: '#F97316', height: 48, 
+        flex: 1, backgroundColor: '#0D9488', height: 48, 
         borderRadius: 12, alignItems: 'center', justifyContent: 'center' 
     },
     selectBtnSolidText: { color: '#FFFFFF', fontSize: 13, fontWeight: '700' },
 
-    popularCard: { borderWidth: 2, borderColor: '#F97316', marginTop: 10 },
-    popularBadge: { position: 'absolute', top: -14, alignSelf: 'center', backgroundColor: '#F97316', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, flexDirection: 'row', alignItems: 'center' },
+    popularCard: { borderWidth: 2, borderColor: '#0D9488', marginTop: 10 },
+    popularBadge: { position: 'absolute', top: -14, alignSelf: 'center', backgroundColor: '#0D9488', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, flexDirection: 'row', alignItems: 'center' },
     popularBadgeText: { color: '#FFFFFF', fontSize: 10, fontWeight: '700' },
 
     // How it Works Styles
@@ -969,15 +974,15 @@ const styles = StyleSheet.create({
 
     // Regional package styles
     regionalCard: {
-        borderColor: '#0D9488',
+        borderColor: '#F97316',
         borderWidth: 1.5,
-        backgroundColor: '#F0FDFA'
+        backgroundColor: '#FFF5ED'
     },
     regionalBadge: {
         position: 'absolute',
         top: -14,
         alignSelf: 'center',
-        backgroundColor: '#0D9488',
+        backgroundColor: '#F97316',
         paddingHorizontal: 12,
         paddingVertical: 6,
         borderRadius: 16,
@@ -992,22 +997,22 @@ const styles = StyleSheet.create({
     planPriceRegional: {
         fontSize: 28,
         fontWeight: '800',
-        color: '#0D9488'
+        color: '#F97316'
     },
     selectBtnSolidRegional: {
-        backgroundColor: '#0D9488'
+        backgroundColor: '#F97316'
     },
     selectBtnOutlineRegional: {
-        borderColor: '#0D9488'
+        borderColor: '#F97316'
     },
     selectBtnOutlineTextRegional: {
-        color: '#0D9488'
+        color: '#F97316'
     },
     detailsBtnTextRegional: {
-        color: '#0D9488'
+        color: '#F97316'
     },
     detailsBtnRegional: {
-        borderColor: '#0D9488'
+        borderColor: '#F97316'
     },
 
     // Add-on selection modal styles (Minimalist Design)
