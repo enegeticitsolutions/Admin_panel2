@@ -51,6 +51,7 @@ import GuideManagementPage from './pages/GuideManagementPage';
 import EmergencyRadarPage from './pages/EmergencyRadarPage';
 import RequestedVisitsPage from './pages/RequestedVisitsPage';
 import CheckoutPage from './pages/CheckoutPage';
+import RouteErrorBoundary from './components/common/RouteErrorBoundary';
 
 export const router = createBrowserRouter([
   {
@@ -62,12 +63,12 @@ export const router = createBrowserRouter([
     Component: CheckoutPage,
   },
   {
-    path: '/',
     element: (
       <ProtectedRoute>
         <DashboardLayout />
       </ProtectedRoute>
     ),
+    ErrorBoundary: RouteErrorBoundary,
     children: [
       {
         path: 'dashboard',

@@ -17,13 +17,18 @@ const BASE_WIDTH = 390;
 const scale = (size: number) => Math.round((width / BASE_WIDTH) * size);
 const vscale = (size: number) => Math.round((height / 844) * size);
 
+type BiometricKind = 'face' | 'fingerprint' | 'biometric';
+
 export default function AuthScreen() {
   const [phone, setPhone] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-    const { push, replace, pop } = useNavigationStack();
-    useAndroidBackHandler();
-    const { login } = useAuth();
-    const { message } = useLocalSearchParams();
+  const [biometricType, setBiometricType] = useState<BiometricKind>('biometric');
+  const [hasBiometricsSetup, setHasBiometricsSetup] = useState(false);
+
+  const { push } = useNavigationStack();
+  useAndroidBackHandler();
+  const { login } = useAuth();
+  const { message } = useLocalSearchParams();
 
   useEffect(() => {
     if (message) {
@@ -31,33 +36,77 @@ export default function AuthScreen() {
     }
   }, [message]);
 
+  // Detect device biometric capabilities on mount
   useEffect(() => {
-    const checkAutoBiometric = async () => {
+    const detectBiometrics = async () => {
       if (Platform.OS === 'web') return;
       try {
-        const secureToken = await SecureStore.getItemAsync('secureUserToken');
-        if (secureToken) {
-          handleBiometricLogin(true);
+        const hasHw = await LocalAuthentication.hasHardwareAsync();
+        const isEnrolled = await LocalAuthentication.isEnrolledAsync();
+
+        if (hasHw) {
+          const types = await LocalAuthentication.supportedAuthenticationTypesAsync();
+          if (types.includes(LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION)) {
+            setBiometricType('face');
+          } else if (types.includes(LocalAuthentication.AuthenticationType.FINGERPRINT)) {
+            setBiometricType('fingerprint');
+          } else {
+            setBiometricType('biometric');
+          }
         }
+
+        const secureToken = await SecureStore.getItemAsync('secureUserToken');
+        const secureUser = await SecureStore.getItemAsync('secureUserData');
+        const isReady = Boolean(hasHw && isEnrolled && secureToken && secureUser);
+        setHasBiometricsSetup(isReady);
       } catch (e) {
-        console.warn('SecureStore not available:', e);
+        console.warn('[Biometrics] Detection note:', e);
       }
     };
-    checkAutoBiometric();
+    detectBiometrics();
   }, []);
+
+  const getBiometricButtonTitle = () => {
+    switch (biometricType) {
+      case 'face':
+        return 'Login with Face ID';
+      case 'fingerprint':
+        return 'Login with Fingerprint';
+      default:
+        return 'Biometric Login';
+    }
+  };
+
+  const getBiometricIconName = (): keyof typeof MaterialCommunityIcons.glyphMap => {
+    switch (biometricType) {
+      case 'face':
+        return 'face-recognition';
+      case 'fingerprint':
+        return 'fingerprint';
+      default:
+        return 'shield-account-outline';
+    }
+  };
 
   const handleBiometricLogin = async (silent = false) => {
     if (Platform.OS === 'web') return;
     try {
       const hasHardware = await LocalAuthentication.hasHardwareAsync();
       if (!hasHardware) {
-        if (!silent) Alert.alert("Not Supported", "Your device does not support biometric authentication.");
+        if (!silent) {
+          Alert.alert("Biometrics Not Supported", "Your device does not support biometric authentication.");
+        }
         return;
       }
-      
+
       const isEnrolled = await LocalAuthentication.isEnrolledAsync();
       if (!isEnrolled) {
-        if (!silent) Alert.alert("Not Enrolled", "No biometrics enrolled on this device.");
+        if (!silent) {
+          Alert.alert(
+            "Biometrics Not Enrolled",
+            "No biometrics registered on this device. Please set up Face ID or Fingerprint in your device Settings."
+          );
+        }
         return;
       }
 
@@ -65,29 +114,70 @@ export default function AuthScreen() {
       const secureUser = await SecureStore.getItemAsync('secureUserData');
 
       if (!secureToken || !secureUser) {
-        if (!silent) Alert.alert("Setup Required", "Please login with your phone number or password first to enable biometric login.");
+        if (!silent) {
+          Alert.alert(
+            "First Login Required",
+            "Please log in with your phone number and OTP once to enable biometric login on this device."
+          );
+        }
         return;
       }
 
+      const promptLabel = biometricType === 'face'
+        ? "Authenticate with Face ID"
+        : biometricType === 'fingerprint'
+        ? "Authenticate with Fingerprint"
+        : "Login to Mai-Hoonaa";
+
       const result = await LocalAuthentication.authenticateAsync({
-        promptMessage: "Login to Mai-Hoonaa",
-        fallbackLabel: "Use Passcode",
+        promptMessage: promptLabel,
+        fallbackLabel: "Use OTP",
+        cancelLabel: "Cancel",
+        disableDeviceFallback: false,
       });
 
       if (result.success) {
-        await login(secureToken, JSON.parse(secureUser));
+        let parsedUser: any;
+        try {
+          parsedUser = JSON.parse(secureUser);
+        } catch {
+          parsedUser = { role: 'subscriber' };
+        }
+        await login(secureToken, parsedUser);
       } else {
-        console.log("Biometric failed or cancelled");
+        const errType = (result as any).error;
+        if (errType === 'user_cancel' || errType === 'system_cancel' || errType === 'app_cancel') {
+          // User tapped cancel — do not show error alert
+          return;
+        }
+        if (errType === 'lockout' || errType === 'lockout_permanent') {
+          if (!silent) {
+            Alert.alert(
+              "Biometrics Locked",
+              "Too many failed attempts. Please login using your phone number and OTP."
+            );
+          }
+          return;
+        }
+        if (!silent) {
+          Alert.alert(
+            "Authentication Failed",
+            "Biometric verification did not match. Please try again or use your phone number."
+          );
+        }
       }
     } catch (error) {
       console.error("Biometric error:", error);
-      if (!silent) Alert.alert("Error", "Biometric login failed. Please try again.");
+      if (!silent) {
+        Alert.alert("Biometric Error", "An error occurred during biometric login. Please log in using OTP.");
+      }
     }
   };
 
   const handleLogin = async () => {
-    if (phone.length !== 10) {
-      Alert.alert("Invalid input", "Please enter a valid 10-digit phone number.");
+    const cleanedPhone = phone.trim().replace(/\D/g, '');
+    if (cleanedPhone.length !== 10) {
+      Alert.alert("Invalid Phone Number", "Please enter a valid 10-digit mobile number.");
       return;
     }
 
@@ -97,22 +187,33 @@ export default function AuthScreen() {
       const response = await fetch(`${API_URL}/auth/send-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: `91${phone}` }),
+        body: JSON.stringify({ phone: `91${cleanedPhone}` }),
       });
 
-      const data = await response.json();
+      const data = await response.json().catch(() => null);
 
-      if (data.success) {
+      if (response.ok && data?.success) {
         push({
           pathname: "/(auth)/verify-otp",
-          params: { phone: `+91${phone}` },
+          params: { phone: `+91${cleanedPhone}` },
         });
+      } else if (response.status === 429) {
+        Alert.alert(
+          "Rate Limit Exceeded",
+          data?.message || "Too many OTP requests from this device. Please wait a few minutes before trying again."
+        );
       } else {
-        Alert.alert("Error", data.message || "Failed to send OTP.");
+        Alert.alert(
+          "Verification Error",
+          data?.message || "Failed to send verification code. Please check your mobile number and try again."
+        );
       }
     } catch (error) {
       console.error("Login API Error:", error);
-      Alert.alert("Network Error", "Could not connect to the backend server. Is it running?");
+      Alert.alert(
+        "Network Connection Error",
+        "Could not connect to the Mai-Hoonaa server. Please check your internet connection."
+      );
     } finally {
       setIsLoading(false);
     }
@@ -125,111 +226,116 @@ export default function AuthScreen() {
           behavior={Platform.OS === "ios" ? "padding" : "height"}
           style={styles.keyboardView}
         >
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-        >
-          {/* Logo */}
-          <View style={styles.logoContainer}>
-            <Image
-              source={require("../../assets/images/logo_full.png")}
-              style={styles.logoFullImage}
-            />
-          </View>
-
-          {/* Login Card */}
-          <LinearGradient
-            colors={["#FFFFFF", "#FFE3D1"]}
-            start={{ x: 0.5, y: 0 }}
-            end={{ x: 0.5, y: 1 }}
-            style={styles.card}
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
           >
-            <Text style={styles.title}>Login with Phone</Text>
-
-            <Text style={styles.label}>Phone Number</Text>
-            <View style={styles.inputRow}>
-              <View style={styles.countryCodeContainer}>
-                <Text style={styles.countryCode}>+91</Text>
-              </View>
-
-              <TextInput
-                style={styles.input}
-                placeholder="Enter 10-digit number"
-                placeholderTextColor="#9CA3AF"
-                keyboardType="numeric"
-                maxLength={10}
-                value={phone}
-                onChangeText={(text) => setPhone(text.replace(/\D/g, ''))}
-                editable={!isLoading}
+            {/* Logo */}
+            <View style={styles.logoContainer}>
+              <Image
+                source={require("../../assets/images/logo_full.png")}
+                style={styles.logoFullImage}
               />
             </View>
 
-            <TouchableOpacity
-              style={[styles.otpButton, isLoading && styles.otpButtonDisabled]}
-              onPress={handleLogin}
-              disabled={isLoading}
-              activeOpacity={0.85}
+            {/* Login Card */}
+            <LinearGradient
+              colors={["#FFFFFF", "#FFE3D1"]}
+              start={{ x: 0.5, y: 0 }}
+              end={{ x: 0.5, y: 1 }}
+              style={styles.card}
             >
-              {isLoading ? (
-                <ActivityIndicator color="#FFFFFF" />
-              ) : (
-                <Text style={styles.otpButtonText}>Send OTP</Text>
-              )}
-            </TouchableOpacity>
-          </LinearGradient>
+              <Text style={styles.title}>Login with Phone</Text>
 
-          {/* Divider */}
-          <View style={styles.dividerRow}>
-            <View style={styles.line} />
-            <Text style={styles.dividerText}>Or continue with</Text>
-            <View style={styles.line} />
-          </View>
+              <Text style={styles.label}>Phone Number</Text>
+              <View style={styles.inputRow}>
+                <View style={styles.countryCodeContainer}>
+                  <Text style={styles.countryCode}>+91</Text>
+                </View>
 
-          {/* Biometric Login */}
-          <TouchableOpacity style={styles.bioButton} disabled={isLoading} activeOpacity={0.85} onPress={() => handleBiometricLogin(false)}>
-            <MaterialCommunityIcons name="fingerprint" size={scale(22)} color="#FFFFFF" />
-            <Text style={styles.bioButtonText}>Biometric Login</Text>
-          </TouchableOpacity>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter 10-digit number"
+                  placeholderTextColor="#9CA3AF"
+                  keyboardType="numeric"
+                  maxLength={10}
+                  value={phone}
+                  onChangeText={(text) => setPhone(text.replace(/\D/g, ''))}
+                  editable={!isLoading}
+                />
+              </View>
 
-          {/* Password Login — staging / dev only */}
-          {IS_PASSWORD_LOGIN_ENABLED && (
-            <TouchableOpacity
-              style={styles.passwordButton}
-              onPress={() => push("/(auth)/login-password" as any)}
-              disabled={isLoading}
-              activeOpacity={0.85}
-            >
-              <MaterialCommunityIcons name="lock-outline" size={scale(22)} color="#111827" style={{ marginRight: scale(8) }} />
-              <Text style={styles.passwordButtonText}>Login with Password</Text>
-            </TouchableOpacity>
-          )}
-
-          {/* Footer */}
-          <View style={styles.footer}>
-            <View style={styles.signUpRow}>
-              <Text style={styles.footerText}>Don't have an account? </Text>
-              <TouchableOpacity onPress={() => push("/(auth)/register")}>
-                <Text style={styles.orangeTextBold}>Sign Up</Text>
+              <TouchableOpacity
+                style={[styles.otpButton, isLoading && styles.otpButtonDisabled]}
+                onPress={handleLogin}
+                disabled={isLoading}
+                activeOpacity={0.85}
+              >
+                {isLoading ? (
+                  <ActivityIndicator color="#FFFFFF" />
+                ) : (
+                  <Text style={styles.otpButtonText}>Send OTP</Text>
+                )}
               </TouchableOpacity>
+            </LinearGradient>
+
+            {/* Divider */}
+            <View style={styles.dividerRow}>
+              <View style={styles.line} />
+              <Text style={styles.dividerText}>Or continue with</Text>
+              <View style={styles.line} />
             </View>
 
+            {/* Biometric Login */}
             <TouchableOpacity
-              style={styles.browseButton}
-              onPress={() => push("/(setup)/subscription-packages")}
+              style={styles.bioButton}
+              disabled={isLoading}
               activeOpacity={0.85}
+              onPress={() => handleBiometricLogin(false)}
             >
-              <MaterialCommunityIcons name="package-variant-closed" size={scale(22)} color="#FF8E4D" />
-              <Text style={styles.browseButtonText}>Browse Packages</Text>
+              <MaterialCommunityIcons name={getBiometricIconName()} size={scale(22)} color="#FFFFFF" />
+              <Text style={styles.bioButtonText}>{getBiometricButtonTitle()}</Text>
             </TouchableOpacity>
 
-            <Text style={styles.terms}>
-              By continuing, you agree to our{" "}
-              <Text style={styles.orangeTextTerms}>Terms of Service</Text>
-              {"\n"}and <Text style={styles.orangeTextTerms}>Privacy Policy</Text>
-            </Text>
-          </View>
-        </ScrollView>
+            {/* Password Login — staging / dev only */}
+            {IS_PASSWORD_LOGIN_ENABLED && (
+              <TouchableOpacity
+                style={styles.passwordButton}
+                onPress={() => push("/(auth)/login-password" as any)}
+                disabled={isLoading}
+                activeOpacity={0.85}
+              >
+                <MaterialCommunityIcons name="lock-outline" size={scale(22)} color="#111827" style={{ marginRight: scale(8) }} />
+                <Text style={styles.passwordButtonText}>Login with Password</Text>
+              </TouchableOpacity>
+            )}
+
+            {/* Footer */}
+            <View style={styles.footer}>
+              <View style={styles.signUpRow}>
+                <Text style={styles.footerText}>Don't have an account? </Text>
+                <TouchableOpacity onPress={() => push("/(auth)/register")}>
+                  <Text style={styles.orangeTextBold}>Sign Up</Text>
+                </TouchableOpacity>
+              </View>
+
+              <TouchableOpacity
+                style={styles.browseButton}
+                onPress={() => push("/(setup)/subscription-packages")}
+                activeOpacity={0.85}
+              >
+                <MaterialCommunityIcons name="package-variant-closed" size={scale(22)} color="#FF8E4D" />
+                <Text style={styles.browseButtonText}>Browse Packages</Text>
+              </TouchableOpacity>
+
+              <Text style={styles.terms}>
+                By continuing, you agree to our{" "}
+                <Text style={styles.orangeTextTerms}>Terms of Service</Text>
+                {"\n"}and <Text style={styles.orangeTextTerms}>Privacy Policy</Text>
+              </Text>
+            </View>
+          </ScrollView>
         </KeyboardAvoidingView>
       </TouchableWithoutFeedback>
     </SafeAreaView>
@@ -466,4 +572,3 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins-Medium",
   },
 });
-

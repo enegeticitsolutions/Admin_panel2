@@ -2,8 +2,8 @@ import { Router, Request, Response } from 'express';
 import { authenticate, AuthRequest } from '../shared/deps';
 import prisma from '../../core/database';
 import multer from 'multer';
-import { createClient } from '@supabase/supabase-js';
 import { v4 as uuidv4 } from 'uuid';
+import { getStorageService } from '../../services/storage';
 
 const router = Router();
 
@@ -21,38 +21,19 @@ const uploadMiddleware = multer({
   },
 });
 
-// ─── Supabase client (lazy singleton) ─────────────────────────────────────────
-let supabaseClient: any = null;
-function getSupabase() {
-  if (supabaseClient) return supabaseClient;
-  const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
-  if (!url || !key) {
-    throw new Error('SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set in .env');
-  }
-  supabaseClient = createClient(url, key);
-  return supabaseClient;
-}
-
 /**
- * Upload buffer to Supabase and return public URL
+ * Upload buffer via the active storage provider and return the public URL.
+ * Internally uses Supabase locally (STORAGE_PROVIDER=supabase, default)
+ * and AWS S3 in deployed environments (STORAGE_PROVIDER=s3).
  */
-async function uploadToSupabase(
+async function uploadFile(
   buffer: Buffer,
   path: string,
   mimeType: string
 ): Promise<string> {
-  const supabase = getSupabase();
-  const bucket = process.env.STORAGE_BUCKET || 'staff-documents';
-
-  const { error } = await supabase.storage
-    .from(bucket)
-    .upload(path, buffer, { contentType: mimeType, upsert: true });
-
-  if (error) throw new Error(`Storage upload failed: ${error.message}`);
-
-  const { data } = supabase.storage.from(bucket).getPublicUrl(path);
-  return data.publicUrl;
+  const storage = getStorageService();
+  const result = await storage.upload(buffer, path, mimeType);
+  return result.url;
 }
 
 /**
@@ -135,7 +116,7 @@ router.post('/upload', authenticate, (req: any, res: any, next: any) => {
       const mimeType = file.mimetype === 'image/jpg' ? 'image/jpeg' : file.mimetype;
       const role = isVolunteer ? 'volunteer' : user!.role;
       const storagePath = generateProfilePath(role, userId, file.originalname);
-      photoUrl = await uploadToSupabase(file.buffer, storagePath, mimeType);
+      photoUrl = await uploadFile(file.buffer, storagePath, mimeType);
 
       if (isVolunteer) {
         updatedEntity = await prisma.volunteer.update({
@@ -198,7 +179,7 @@ router.post('/upload', authenticate, (req: any, res: any, next: any) => {
 
       const mimeType = file.mimetype === 'image/jpg' ? 'image/jpeg' : file.mimetype;
       const storagePath = generateProfilePath('beneficiary', targetId, file.originalname);
-      photoUrl = await uploadToSupabase(file.buffer, storagePath, mimeType);
+      photoUrl = await uploadFile(file.buffer, storagePath, mimeType);
 
       updatedEntity = await prisma.beneficiary.update({
         where: { id: targetId },

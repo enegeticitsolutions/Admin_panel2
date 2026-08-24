@@ -185,7 +185,7 @@ export default function CreateTeamPage() {
 
             <div>
               <label className="text-[10px] font-black text-gray-400 uppercase">Select Field Manager (Optional)</label>
-              <Select onValueChange={setSelectedFM} value={selectedFM}>
+              <Select onValueChange={setSelectedFM} value={selectedFM || 'none'}>
                 <SelectTrigger className="mt-1">
                   <SelectValue placeholder="Choose FM" />
                 </SelectTrigger>
@@ -193,11 +193,9 @@ export default function CreateTeamPage() {
                   <SelectItem value="none">No Field Manager Assigned</SelectItem>
                   {filteredFMs.map(fm => (
                     <SelectItem key={fm.id} value={fm.id}>
-                      {fm.user.name} ({fm.zone})
+                      {fm.user?.name || fm.name || 'Manager'} ({fm.zone || 'No Zone'})
                     </SelectItem>
                   ))}
-                  {filteredFMs.length === 0 && zone && <SelectItem value="none" disabled>No FMs available in this zone</SelectItem>}
-                  {filteredFMs.length === 0 && !zone && <SelectItem value="none" disabled>Select a zone first</SelectItem>}
                 </SelectContent>
               </Select>
             </div>

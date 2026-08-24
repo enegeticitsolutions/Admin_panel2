@@ -61,6 +61,8 @@ async function main() {
         await execSafe(`DELETE FROM emergency_requests WHERE "beneficiaryId" IN (${benIdList})`);
         await execSafe(`DELETE FROM call_logs WHERE "beneficiaryId" IN (${benIdList})`);
         
+        // Delete volunteer_assignments first (blocks beneficiary deletion)
+        await execSafe(`DELETE FROM volunteer_assignments WHERE "beneficiaryId" IN (${benIdList})`);
         await execSafe(`DELETE FROM beneficiaries WHERE id IN (${benIdList})`);
       }
       
@@ -75,10 +77,10 @@ async function main() {
       }
       
       await execSafe(`DELETE FROM appointments WHERE "bookedById" = $1`, [userId]);
-      await execSafe(`DELETE FROM callback_requests WHERE "subscriberId" = $1 OR "assignedToId" = $1`, [userId]);
+      await execSafe(`DELETE FROM callback_requests WHERE "subscriberId" = $1`, [userId]);
       await execSafe(`DELETE FROM coupon_attempt_logs WHERE "userId" = $1`, [userId]);
       await execSafe(`DELETE FROM coupon_usages WHERE "userId" = $1`, [userId]);
-      await execSafe(`DELETE FROM emergency_requests WHERE "assignedToId" = $1 OR "requestedById" = $1`, [userId]);
+      await execSafe(`DELETE FROM emergency_requests WHERE "requestedById" = $1`, [userId]);
       await execSafe(`DELETE FROM medical_records WHERE "uploadedById" = $1`, [userId]);
       await execSafe(`DELETE FROM notifications WHERE "userId" = $1`, [userId]);
       await execSafe(`DELETE FROM payments WHERE "subscriberId" = $1 OR "userId" = $1`, [userId]);

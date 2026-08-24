@@ -1,27 +1,27 @@
 /**
  * AuthContext — Centralized authentication state for the entire app.
  *
- * This is the Swiggy/Flipkart pattern:
+ * Key Design Principles:
  * - Login state is loaded ONCE from AsyncStorage on startup
- * - All screens consume `useAuth()` — no more inline AsyncStorage calls
+ * - All screens consume `useAuth()`
  * - `login(token, userData)` persists the session and updates global state
- * - `logout()` clears the session and updates global state
- * - `switchRole(targetRole)` switches the active role for dual-role users
- *   without logging out (subscriber ↔ self-beneficiary)
- * - The root layout (_layout.tsx) uses `isLoggedIn` to decide which
- *   screen group to render, making back-navigation into auth impossible
+ * - `logout()` clears session state immediately and performs network/cache cleanup in background
+ * - `disableBiometrics()` allows the user to explicitly remove device-stored biometric credentials
+ * - Biometric credentials (SecureStore) persist across normal logouts so Face ID / Touch ID remains available
+ * - `switchRole(targetRole)` switches active role for dual-role users without logging out
  */
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import { API_URL } from '@/constants/api';
 import { registerForPushNotifications, unregisterPushToken } from '@/services/notifications';
+import { queryClient } from '@/services/queryClient';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-interface UserData {
+export interface UserData {
   id: string;
   name: string;
   phone: string;
@@ -41,11 +41,14 @@ interface AuthState {
   selfBeneficiaryId: string | null;
   /** Whether a role switch is in progress */
   isSwitchingRole: boolean;
+  /** Whether a logout operation is actively in progress */
+  isLoggingOut: boolean;
 }
 
 interface AuthContextValue extends AuthState {
   login: (token: string, userData: UserData, availableRoles?: string[], selfBeneficiaryId?: string | null) => Promise<void>;
   logout: () => Promise<void>;
+  disableBiometrics: () => Promise<void>;
   updateUser: (token: string, userData: UserData) => Promise<void>;
   /** Switch between subscriber ↔ beneficiary (self) roles — dual-role users only */
   switchRole: (targetRole: 'subscriber' | 'beneficiary') => Promise<void>;
@@ -54,6 +57,17 @@ interface AuthContextValue extends AuthState {
 // ─── Context ─────────────────────────────────────────────────────────────────
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
+
+// ─── Storage Keys ─────────────────────────────────────────────────────────────
+
+const SESSION_STORAGE_KEYS = [
+  'userToken',
+  'userData',
+  'availableRoles',
+  'selfBeneficiaryId',
+  'selectedBeneficiaryId',
+  'activeSubscription',
+];
 
 // ─── Provider ────────────────────────────────────────────────────────────────
 
@@ -67,7 +81,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     availableRoles: [],
     selfBeneficiaryId: null,
     isSwitchingRole: false,
+    isLoggingOut: false,
   });
+
+  const isLoggingOutRef = useRef(false);
 
   // Load persisted session on startup — runs exactly ONCE
   useEffect(() => {
@@ -92,6 +109,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             availableRoles: parsedRoles,
             selfBeneficiaryId: storedSelfBenId || null,
             isSwitchingRole: false,
+            isLoggingOut: false,
           });
         } else {
           setState(prev => ({ ...prev, isLoading: false }));
@@ -105,7 +123,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     loadSession();
   }, []);
 
-  // Called after successful OTP verify or password login
+  // Called after successful OTP verify, password login, or biometric login
   const login = useCallback(async (
     token: string,
     userData: UserData,
@@ -119,13 +137,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       AsyncStorage.setItem('availableRoles', JSON.stringify(roles)),
       AsyncStorage.setItem('selfBeneficiaryId', selfBeneficiaryId ?? ''),
     ];
+
     if (Platform.OS !== 'web') {
       promises.push(
         SecureStore.setItemAsync('secureUserToken', token),
         SecureStore.setItemAsync('secureUserData', JSON.stringify(userData))
       );
     }
+
     await Promise.all(promises);
+
     setState({
       isLoading: false,
       isLoggedIn: true,
@@ -135,9 +156,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       availableRoles: roles,
       selfBeneficiaryId,
       isSwitchingRole: false,
+      isLoggingOut: false,
     });
 
-    // Synchronize push notification token for this device with backend immediately
+    // Synchronize push notification token for this device with backend in background
     registerForPushNotifications(token).catch(err => {
       console.warn('[AuthContext] Push token registration on login failed:', err);
     });
@@ -165,12 +187,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   /**
-   * switchRole
-   *
-   * Switches the active session role for a dual-role user (subscriber ↔ beneficiary self-profile).
-   * Calls POST /api/auth/switch-role, receives a fresh JWT with the new role, and updates
-   * AsyncStorage + context state. The root navigator then automatically routes to the right
-   * dashboard based on `role`.
+   * switchRole — switches the active role for a dual-role user
    */
   const switchRole = useCallback(async (targetRole: 'subscriber' | 'beneficiary') => {
     const currentToken = state.token;
@@ -195,7 +212,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       const { token, user: newUser, availableRoles, selfBeneficiaryId } = json.data;
       const userData: UserData = { ...newUser };
-
       const roles: string[] = availableRoles && availableRoles.length > 0 ? availableRoles : [targetRole];
 
       const savePromises: Promise<any>[] = [
@@ -221,6 +237,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         availableRoles: roles,
         selfBeneficiaryId: selfBeneficiaryId ?? null,
         isSwitchingRole: false,
+        isLoggingOut: false,
       });
 
       registerForPushNotifications(token).catch(err => {
@@ -232,25 +249,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [state.token]);
 
-  // Called from logout button — clears everything
+  /**
+   * logout — Instant, non-blocking, idempotent logout
+   *
+   * 1. Updates UI state immediately to trigger instant navigation to login screen.
+   * 2. Clears React Query cache to prevent stale profile/dashboard data retention.
+   * 3. Cleans up active session keys from AsyncStorage.
+   * 4. Retains biometric credential in SecureStore for seamless Face ID / Touch ID on next launch.
+   * 5. Unregisters push token on backend asynchronously in background without blocking UI.
+   */
   const logout = useCallback(async () => {
-    const currentToken = state.token;
-    try {
-      // Inform backend to clear fcmToken for this user session
-      await unregisterPushToken(currentToken || undefined);
-    } catch (e) {
-      console.warn('[AuthContext] Failed to unregister push token during logout:', e);
-    }
+    if (isLoggingOutRef.current) return;
+    isLoggingOutRef.current = true;
 
-    try {
-      await AsyncStorage.removeItem('userToken');
-      await AsyncStorage.removeItem('userData');
-      await AsyncStorage.removeItem('availableRoles');
-      await AsyncStorage.removeItem('selfBeneficiaryId');
-      await AsyncStorage.clear();
-    } catch (err) {
-      console.error('[AuthContext] Failed to clear AsyncStorage:', err);
-    }
+    const tokenToUnregister = state.token;
+
+    // 1. Immediately update context state so UI shifts to login with zero lag
     setState({
       isLoading: false,
       isLoggedIn: false,
@@ -260,13 +274,54 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       availableRoles: [],
       selfBeneficiaryId: null,
       isSwitchingRole: false,
+      isLoggingOut: true,
     });
+
+    // 2. Clear query cache
+    try {
+      queryClient.clear();
+    } catch (e) {
+      console.warn('[AuthContext] Failed to clear queryClient cache:', e);
+    }
+
+    // 3. Remove active session storage in background
+    try {
+      await AsyncStorage.multiRemove(SESSION_STORAGE_KEYS);
+    } catch (err) {
+      console.error('[AuthContext] Failed to clear session keys from AsyncStorage:', err);
+    }
+
+    // 4. Background push token unregistration
+    if (tokenToUnregister) {
+      unregisterPushToken(tokenToUnregister).catch(e => {
+        console.warn('[AuthContext] Background push token unregistration note:', e);
+      });
+    }
+
+    isLoggingOutRef.current = false;
+    setState(prev => ({ ...prev, isLoggingOut: false }));
   }, [state.token]);
+
+  /**
+   * disableBiometrics — unlinks device biometric credentials (e.g. from user profile settings)
+   */
+  const disableBiometrics = useCallback(async () => {
+    if (Platform.OS === 'web') return;
+    try {
+      await Promise.all([
+        SecureStore.deleteItemAsync('secureUserToken'),
+        SecureStore.deleteItemAsync('secureUserData'),
+      ]);
+    } catch (e) {
+      console.warn('[AuthContext] Failed to delete biometric credentials:', e);
+    }
+  }, []);
 
   const value: AuthContextValue = {
     ...state,
     login,
     logout,
+    disableBiometrics,
     updateUser,
     switchRole,
   };
@@ -276,11 +331,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 
-/**
- * Use this hook in any screen to access auth state:
- *
- * const { isLoggedIn, user, role, login, logout, switchRole, availableRoles } = useAuth();
- */
 export function useAuth(): AuthContextValue {
   const context = useContext(AuthContext);
   if (!context) {

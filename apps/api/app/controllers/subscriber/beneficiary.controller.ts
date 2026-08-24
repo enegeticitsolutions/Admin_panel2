@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import * as beneficiaryService from '../../services/subscriber/beneficiary_service';
-import { createClient } from '@supabase/supabase-js';
+import { getStorageService } from '../../services/storage';
 import { v4 as uuidv4 } from 'uuid';
 
 export const getBeneficiaryProfile = async (req: Request, res: Response) => {
@@ -99,27 +99,11 @@ export const uploadMedicalRecord = async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, message: 'No file uploaded' });
     }
 
-    const url = process.env.SUPABASE_URL;
-    const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
-    if (!url || !key) {
-      throw new Error('Supabase configuration missing');
-    }
-    const supabase = createClient(url, key);
-    const bucket = process.env.STORAGE_BUCKET || 'staff-documents';
-
+    const storage = getStorageService();
     const ext = file.originalname.split('.').pop() || 'pdf';
     const path = `medical_records/${beneficiaryId}/${Date.now()}_${uuidv4().split('-')[0]}.${ext}`;
 
-    const { error } = await supabase.storage
-      .from(bucket)
-      .upload(path, file.buffer, { contentType: file.mimetype, upsert: true });
-
-    if (error) {
-      throw new Error(`Supabase upload failed: ${error.message}`);
-    }
-
-    const { data: publicUrlData } = supabase.storage.from(bucket).getPublicUrl(path);
-    const fileUrl = publicUrlData.publicUrl;
+    const { path: storedPath, url: fileUrl } = await storage.upload(file.buffer, path, file.mimetype);
 
     const record = await beneficiaryService.createMedicalRecord(subscriberId, beneficiaryId, {
       title: req.body.title || file.originalname,

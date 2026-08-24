@@ -21,17 +21,10 @@ import { CustomAlertProvider } from '@/contexts/CustomAlertContext';
 import * as Notifications from 'expo-notifications';
 import { triggerEmergencyAlert } from '@/services/emergencyTrigger';
 
+import { queryClient } from '@/services/queryClient';
+
 // Keep splash screen visible while we load fonts + session
 SplashScreen.preventAutoHideAsync();
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 5 * 60 * 1000,
-      gcTime: 24 * 60 * 60 * 1000,
-    },
-  },
-});
 
 const asyncStoragePersister = createAsyncStoragePersister({
   storage: AsyncStorage,

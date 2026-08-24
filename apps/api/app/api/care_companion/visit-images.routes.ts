@@ -2,8 +2,8 @@ import { Router, Response } from 'express';
 import { authenticate, AuthRequest } from '../shared/deps';
 import prisma from '../../core/database';
 import multer from 'multer';
-import { createClient } from '@supabase/supabase-js';
 import { v4 as uuidv4 } from 'uuid';
+import { getStorageService } from '../../services/storage';
 
 const router = Router();
 
@@ -32,28 +32,16 @@ const uploadMiddleware = multer({
   },
 });
 
-// ─── Supabase client (lazy singleton) ─────────────────────────────────────────
+// ─── Storage (provider-agnostic) ────────────────────────────────────────────
 
-let supabaseClient: any = null;
-function getSupabase() {
-  if (supabaseClient) return supabaseClient;
-  const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
-  if (!url || !key) throw new Error('SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set in .env');
-  supabaseClient = createClient(url, key);
-  return supabaseClient;
-}
-
-/** Upload a buffer to Supabase Storage and return the public URL */
-async function uploadToSupabase(buffer: Buffer, path: string, mimeType: string): Promise<string> {
-  const supabase = getSupabase();
-  const bucket = process.env.STORAGE_BUCKET || 'staff-documents';
-  const { error } = await supabase.storage
-    .from(bucket)
-    .upload(path, buffer, { contentType: mimeType, upsert: false });
-  if (error) throw new Error(`Storage upload failed: ${error.message}`);
-  const { data } = supabase.storage.from(bucket).getPublicUrl(path);
-  return data.publicUrl;
+/** Upload a buffer via the active storage provider and return the public URL.
+ *  Uses Supabase locally (STORAGE_PROVIDER=supabase, default)
+ *  and AWS S3 in deployed environments (STORAGE_PROVIDER=s3).
+ */
+async function uploadFile(buffer: Buffer, path: string, mimeType: string): Promise<string> {
+  const storage = getStorageService();
+  const result = await storage.upload(buffer, path, mimeType);
+  return result.url;
 }
 
 /** Safely parse the imageUrls JSON string field → string array.
@@ -153,7 +141,7 @@ router.post('/:visitId', authenticate, (req: any, res: any, next: any) => {
     const storagePath = `visits/${visitId}/${Date.now()}_${uid}.${ext}`;
 
     const mimeType = file.mimetype === 'image/jpg' ? 'image/jpeg' : file.mimetype;
-    const publicUrl = await uploadToSupabase(file.buffer, storagePath, mimeType);
+    const publicUrl = await uploadFile(file.buffer, storagePath, mimeType);
 
     // Append the new URL and persist
     const updated = [...existing, publicUrl];
@@ -181,7 +169,7 @@ router.post('/:visitId', authenticate, (req: any, res: any, next: any) => {
 // DELETE /api/care-companion/visit-images/:visitId
 // Remove one image URL from the visit's imageUrls array.
 // Body: { "url": "https://..." }
-// Does NOT delete from Supabase storage (safety — admins may still need it).
+// Does NOT delete from S3/Supabase storage (safety — admins may still need it).
 // ─────────────────────────────────────────────────────────────────────────────
 router.delete('/:visitId', authenticate, async (req: AuthRequest, res: Response) => {
   const visitId = req.params.visitId as string;
