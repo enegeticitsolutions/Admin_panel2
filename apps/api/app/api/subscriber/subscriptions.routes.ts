@@ -604,7 +604,7 @@ async function calculateAddonPricing(benefitId: string, subscriptionId: string, 
   if (!benefit) throw new Error('Benefit not found');
   if (!benefit.isAddon) throw new Error('This benefit is not available as an add-on');
   if (!benefit.isActive) throw new Error('This benefit is not currently active');
-  if (!benefit.addonPrice) throw new Error('Add-on price is not configured for this benefit');
+  if (benefit.addonPrice === null || benefit.addonPrice === undefined) throw new Error('Add-on price is not configured for this benefit');
 
   // 2. Verify subscription ownership and load beneficiary info for notification
   const subscription = await prisma.subscription.findFirst({

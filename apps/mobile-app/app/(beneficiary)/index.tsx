@@ -296,6 +296,7 @@ export default function BeneficiaryDashboard() {
             style={styles.container}
             bounces={false}
             showsVerticalScrollIndicator={false}
+            stickyHeaderIndices={[0]}
         >
             <View style={styles.headerWrapper}>
                 <ImageBackground
@@ -303,7 +304,7 @@ export default function BeneficiaryDashboard() {
                     style={styles.headerBackground}
                     resizeMode="cover"
                 >
-                    <View style={{ paddingTop: Math.max(insets.top, Platform.OS === 'android' ? 40 : 20) }}>
+                    <View style={{ paddingTop: Math.max(insets.top, Platform.OS === 'android' ? 40 : 20), paddingBottom: 20 }}>
                         <View style={[styles.headerContent, responsiveContentStyle]}>
                             <View>
                                 <Text style={styles.greetingTitle}>{displayData.greeting}</Text>
@@ -489,8 +490,8 @@ export default function BeneficiaryDashboard() {
                             <Feather name="heart" size={24} color="#EF4444" />
                         </View>
 
-                        <Text style={styles.actionTitle}>Log Vitals</Text>
-                        <Text style={styles.actionSubtitle}>Track blood pressure & more</Text>
+                        <Text style={styles.actionTitle} numberOfLines={1} adjustsFontSizeToFit>Log Vitals</Text>
+                        <Text style={styles.actionSubtitle} numberOfLines={2}>Track blood pressure & more</Text>
                     </TouchableOpacity>
 
                     {sathiEligible && (
@@ -502,8 +503,8 @@ export default function BeneficiaryDashboard() {
                                 <Feather name="users" size={24} color="#FF6A00" />
                             </View>
 
-                            <Text style={styles.actionTitle}>Saathi Companion</Text>
-                            <Text style={styles.actionSubtitle}>Request visit & help</Text>
+                            <Text style={styles.actionTitle} numberOfLines={1} adjustsFontSizeToFit>Saathi Companion</Text>
+                            <Text style={styles.actionSubtitle} numberOfLines={2}>Request visit & help</Text>
                         </TouchableOpacity>
                     )}
 
@@ -515,20 +516,20 @@ export default function BeneficiaryDashboard() {
                             <MaterialCommunityIcons name="pill" size={24} color="#D97706" />
                         </View>
 
-                        <Text style={styles.actionTitle}>Medications</Text>
-                        <Text style={styles.actionSubtitle}>View schedule & details</Text>
+                        <Text style={styles.actionTitle} numberOfLines={1} adjustsFontSizeToFit>Medications</Text>
+                        <Text style={styles.actionSubtitle} numberOfLines={2}>View schedule & details</Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity
                         style={[styles.actionCard, { width: actionCardWidth }]}
-                        onPress={() => router.push('/(beneficiary)/schedule' as any)}
+                        onPress={() => router.push('/package-utilization' as any)}
                     >
-                        <View style={[styles.actionIconBadge, { backgroundColor: '#F3E8FF' }]}>
-                            <Feather name="calendar" size={24} color="#9333EA" />
+                        <View style={[styles.actionIconBadge, { backgroundColor: '#FFF3EB' }]}>
+                            <Feather name="package" size={24} color="#F97316" />
                         </View>
 
-                        <Text style={styles.actionTitle}>Book Appointment</Text>
-                        <Text style={styles.actionSubtitle}>Schedule visit</Text>
+                        <Text style={styles.actionTitle} numberOfLines={1} adjustsFontSizeToFit>Package Utilization</Text>
+                        <Text style={styles.actionSubtitle} numberOfLines={2}>Track your benefits</Text>
                     </TouchableOpacity>
                 </View>
 
@@ -594,7 +595,8 @@ const styles = StyleSheet.create({
         borderBottomLeftRadius: 16,
         borderBottomRightRadius: 16,
         overflow: 'hidden',
-        paddingBottom: 20,
+        zIndex: 10,
+        elevation: 10,
     },
     headerBackground: {
         width: '100%',
@@ -656,7 +658,7 @@ const styles = StyleSheet.create({
     },
     mainContent: {
         paddingHorizontal: 16,
-        paddingTop: 20,
+        paddingTop: 20, // Reduced from hypothetical 40 back to 20 because we kept paddingBottom on headerCurve
     },
     statsRow: {
         flexDirection: 'row',
@@ -864,15 +866,15 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     actionTitle: {
-        marginTop: 12,
+        marginTop: 8,
         fontFamily: 'Poppins-Medium',
-        fontSize: 14,
+        fontSize: 13,
         color: '#000000',
     },
     actionSubtitle: {
         fontFamily: 'Poppins-Regular',
-        fontSize: 12,
-        color: '#333333',
+        fontSize: 11,
+        color: '#4B5563',
         marginTop: 2,
     },
     modalOverlay: {

@@ -64,6 +64,11 @@ export default function AddonsPage() {
     const updates: Partial<Benefit> = { isAddon: nextIsAddon };
     
     if (nextIsAddon) {
+      // Auto-activate the benefit so it is visible in the app
+      if (!b.isActive && edits[b.id]?.isActive !== true) {
+        updates.isActive = true;
+      }
+
       const baseUnits = b.defaultUnits || 1;
       const baseUnitPrice = b.unitCost || 0;
       

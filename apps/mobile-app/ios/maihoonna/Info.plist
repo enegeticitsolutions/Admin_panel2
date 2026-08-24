@@ -42,6 +42,32 @@
     <string>1</string>
     <key>GMSApiKey</key>
     <string>AIzaSyDPrFpN29FZ786mTWjIbeQvW3y6ztjx3xU</string>
+    <key>LSApplicationQueriesSchemes</key>
+    <array>
+      <string>tez</string>
+      <string>phonepe</string>
+      <string>paytmmp</string>
+      <string>credpay</string>
+      <string>mobikwik</string>
+      <string>in.fampay.app</string>
+      <string>bhim</string>
+      <string>amazonpay</string>
+      <string>navi</string>
+      <string>kiwi</string>
+      <string>payzapp</string>
+      <string>jupiter</string>
+      <string>omnicard</string>
+      <string>icici</string>
+      <string>popclubapp</string>
+      <string>sbiyono</string>
+      <string>myjio</string>
+      <string>slice-upi</string>
+      <string>bobupi</string>
+      <string>shriramone</string>
+      <string>indusmobile</string>
+      <string>whatsapp</string>
+      <string>kotakbank</string>
+    </array>
     <key>LSMinimumSystemVersion</key>
     <string>12.0</string>
     <key>LSRequiresIPhoneOS</key>
@@ -50,8 +76,36 @@
     <dict>
       <key>NSAllowsArbitraryLoads</key>
       <false/>
-      <key>NSAllowsLocalNetworking</key>
-      <true/>
+      <key>NSExceptionDomains</key>
+      <dict>
+        <key>razorpay.com</key>
+        <dict>
+          <key>NSExceptionAllowsInsecureHTTPLoads</key>
+          <false/>
+          <key>NSIncludesSubdomains</key>
+          <true/>
+          <key>NSExceptionMinimumTLSVersion</key>
+          <string>TLSv1.2</string>
+        </dict>
+        <key>api.razorpay.com</key>
+        <dict>
+          <key>NSExceptionAllowsInsecureHTTPLoads</key>
+          <false/>
+          <key>NSIncludesSubdomains</key>
+          <true/>
+          <key>NSExceptionMinimumTLSVersion</key>
+          <string>TLSv1.2</string>
+        </dict>
+        <key>checkout.razorpay.com</key>
+        <dict>
+          <key>NSExceptionAllowsInsecureHTTPLoads</key>
+          <false/>
+          <key>NSIncludesSubdomains</key>
+          <true/>
+          <key>NSExceptionMinimumTLSVersion</key>
+          <string>TLSv1.2</string>
+        </dict>
+      </dict>
     </dict>
     <key>NSCameraUsageDescription</key>
     <string>Allow $(PRODUCT_NAME) to access your camera</string>
