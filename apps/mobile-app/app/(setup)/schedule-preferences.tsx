@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator, Animated, Dimensions, Alert, Linking } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator, Animated, Dimensions, Alert, Linking, Modal } from 'react-native';
 
 const { width } = Dimensions.get('window');
 const DRAWER_WIDTH = width * 0.75;
@@ -39,6 +39,8 @@ export default function SchedulePreferencesScreen() {
     const beneficiaryId = params.beneficiaryId as string;
     const pendingDetailsRaw = params.pendingDetails as string;
     const [isLinking, setIsLinking] = useState(false);
+    const [showSuccessModal, setShowSuccessModal] = useState(false);
+    const [enrolledName, setEnrolledName] = useState('');
 
     useEffect(() => {
         AsyncStorage.getItem('userData').then(data => {
@@ -110,11 +112,8 @@ export default function SchedulePreferencesScreen() {
                         alert(`Beneficiary enrolled successfully!\n\n${result.beneficiaryName || 'Beneficiary'} has been linked to your subscription.`);
                         router.replace('/(subscriber)');
                     } else {
-                        Alert.alert(
-                            '✅ Beneficiary Enrolled!',
-                            `${result.beneficiaryName || 'Beneficiary'} has been linked to your subscription.`,
-                            [{ text: 'Go to Dashboard', onPress: () => router.replace('/(subscriber)') }]
-                        );
+                        setEnrolledName(result.beneficiaryName || 'Beneficiary');
+                        setShowSuccessModal(true);
                     }
                 } else {
                     if (Platform.OS === 'web') {
@@ -259,7 +258,7 @@ export default function SchedulePreferencesScreen() {
                                     <ActivityIndicator size="small" color="#FFFFFF" />
                                 ) : (
                                     <Text style={styles.completeBtnText}>
-                                        {isLinkingFlow ? 'Complete Enrollment And Activate Package' : 'Complete Enrollment'}
+                                        Complete Enrollment
                                     </Text>
                                 )}
                             </TouchableOpacity>
@@ -272,6 +271,25 @@ export default function SchedulePreferencesScreen() {
                 </ScrollView>
 
             </KeyboardAvoidingView>
+
+            {/* Custom Success Modal */}
+            <Modal transparent visible={showSuccessModal} animationType="fade">
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <View style={styles.modalIconBox}>
+                            <Ionicons name="checkmark-circle" size={54} color="#10B981" />
+                        </View>
+                        <Text style={styles.modalTitle}>Beneficiary Enrolled!</Text>
+                        <Text style={styles.modalDesc}>{enrolledName} has been linked to your subscription.</Text>
+                        <TouchableOpacity style={styles.modalBtn} onPress={() => {
+                            setShowSuccessModal(false);
+                            router.replace('/(subscriber)');
+                        }}>
+                            <Text style={styles.modalBtnText}>Go to Dashboard</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
 
             <GlobalDrawer
                 isOpen={drawerOpen}
@@ -329,8 +347,17 @@ const styles = StyleSheet.create({
     divider: { height: 1, backgroundColor: '#E5E7EB', marginBottom: 13 },
 
     buttonContainerStacked: { alignItems: 'center' },
-    completeBtn: { width: '100%', height: 49, backgroundColor: '#FE6700', borderRadius: 8, alignItems: 'center', justifyContent: 'center', marginBottom: 19 },
+    completeBtn: { width: '48%', minWidth: 169, height: 50, backgroundColor: '#FE6700', borderRadius: 8, alignItems: 'center', justifyContent: 'center', marginBottom: 19 },
     completeBtnText: { color: '#FFFFFF', fontSize: 18, lineHeight: 25, fontWeight: '600', fontFamily: 'Poppins_600SemiBold' },
     prevBtnStacked: { width: '48%', minWidth: 169, height: 50, borderWidth: 1, borderColor: '#FE6700', borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF' },
-    prevBtnTextStacked: { color: '#FE6700', fontSize: 18, lineHeight: 25, fontWeight: '600', fontFamily: 'Poppins_600SemiBold' }
+    prevBtnTextStacked: { color: '#FE6700', fontSize: 18, lineHeight: 25, fontWeight: '600', fontFamily: 'Poppins_600SemiBold' },
+
+    // Modal Styles
+    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
+    modalContent: { width: '85%', maxWidth: 400, backgroundColor: '#FFF', borderRadius: 16, padding: 24, alignItems: 'center' },
+    modalIconBox: { marginBottom: 16 },
+    modalTitle: { fontSize: 22, color: '#111827', fontFamily: 'Poppins_600SemiBold', marginBottom: 8, textAlign: 'center' },
+    modalDesc: { fontSize: 16, color: '#4B5563', fontFamily: 'Poppins_400Regular', textAlign: 'center', marginBottom: 24, lineHeight: 22 },
+    modalBtn: { backgroundColor: '#FE6700', width: '100%', height: 48, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
+    modalBtnText: { color: '#FFF', fontSize: 16, fontFamily: 'Poppins_600SemiBold' }
 });

@@ -1,4 +1,6 @@
 import { numberToWords } from '../../utils/numberToWords';
+import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
 
 export interface InvoiceItem {
   description: string;
@@ -286,8 +288,6 @@ export const generateInvoicePDF = async (data: InvoiceData) => {
   `;
 
   try {
-    const Print = require('expo-print');
-    const Sharing = require('expo-sharing');
     const { uri } = await Print.printToFileAsync({
       html,
       base64: false,

@@ -1,4 +1,4 @@
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, Alert, ActivityIndicator, TouchableWithoutFeedback, Keyboard } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, Alert, ActivityIndicator, TouchableWithoutFeedback, Keyboard, useWindowDimensions } from 'react-native';
 import { useState, useRef } from "react";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -13,6 +13,7 @@ import { useAndroidBackHandler } from '@/hooks/useAndroidBackHandler';
 import { IS_PASSWORD_LOGIN_ENABLED } from '@/constants/authMode';
 
 export default function VerifyOtpScreen() {
+    const { width: screenWidth, height: screenHeight } = useWindowDimensions();
     const router = useRouter();
     const { push, replace, pop } = useNavigationStack();
     useAndroidBackHandler();
@@ -147,11 +148,17 @@ export default function VerifyOtpScreen() {
                         style={styles.card}
                     >
                         <View style={styles.otpContainer}>
-                            {otp.map((digit, index) => (
+                            {otp.map((digit, index) => {
+                                // Each box: (card width - 2*cardPadding - 5*gap) / 6
+                                const cardPadding = Math.max(16, screenWidth * 0.07);
+                                const cardWidth = screenWidth - 40; // container paddingH is 20*2
+                                const gap = Math.max(6, screenWidth * 0.016);
+                                const boxSize = Math.min(52, Math.floor((cardWidth - cardPadding * 2 - gap * 5) / 6));
+                                return (
                                 <TextInput
                                     key={index}
                                     ref={(ref: TextInput | null) => { inputRefs.current[index] = ref; }}
-                                    style={[styles.otpInput, digit ? styles.otpInputFilled : null]}
+                                    style={[styles.otpInput, digit ? styles.otpInputFilled : null, { width: boxSize, height: Math.min(60, boxSize * 1.1) }]}
                                     keyboardType="numeric"
                                     maxLength={1}
                                     value={digit}
@@ -159,7 +166,8 @@ export default function VerifyOtpScreen() {
                                     onKeyPress={(e) => handleKeyPress(e, index)}
                                     editable={!isLoading}
                                 />
-                            ))}
+                                );
+                            })}
                         </View>
 
                         <Text style={styles.resendTimer}>Resend code in 00:55</Text>
@@ -175,7 +183,7 @@ export default function VerifyOtpScreen() {
                         </TouchableOpacity>
 
                         <TouchableOpacity
-                            style={[styles.verifyButton, isLoading && styles.verifyButtonDisabled]}
+                            style={[styles.verifyButton, isLoading && styles.verifyButtonDisabled, { width: Math.min(282, screenWidth - 80) }]}
                             onPress={handleVerify}
                             disabled={isLoading}
                             activeOpacity={0.85}
@@ -209,8 +217,8 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         paddingHorizontal: 20,
-        paddingTop: Platform.OS === "ios" ? 18 : 28,
-        paddingBottom: 34,
+        paddingTop: Platform.OS === "ios" ? 12 : 16,
+        paddingBottom: 20,
         justifyContent: "space-between",
     },
     header: {
@@ -237,8 +245,9 @@ const styles = StyleSheet.create({
     },
     heroTextWrap: {
         alignItems: "center",
-        marginTop: 126,
-        marginBottom: 26,
+        marginTop: 0,
+        marginBottom: 20,
+        paddingTop: 0,
     },
     title: {
         fontSize: 24,
@@ -266,9 +275,9 @@ const styles = StyleSheet.create({
     card: {
         width: "100%",
         borderRadius: 10,
-        paddingHorizontal: 36,
-        paddingTop: 32,
-        paddingBottom: 43,
+        paddingHorizontal: 20,
+        paddingTop: 24,
+        paddingBottom: 32,
         shadowColor: "#000000",
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.15,
@@ -278,8 +287,9 @@ const styles = StyleSheet.create({
     otpContainer: {
         flexDirection: "row",
         justifyContent: "center",
-        gap: 8,
-        marginBottom: 38,
+        gap: 6,
+        marginBottom: 24,
+        flexWrap: "nowrap",
     },
     otpInput: {
         width: 48,
@@ -289,8 +299,9 @@ const styles = StyleSheet.create({
         borderColor: "#D1D5DB",
         backgroundColor: "#FFFFFF",
         textAlign: "center",
+        textAlignVertical: "center",
+        padding: 0,
         fontSize: 20,
-        lineHeight: 28,
         color: "#000000",
         fontFamily: "Poppins-SemiBold",
     },
@@ -298,20 +309,20 @@ const styles = StyleSheet.create({
         borderColor: "#FE6700",
     },
     resendTimer: {
-        fontSize: 16,
-        lineHeight: 24,
+        fontSize: 14,
+        lineHeight: 20,
         color: "#000000",
         textAlign: "center",
         fontFamily: "Poppins-Regular",
-        marginBottom: 14,
+        marginBottom: 10,
     },
     resendLink: {
-        fontSize: 16,
-        lineHeight: 24,
+        fontSize: 14,
+        lineHeight: 20,
         color: "#FE6700",
         textAlign: "center",
         fontFamily: "Poppins-Medium",
-        marginBottom: 38,
+        marginBottom: 24,
     },
     verifyButton: {
         width: 282,
