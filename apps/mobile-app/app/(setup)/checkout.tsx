@@ -948,7 +948,7 @@ export default function CheckoutScreen() {
                                             <View style={styles.promoInputRow}>
                                                 <TextInput
                                                     style={styles.promoInput}
-                                                    placeholder="Enter Code"
+                                                    placeholder="Enter coupon code"
                                                     placeholderTextColor="#9CA3AF"
                                                     value={promoCode}
                                                     onChangeText={(text) => { setPromoCode(text.toUpperCase()); setCouponError(''); }}
@@ -1210,10 +1210,10 @@ const styles = StyleSheet.create({
     promoTipTextContainer: { flex: 1 },
     promoTipText: { fontSize: 13, fontWeight: '400', color: '#111827' },
     promoHighlight: { color: '#FE6700', fontWeight: '700' },
-    applyBtnText: { color: '#FE6700', fontWeight: '600', fontSize: fs(22), lineHeight: fs(30), fontFamily: 'Poppins_600SemiBold' },
+    applyBtnText: { color: '#FE6700', fontWeight: '600', fontSize: 14, fontFamily: 'Poppins_600SemiBold' },
     promoInputRow: { flexDirection: 'row', marginBottom: fs(15) },
-    promoInput: { flex: 1, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#D1D5DB', borderRadius: fs(12), paddingHorizontal: fs(25), height: fs(58), fontSize: fs(24), lineHeight: fs(32), fontWeight: '400', fontFamily: 'Poppins_400Regular', marginRight: fs(24) },
-    applyBtnOutline: { borderWidth: 1, borderColor: '#FE6700', borderRadius: fs(10), justifyContent: 'center', paddingHorizontal: fs(21), backgroundColor: '#FFFFFF' },
+    promoInput: { flex: 1, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 8, paddingHorizontal: 16, height: 48, fontSize: 14, fontWeight: '400', fontFamily: 'Poppins_400Regular', marginRight: 12 },
+    applyBtnOutline: { borderWidth: 1, borderColor: '#FE6700', borderRadius: 8, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 20, backgroundColor: '#FFFFFF', height: 48 },
     payButton: { backgroundColor: '#FE6700', flexDirection: 'row', height: fs(78), borderRadius: fs(9), justifyContent: 'center', alignItems: 'center', marginBottom: fs(35) },
     payBtnIcon: { marginRight: fs(14) },
     payButtonText: { color: '#FFFFFF', fontSize: fs(26), lineHeight: fs(34), fontWeight: '600', fontFamily: 'Poppins_600SemiBold' },
