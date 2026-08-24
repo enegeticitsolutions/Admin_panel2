@@ -96,9 +96,9 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/group4.png",
-          "resizeMode": "contain",
-          "backgroundColor": "#ffffff"
+          "image": "./assets/images/new_splash_screen.png",
+          "resizeMode": "cover",
+          "backgroundColor": "#FFF0E6"
         }
       ],
       [

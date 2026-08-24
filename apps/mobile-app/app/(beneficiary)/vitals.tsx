@@ -87,7 +87,7 @@ export default function VitalsScreen() {
             {/* Header */}
             <View style={styles.topBar}>
                 <TouchableOpacity onPress={() => safeBack()} style={styles.backBtn}>
-                    <Ionicons name="chevron-back" size={22} color="#111827" />
+                    <Ionicons name="chevron-back" size={22} color="#FFFFFF" />
                 </TouchableOpacity>
                 <View style={styles.topBarContent}>
                     <Text style={styles.topBarTitle}>My Vitals</Text>
@@ -95,7 +95,7 @@ export default function VitalsScreen() {
                 </View>
                 {!showForm && (
                     <TouchableOpacity onPress={() => setShowForm(true)} style={styles.addBtn}>
-                        <Ionicons name="add" size={20} color="#FF6900" />
+                        <Ionicons name="add" size={20} color="#FFFFFF" />
                     </TouchableOpacity>
                 )}
             </View>
@@ -189,22 +189,23 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingHorizontal: 16,
         paddingVertical: 12,
-        backgroundColor: '#FFFFFF',
-        borderBottomWidth: 1,
-        borderBottomColor: '#E5E7EB',
+        marginHorizontal: 16,
+        marginTop: 8,
+        backgroundColor: '#FF6900',
+        borderRadius: 20,
         gap: 12,
     },
     backBtn: {
         width: 36, height: 36, borderRadius: 12,
-        backgroundColor: '#F3F4F6',
+        backgroundColor: 'rgba(255,255,255,0.2)',
         justifyContent: 'center', alignItems: 'center',
     },
     topBarContent: { flex: 1 },
-    topBarTitle: { fontSize: 17, fontWeight: '800', color: '#111827' },
-    topBarSub: { fontSize: 12, color: '#6B7280', marginTop: 1 },
+    topBarTitle: { fontSize: 17, fontWeight: '800', color: '#FFFFFF' },
+    topBarSub: { fontSize: 12, color: 'rgba(255,255,255,0.9)', marginTop: 1 },
     addBtn: {
         width: 36, height: 36, borderRadius: 12,
-        backgroundColor: '#FEF2ED',
+        backgroundColor: 'rgba(255,255,255,0.2)',
         justifyContent: 'center', alignItems: 'center',
     },
 

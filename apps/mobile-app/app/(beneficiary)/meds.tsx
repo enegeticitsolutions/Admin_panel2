@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, ScrollView, Platform, Animated, TouchableWithoutFeedback, Alert, Image, useWindowDimensions } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import Svg, { Path } from 'react-native-svg';
 import { API_URL } from '@/constants/api';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -102,6 +103,7 @@ type Props = {
 };
 
 export default function MedsTracker({ beneficiaryId: propBeneficiaryId }: Props) {
+    const router = useRouter();
     const { width } = useWindowDimensions();
     const MAX_CONTENT_WIDTH = 440;
     const responsiveStyle = { width: '100%' as const, maxWidth: MAX_CONTENT_WIDTH, alignSelf: 'center' as const };
@@ -326,9 +328,14 @@ export default function MedsTracker({ beneficiaryId: propBeneficiaryId }: Props)
 
     return (
         <SafeAreaView style={styles.safeArea}>
-            <View style={[styles.header, responsiveStyle]}>
-                <Text style={styles.headerTitle}>Medications</Text>
-                <Text style={styles.headerSub}>Today's medication schedule</Text>
+            <View style={styles.header}>
+                <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+                    <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
+                </TouchableOpacity>
+                <View style={styles.headerContent}>
+                    <Text style={styles.headerTitle}>Medications</Text>
+                    <Text style={styles.headerSub}>Today's medication schedule</Text>
+                </View>
             </View>
 
             <ScrollView style={styles.container} contentContainerStyle={[styles.content, responsiveStyle]} showsVerticalScrollIndicator={false}>
@@ -496,21 +503,38 @@ const styles = StyleSheet.create({
         backgroundColor: '#FFFFFF',
     },
     header: {
-        backgroundColor: '#FFFFFF',
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        marginHorizontal: 16,
+        marginTop: 8,
+        backgroundColor: '#FF6900',
+        borderRadius: 20,
+        gap: 12,
+    },
+    backBtn: {
+        width: 36,
+        height: 36,
+        borderRadius: 12,
+        backgroundColor: 'rgba(255,255,255,0.2)',
         justifyContent: 'center',
         alignItems: 'center',
-        paddingVertical: 12,
+    },
+    headerContent: {
+        flex: 1,
     },
     headerTitle: {
         fontFamily: 'Poppins-Medium',
-        fontSize: 18,
-        color: '#111827',
+        fontSize: 17,
+        fontWeight: '800',
+        color: '#FFFFFF',
     },
     headerSub: {
         fontFamily: 'Poppins-Regular',
-        fontSize: 13,
-        color: '#6B7280',
-        marginTop: 2,
+        fontSize: 12,
+        color: 'rgba(255,255,255,0.9)',
+        marginTop: 1,
     },
     container: {
         flex: 1,

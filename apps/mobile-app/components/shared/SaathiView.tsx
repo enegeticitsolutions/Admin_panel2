@@ -564,12 +564,12 @@ export function SaathiView({
   // --- RENDER VOLUNTEER LIST ---
   return (
     <SafeAreaView style={styles.container}>
-      <View style={[styles.header, responsiveStyle]}>
+      <View style={styles.header}>
         <TouchableOpacity onPress={() => safeBack()} style={styles.backBtn}>
-          <Feather name="arrow-left" size={24} color="#000" />
+          <Feather name="arrow-left" size={22} color="#FFFFFF" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Saathi Network</Text>
-        <View style={{ width: 24 }} />
+        <View style={{ width: 36 }} />
       </View>
 
       <ScrollView style={[styles.content, responsiveStyle]} showsVerticalScrollIndicator={false}>
@@ -1067,19 +1067,25 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: '#FFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#FFE3D1',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginHorizontal: 16,
+    marginTop: 8,
+    backgroundColor: '#FF6900',
+    borderRadius: 20,
   },
   backBtn: {
-    padding: 4,
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#111827',
+    fontSize: 17,
+    fontWeight: '800',
+    color: '#FFFFFF',
   },
   content: {
     flex: 1,

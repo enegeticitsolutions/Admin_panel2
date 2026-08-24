@@ -168,7 +168,7 @@ function RootNavigator() {
     // Cleanup: remove SOS notification on logout
     return () => {
       responseSub?.remove();
-      Notifications.cancelAllScheduledNotificationsAsync().catch(() => {});
+      Notifications.cancelAllScheduledNotificationsAsync().catch(() => { });
     };
   }, [isLoggedIn, role]);
 
@@ -233,7 +233,6 @@ export default function RootLayout() {
       SplashScreen.hideAsync();
     }
   }, [fontsLoaded, error]);
-
   console.log('RootLayout Render:', { fontsLoaded, error });
   if (!fontsLoaded && !error) return null;
 

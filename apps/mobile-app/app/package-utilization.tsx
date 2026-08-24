@@ -463,7 +463,7 @@ export default function PackageUtilizationScreen() {
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => safeBack()}>
-          <Ionicons name="arrow-back" size={24} color="#111827" />
+          <Ionicons name="arrow-back" size={22} color="#FFFFFF" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Package Utilization</Text>
       </View>
@@ -730,9 +730,26 @@ export default function PackageUtilizationScreen() {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#FFF2E8' },
-  header: { flexDirection: 'row', alignItems: 'center', padding: 16, backgroundColor: '#FFF2E8', borderBottomWidth: 1, borderBottomColor: '#F2E7DE' },
-  backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
-  headerTitle: { fontSize: 20, fontWeight: '700', color: '#111827' },
+  header: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    paddingHorizontal: 16, 
+    paddingVertical: 12, 
+    marginHorizontal: 16, 
+    marginTop: 8, 
+    backgroundColor: '#FF6900', 
+    borderRadius: 20,
+    gap: 12,
+  },
+  backBtn: { 
+    width: 36, 
+    height: 36, 
+    borderRadius: 12, 
+    backgroundColor: 'rgba(255,255,255,0.2)', 
+    alignItems: 'center', 
+    justifyContent: 'center',
+  },
+  headerTitle: { fontSize: 17, fontWeight: '800', color: '#FFFFFF' },
   
   scrollView: { flex: 1 },
   scrollContent: { padding: 16, paddingBottom: 140 },
