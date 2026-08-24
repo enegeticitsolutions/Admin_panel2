@@ -11,7 +11,7 @@ import AccountPage from "./pages/AccountPage";
 import CheckoutPage from "./pages/CheckoutPage";
 import PlansPage from "./pages/PlansPage";
 import SiteGatekeeper from "./components/SiteGatekeeper";
-import { fetchSubscriptionPackages } from "./services/api";
+import { fetchSubscriptionPackages, isTokenExpired } from "./services/api";
 
 import SeoHead from "./components/seo/SeoHead";
 import NotFoundPage from "./pages/NotFoundPage";
@@ -60,13 +60,39 @@ const App = () => {
   // User Auth State
   const [user, setUser] = useState(() => {
     try {
+      const storedToken = localStorage.getItem("mhn_token");
+      if (!storedToken || isTokenExpired(storedToken)) {
+        localStorage.removeItem("mhn_token");
+        localStorage.removeItem("mhn_user");
+        return null;
+      }
       const u = localStorage.getItem("mhn_user");
       return u ? JSON.parse(u) : null;
     } catch (e) {
       return null;
     }
   });
-  const [token, setToken] = useState(() => localStorage.getItem("mhn_token") || "");
+
+  const [token, setToken] = useState(() => {
+    const storedToken = localStorage.getItem("mhn_token");
+    if (!storedToken || isTokenExpired(storedToken)) {
+      return "";
+    }
+    return storedToken;
+  });
+
+  // Listen for session expiry from API interceptor
+  useEffect(() => {
+    const handleExpired = () => {
+      setUser(null);
+      setToken("");
+      if (activePage === "account" || activePage === "checkout") {
+        setActivePage("auth");
+      }
+    };
+    window.addEventListener("mhn:auth_expired", handleExpired);
+    return () => window.removeEventListener("mhn:auth_expired", handleExpired);
+  }, [activePage]);
 
   // Checkout package selection state
   const [selectedPackageForCheckout, setSelectedPackageForCheckout] = useState(null);
@@ -113,6 +139,7 @@ const App = () => {
     } catch (e) { }
     setActivePage("home");
   };
+
 
   const handleSelectPackageForBuy = (plan) => {
     if (!token || !user) {

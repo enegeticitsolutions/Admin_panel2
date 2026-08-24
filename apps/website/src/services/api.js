@@ -39,14 +39,60 @@ export const formatPhone = (phoneRaw, prefixPlus = true) => {
 };
 
 /**
+ * Check if a JWT token is expired
+ */
+export const isTokenExpired = (jwtToken) => {
+  if (!jwtToken || typeof jwtToken !== 'string') return true;
+  try {
+    const parts = jwtToken.split('.');
+    if (parts.length !== 3) return true;
+    const payload = JSON.parse(atob(parts[1]));
+    if (!payload.exp) return false;
+    const nowInSecs = Math.floor(Date.now() / 1000);
+    return payload.exp < nowInSecs;
+  } catch (e) {
+    return true;
+  }
+};
+
+/**
+ * Handle unauthorized / expired session
+ */
+export const handleSessionExpired = () => {
+  try {
+    localStorage.removeItem('mhn_token');
+    localStorage.removeItem('mhn_user');
+    window.dispatchEvent(new CustomEvent('mhn:auth_expired'));
+  } catch (e) {}
+};
+
+/**
+ * Secure fetch wrapper that handles auth headers and auto-detects 401s
+ */
+const secureFetch = async (url, options = {}) => {
+  const headers = {
+    'Content-Type': 'application/json',
+    ...(options.headers || {}),
+  };
+
+  const response = await fetch(url, { ...options, headers });
+  
+  if (response.status === 401) {
+    handleSessionExpired();
+    throw new Error('Your session has expired. Please log in again.');
+  }
+
+  return response;
+};
+
+/**
  * 1. Send OTP to user phone
  * Endpoint: POST /api/auth/send-otp
  */
 export const sendOtp = async (phoneRaw) => {
   const phone = formatPhone(phoneRaw, false); // "919999999999"
-  const response = await fetch(`${API_BASE}/auth/send-otp`, {
+  const response = await secureFetch(`${API_BASE}/auth/send-otp`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ phone }),
   });
   const data = await response.json();
@@ -62,9 +108,8 @@ export const sendOtp = async (phoneRaw) => {
  */
 export const verifyOtp = async (phoneRaw, otpCode) => {
   const phone = formatPhone(phoneRaw, true); // "+919999999999"
-  const response = await fetch(`${API_BASE}/auth/verify-otp`, {
+  const response = await secureFetch(`${API_BASE}/auth/verify-otp`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ phone, otp: otpCode }),
   });
   const data = await response.json();
@@ -84,9 +129,8 @@ export const verifyOtp = async (phoneRaw, otpCode) => {
  */
 export const registerUser = async ({ phoneRaw, name, age, password }) => {
   const phone = formatPhone(phoneRaw, true); // "+919999999999"
-  const response = await fetch(`${API_BASE}/auth/register-password`, {
+  const response = await secureFetch(`${API_BASE}/auth/register-password`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       phone,
       name,
@@ -111,9 +155,8 @@ export const registerUser = async ({ phoneRaw, name, age, password }) => {
  */
 export const loginWithPassword = async ({ phoneRaw, password }) => {
   const phone = formatPhone(phoneRaw, true); // "+919999999999"
-  const response = await fetch(`${API_BASE}/auth/login-password`, {
+  const response = await secureFetch(`${API_BASE}/auth/login-password`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ phone, password }),
   });
   const data = await response.json();
@@ -132,7 +175,7 @@ export const loginWithPassword = async ({ phoneRaw, password }) => {
  * Endpoint: GET /api/subscriber/subscriptions/packages
  */
 export const fetchSubscriptionPackages = async () => {
-  const response = await fetch(`${API_BASE}/subscriber/subscriptions/packages`);
+  const response = await secureFetch(`${API_BASE}/subscriber/subscriptions/packages`);
   const data = await response.json();
   if (!response.ok || !data.success) {
     throw new Error(data.message || 'Failed to load subscription packages.');
@@ -145,10 +188,9 @@ export const fetchSubscriptionPackages = async () => {
  * Endpoint: POST /api/subscriber/coupons/validate
  */
 export const validateCouponCode = async (token, couponCode, packageId, amount) => {
-  const response = await fetch(`${API_BASE}/subscriber/coupons/validate`, {
+  const response = await secureFetch(`${API_BASE}/subscriber/coupons/validate`, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
       Authorization: `Bearer ${token}`,
     },
     body: JSON.stringify({ code: couponCode, packageId, amount }),
@@ -164,14 +206,17 @@ export const validateCouponCode = async (token, couponCode, packageId, amount) =
  * 6b. Create Razorpay Order
  * Endpoint: POST /api/subscriber/subscriptions/create-order
  */
-export const createRazorpayOrder = async (token, packageId, couponCode) => {
-  const response = await fetch(`${API_BASE}/subscriber/subscriptions/create-order`, {
+export const createRazorpayOrder = async (token, packageId, couponCode, durationMonths = 1) => {
+  const response = await secureFetch(`${API_BASE}/subscriber/subscriptions/create-order`, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
       Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify({ packageId, couponCode: couponCode || undefined }),
+    body: JSON.stringify({ 
+      packageId, 
+      couponCode: couponCode || undefined,
+      durationMonths: Number(durationMonths) || 1
+    }),
   });
   const data = await response.json();
   if (!response.ok || !data.success) {
@@ -185,15 +230,15 @@ export const createRazorpayOrder = async (token, packageId, couponCode) => {
  * Endpoint: POST /api/subscriber/subscriptions/purchase
  */
 export const purchaseSubscription = async (token, payload) => {
-  const response = await fetch(`${API_BASE}/subscriber/subscriptions/purchase`, {
+  const response = await secureFetch(`${API_BASE}/subscriber/subscriptions/purchase`, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
       Authorization: `Bearer ${token}`,
     },
     body: JSON.stringify({
       packageId: payload.packageId,
       couponCode: payload.couponCode || undefined,
+      durationMonths: payload.durationMonths || 1,
       beneficiaryData: payload.beneficiaryData || null,
       medicalData: payload.medicalData || null,
       emergencyContacts: payload.emergencyContacts || null,
@@ -214,7 +259,7 @@ export const purchaseSubscription = async (token, payload) => {
  * Endpoint: GET /api/subscriber/dashboard/me
  */
 export const fetchSubscriberDashboard = async (token) => {
-  const response = await fetch(`${API_BASE}/subscriber/dashboard/me`, {
+  const response = await secureFetch(`${API_BASE}/subscriber/dashboard/me`, {
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -225,3 +270,4 @@ export const fetchSubscriberDashboard = async (token) => {
   }
   return data.data || data;
 };
+

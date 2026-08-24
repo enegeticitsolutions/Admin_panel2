@@ -99,15 +99,19 @@ export default function AuthPage({ onAuthSuccess, onGoBack, initialView = "PHONE
       setError("Please enter a valid age (18+).");
       return;
     }
-    if (!password || password.length < 6) {
-      setError("Password must be at least 6 characters.");
+    if (!password || password.length < 8) {
+      setError("Password must be at least 8 characters long.");
+      return;
+    }
+    if (!/[A-Za-z]/.test(password) || !/[0-9]/.test(password)) {
+      setError("Password must contain both letters and numbers for security.");
       return;
     }
 
     setLoading(true);
     try {
       // Hits POST /api/auth/register-password -> creates user in DB as 'prospect' role
-      const res = await registerUser({ phoneRaw: cleanPhone, name, age: ageNum, password });
+      const res = await registerUser({ phoneRaw: cleanPhone, name: name.trim(), age: ageNum, password });
       onAuthSuccess(res.user, res.token);
     } catch (err) {
       setError(err.message || "Account creation failed.");

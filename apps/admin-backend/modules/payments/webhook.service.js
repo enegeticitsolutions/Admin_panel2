@@ -1,3 +1,4 @@
+const crypto = require('crypto');
 const clean = (s) => (s || '').toString().replace(/^["']|["']$/g, '').trim();
 
 function getWebhookSecret() {

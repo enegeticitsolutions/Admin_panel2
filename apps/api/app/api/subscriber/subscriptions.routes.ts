@@ -1,4 +1,5 @@
-import { Router, Request, Response } from 'express';
+import { Router, Request, Response, RequestHandler } from 'express';
+import rateLimit from 'express-rate-limit';
 import { authenticate, AuthRequest } from '../shared/deps';
 import * as subscriptionService from '../../services/subscriber/subscription_service';
 import { validateCoupon } from '../../services/coupon_service';
@@ -10,6 +11,15 @@ import { generateUUID } from '../../utils/helpers';
 import { generateInvoiceNumber, calculateGST } from '../../utils/invoice_utils';
 
 const router = Router();
+
+// Payment & Order Rate Limiter (max 30 requests per 15 mins per IP)
+const paymentLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  message: { success: false, message: 'Too many payment requests from this IP. Please try again after 15 minutes.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 // ─── GST rate used everywhere in checkout (server-side source of truth) ───────
 const GST_RATE = 0.18; // 18%
@@ -206,7 +216,7 @@ router.post('/checkout/preview', authenticate, async (req: AuthRequest, res: Res
 // Server-side calculation -> create razorpay order
 // Body: { packageId, couponCode?, selectedAddons?, durationMonths? }
 // ─────────────────────────────────────────────────────────────────────────────
-router.post('/create-order', authenticate, async (req: AuthRequest, res: Response) => {
+router.post('/create-order', paymentLimiter as unknown as RequestHandler, authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.userId!;
     const { packageId, couponCode, selectedAddons, durationMonths } = req.body;
@@ -335,7 +345,7 @@ router.post('/:subscriptionId/link-beneficiary', authenticate, async (req: AuthR
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /subscriber/subscriptions/purchase
 // ─────────────────────────────────────────────────────────────────────────────
-router.post('/purchase', authenticate, async (req: AuthRequest, res: Response) => {
+router.post('/purchase', paymentLimiter as unknown as RequestHandler, authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.userId!; // Use authenticated userId
     const { 
@@ -355,6 +365,24 @@ router.post('/purchase', authenticate, async (req: AuthRequest, res: Response) =
       throw new Error("Missing required payload field: packageId is required.");
     }
 
+    // Check duplicate payment claim / replay prevention
+    if (razorpay_payment_id && !razorpay_payment_id.startsWith('DEV_MOCK_PAYMENT_')) {
+      const existingPayment = await prisma.payment.findFirst({
+        where: {
+          OR: [
+            { gatewayPaymentId: razorpay_payment_id },
+            { transactionId: razorpay_payment_id }
+          ]
+        }
+      });
+      if (existingPayment) {
+        return res.status(409).json({
+          success: false,
+          message: 'This payment transaction has already been processed and claimed.'
+        });
+      }
+    }
+
     // Verify Payment Signature if payment details are provided
     if (razorpay_payment_id && razorpay_order_id && razorpay_signature) {
       if (razorpay_signature === 'DEV_MOCK_SIGNATURE' || config.nodeEnv === 'development') {
@@ -365,11 +393,6 @@ router.post('/purchase', authenticate, async (req: AuthRequest, res: Response) =
           throw new Error("Invalid payment signature. Payment verification failed.");
         }
       }
-    } else {
-      // For now, depending on your business logic, if Razorpay is mandatory, you'd reject here:
-      // throw new Error("Payment details are required.");
-      // We will allow it to pass temporarily if they are not provided (for e.g. 100% off coupon),
-      // but in production, if total > 0, it should be required.
     }
 
     const result = await subscriptionService.purchaseSubscription(
@@ -380,7 +403,12 @@ router.post('/purchase', authenticate, async (req: AuthRequest, res: Response) =
       emergencyContacts,
       couponCode,
       selectedAddons,
-      durationMonths
+      durationMonths,
+      {
+        razorpay_payment_id,
+        razorpay_order_id,
+        razorpay_signature
+      }
     );
 
     // Generate new token containing the updated subscriber role
@@ -690,7 +718,7 @@ router.post('/addon/preview', authenticate, async (req: AuthRequest, res: Respon
 // Creates a Razorpay order for an add-on purchase.
 // Body: { subscriptionId, benefitId, quantity? }
 // ─────────────────────────────────────────────────────────────────────────────
-router.post('/addon/create-order', authenticate, async (req: AuthRequest, res: Response) => {
+router.post('/addon/create-order', paymentLimiter as unknown as RequestHandler, authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.userId!;
     const { subscriptionId, benefitId, quantity } = req.body;
@@ -730,13 +758,31 @@ router.post('/addon/create-order', authenticate, async (req: AuthRequest, res: R
 // Verifies payment and credits the benefit units to the subscription.
 // Body: { subscriptionId, benefitId, quantity?, razorpay_payment_id, razorpay_order_id, razorpay_signature }
 // ─────────────────────────────────────────────────────────────────────────────
-router.post('/addon/purchase', authenticate, async (req: AuthRequest, res: Response) => {
+router.post('/addon/purchase', paymentLimiter as unknown as RequestHandler, authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.userId!;
     const { subscriptionId, benefitId, quantity, razorpay_payment_id, razorpay_order_id, razorpay_signature } = req.body;
 
     if (!subscriptionId || !benefitId) {
       return res.status(400).json({ success: false, message: 'subscriptionId and benefitId are required' });
+    }
+
+    // Check duplicate payment claim / replay prevention
+    if (razorpay_payment_id && !razorpay_payment_id.startsWith('DEV_MOCK_PAYMENT_')) {
+      const existingPayment = await prisma.payment.findFirst({
+        where: {
+          OR: [
+            { gatewayPaymentId: razorpay_payment_id },
+            { transactionId: razorpay_payment_id }
+          ]
+        }
+      });
+      if (existingPayment) {
+        return res.status(409).json({
+          success: false,
+          message: 'This payment transaction has already been processed and claimed.'
+        });
+      }
     }
 
     // 1. Verify payment signature (same pattern as /purchase)

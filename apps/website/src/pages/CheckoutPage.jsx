@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { validateCouponCode, createRazorpayOrder, purchaseSubscription } from "../services/api";
 import logo from "../assets/logo.svg";
 
@@ -49,7 +49,11 @@ export default function CheckoutPage({ selectedPackage, token, user, onSuccess, 
   const [couponError, setCouponError] = useState("");
   const [couponLoading, setCouponLoading] = useState(false);
 
-  const [purchasing, setPurchasing] = useState(false);
+  // Payment execution state: 'idle' | 'creating_order' | 'gateway_open' | 'verifying'
+  const [paymentStage, setPaymentStage] = useState("idle");
+  const isPaymentBusy = paymentStage !== "idle";
+  const paymentLockRef = useRef(false);
+
   const [purchaseError, setPurchaseError] = useState("");
   const [purchaseSuccess, setPurchaseSuccess] = useState(null);
 
@@ -86,6 +90,7 @@ export default function CheckoutPage({ selectedPackage, token, user, onSuccess, 
 
   const handleApplyCoupon = async (e) => {
     e.preventDefault();
+    if (isPaymentBusy) return;
     setCouponError("");
     if (!couponCode.trim()) return;
     setCouponLoading(true);
@@ -100,7 +105,17 @@ export default function CheckoutPage({ selectedPackage, token, user, onSuccess, 
     }
   };
 
+  const unlockPayment = () => {
+    paymentLockRef.current = false;
+    setPaymentStage("idle");
+  };
+
   const handlePay = async () => {
+    // Prevent double clicking / concurrent executions
+    if (paymentLockRef.current || isPaymentBusy) {
+      return;
+    }
+
     setPurchaseError("");
 
     if (!razorpayLoaded || !window.Razorpay) {
@@ -108,7 +123,9 @@ export default function CheckoutPage({ selectedPackage, token, user, onSuccess, 
       return;
     }
 
-    setPurchasing(true);
+    // Lock payment execution
+    paymentLockRef.current = true;
+    setPaymentStage("creating_order");
 
     const razorpayKey = import.meta.env.VITE_RAZORPAY_KEY_ID || "rzp_test_T5r7EAjfxEsAtl";
 
@@ -118,13 +135,16 @@ export default function CheckoutPage({ selectedPackage, token, user, onSuccess, 
       orderData = await createRazorpayOrder(
         token,
         pkg.id || pkg.type,
-        appliedCoupon ? couponCode.trim() : undefined
+        appliedCoupon ? couponCode.trim() : undefined,
+        pricing.durationMonths
       );
     } catch (err) {
       console.warn("[Razorpay] Backend order creation failed — proceeding without order_id:", err.message);
     }
 
     // Step 2: Open official Razorpay Checkout popup
+    setPaymentStage("gateway_open");
+
     const options = {
       key: razorpayKey,
       amount: orderData ? orderData.amount : Math.round(finalTotal * 100),
@@ -140,9 +160,11 @@ export default function CheckoutPage({ selectedPackage, token, user, onSuccess, 
       theme: { color: "#fe6700" },
       handler: async function (response) {
         // Payment was successful in Razorpay modal
+        setPaymentStage("verifying");
         try {
           const res = await purchaseSubscription(token, {
             packageId: pkg.id || pkg.type,
+            durationMonths: pricing.durationMonths,
             couponCode: appliedCoupon ? couponCode.trim() : undefined,
             beneficiaryData: null,
             razorpay_payment_id: response.razorpay_payment_id,
@@ -150,15 +172,17 @@ export default function CheckoutPage({ selectedPackage, token, user, onSuccess, 
             razorpay_signature: response.razorpay_signature,
           });
           setPurchaseSuccess(res);
+          unlockPayment();
           if (onSuccess) onSuccess(res);
         } catch (err) {
           setPurchaseError(err.message || "Payment succeeded but subscription activation failed. Please contact support.");
-        } finally {
-          setPurchasing(false);
+          unlockPayment();
         }
       },
       modal: {
-        ondismiss: () => setPurchasing(false),
+        ondismiss: () => {
+          unlockPayment();
+        },
       },
     };
 
@@ -172,12 +196,12 @@ export default function CheckoutPage({ selectedPackage, token, user, onSuccess, 
         setPurchaseError(
           response.error?.description || "Payment failed. Please try a different payment method."
         );
-        setPurchasing(false);
+        unlockPayment();
       });
       rzp.open();
     } catch (err) {
       setPurchaseError("Unable to open payment gateway. Please try again.");
-      setPurchasing(false);
+      unlockPayment();
     }
   };
 
@@ -193,7 +217,18 @@ export default function CheckoutPage({ selectedPackage, token, user, onSuccess, 
         alignItems: "center",
         justifyContent: "space-between",
       }}>
-        <button onClick={onGoBack} style={{ background: "none", border: "none", fontSize: "0.95rem", fontWeight: "700", color: "#0f172a", cursor: "pointer" }}>
+        <button 
+          onClick={onGoBack} 
+          disabled={isPaymentBusy}
+          style={{ 
+            background: "none", 
+            border: "none", 
+            fontSize: "0.95rem", 
+            fontWeight: "700", 
+            color: isPaymentBusy ? "#94a3b8" : "#0f172a", 
+            cursor: isPaymentBusy ? "not-allowed" : "pointer" 
+          }}
+        >
           ← Back to Plans
         </button>
         <div style={{ fontSize: "1.1rem", fontWeight: "800", color: "#0f172a" }}>Subscription Checkout</div>
@@ -257,14 +292,22 @@ export default function CheckoutPage({ selectedPackage, token, user, onSuccess, 
                     { key: "6", label: "6 Months", disc: pkg.discountSixMonths ?? 10 },
                     { key: "12", label: "1 Year", disc: pkg.discountAnnual ?? 20 },
                   ].map((item) => (
-                    <button key={item.key} type="button" onClick={() => setDuration(item.key)} style={{
-                      padding: "20px 14px", borderRadius: "16px",
-                      border: duration === item.key ? "2.5px solid #fe6700" : "1.5px solid #e2e8f0",
-                      background: duration === item.key ? "#fff8f3" : "#ffffff",
-                      textAlign: "left", cursor: "pointer",
-                      display: "flex", flexDirection: "column", justifyContent: "space-between",
-                      transition: "all 0.15s ease",
-                    }}>
+                    <button 
+                      key={item.key} 
+                      type="button" 
+                      onClick={() => !isPaymentBusy && setDuration(item.key)}
+                      disabled={isPaymentBusy}
+                      style={{
+                        padding: "20px 14px", borderRadius: "16px",
+                        border: duration === item.key ? "2.5px solid #fe6700" : "1.5px solid #e2e8f0",
+                        background: duration === item.key ? "#fff8f3" : "#ffffff",
+                        textAlign: "left", 
+                        cursor: isPaymentBusy ? "not-allowed" : "pointer",
+                        opacity: isPaymentBusy ? 0.7 : 1,
+                        display: "flex", flexDirection: "column", justifyContent: "space-between",
+                        transition: "all 0.15s ease",
+                      }}
+                    >
                       <div style={{ fontSize: "1.05rem", fontWeight: "800", color: "#0f172a" }}>{item.label}</div>
                       {item.disc > 0
                         ? <div style={{ fontSize: "0.82rem", color: "#16a34a", fontWeight: "700", marginTop: "6px" }}>Save {item.disc}% Extra</div>
@@ -313,15 +356,29 @@ export default function CheckoutPage({ selectedPackage, token, user, onSuccess, 
                     type="text"
                     placeholder="Coupon code"
                     value={couponCode}
+                    disabled={isPaymentBusy}
                     onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-                    style={{ flex: 1, padding: "10px 12px", borderRadius: "8px", border: "1.5px solid #cbd5e1", fontSize: "0.88rem", outline: "none" }}
+                    style={{ 
+                      flex: 1, 
+                      padding: "10px 12px", 
+                      borderRadius: "8px", 
+                      border: "1.5px solid #cbd5e1", 
+                      fontSize: "0.88rem", 
+                      outline: "none",
+                      background: isPaymentBusy ? "#f1f5f9" : "#ffffff",
+                      cursor: isPaymentBusy ? "not-allowed" : "text"
+                    }}
                   />
-                  <button type="submit" disabled={couponLoading || !couponCode.trim()} style={{
-                    padding: "10px 16px", borderRadius: "8px",
-                    background: "#0f172a", color: "#fff", fontWeight: "700", border: "none",
-                    cursor: couponLoading || !couponCode.trim() ? "not-allowed" : "pointer",
-                    opacity: couponLoading || !couponCode.trim() ? 0.5 : 1,
-                  }}>
+                  <button 
+                    type="submit" 
+                    disabled={couponLoading || !couponCode.trim() || isPaymentBusy} 
+                    style={{
+                      padding: "10px 16px", borderRadius: "8px",
+                      background: "#0f172a", color: "#fff", fontWeight: "700", border: "none",
+                      cursor: couponLoading || !couponCode.trim() || isPaymentBusy ? "not-allowed" : "pointer",
+                      opacity: couponLoading || !couponCode.trim() || isPaymentBusy ? 0.5 : 1,
+                    }}
+                  >
                     {couponLoading ? "..." : "Apply"}
                   </button>
                 </form>
@@ -359,21 +416,26 @@ export default function CheckoutPage({ selectedPackage, token, user, onSuccess, 
                   type="button"
                   id="razorpay-pay-btn"
                   onClick={handlePay}
-                  disabled={purchasing || !razorpayLoaded}
+                  disabled={isPaymentBusy || !razorpayLoaded}
                   style={{
                     width: "100%", padding: "16px", borderRadius: "12px",
-                    background: "#fe6700", color: "#ffffff",
+                    background: isPaymentBusy || !razorpayLoaded ? "#94a3b8" : "#fe6700", 
+                    color: "#ffffff",
                     fontWeight: "800", fontSize: "1.05rem",
                     border: "none", marginTop: "20px",
-                    cursor: purchasing || !razorpayLoaded ? "not-allowed" : "pointer",
-                    boxShadow: "0 4px 14px rgba(254,103,0,0.35)",
-                    opacity: purchasing || !razorpayLoaded ? 0.65 : 1,
+                    cursor: isPaymentBusy || !razorpayLoaded ? "not-allowed" : "pointer",
+                    boxShadow: isPaymentBusy || !razorpayLoaded ? "none" : "0 4px 14px rgba(254,103,0,0.35)",
+                    opacity: isPaymentBusy || !razorpayLoaded ? 0.75 : 1,
                     display: "flex", alignItems: "center", justifyContent: "center", gap: "10px",
-                    transition: "opacity 0.15s ease",
+                    transition: "all 0.2s ease",
                   }}
                 >
-                  {purchasing
-                    ? "Processing Payment…"
+                  {paymentStage === "creating_order"
+                    ? "⏳ Securing Order…"
+                    : paymentStage === "gateway_open"
+                    ? "🔒 Awaiting Payment in Popup…"
+                    : paymentStage === "verifying"
+                    ? "⏳ Verifying Payment & Activating…"
                     : !razorpayLoaded
                     ? "Loading Payment Gateway…"
                     : `💳  Pay ₹${finalTotal.toLocaleString("en-IN")} securely`}
@@ -392,3 +454,4 @@ export default function CheckoutPage({ selectedPackage, token, user, onSuccess, 
     </div>
   );
 }
+

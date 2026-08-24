@@ -180,7 +180,12 @@ export const purchaseSubscription = async (
   emergencyContactsRaw?: any,
   couponCode?: string,
   selectedAddons?: Array<{ benefitId: string; quantity: number }>,
-  durationMonths: number = 1
+  durationMonths: number = 1,
+  paymentDetails?: {
+    razorpay_payment_id?: string;
+    razorpay_order_id?: string;
+    razorpay_signature?: string;
+  }
 ) => {
   // Look up the package directly by UUID (id) or by type slug — this works for
   // both global and regional packages, unlike getSubscriptionPackages() which
@@ -673,7 +678,7 @@ export const purchaseSubscription = async (
     });
 
     // 4. Create a Payment record snapshotting details at enrollment
-    const txId = `TXN-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+    const txId = paymentDetails?.razorpay_payment_id || `TXN-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
     const payment = await tx.payment.create({
       data: {
         id: generateUUID(),
@@ -695,9 +700,13 @@ export const purchaseSubscription = async (
         couponCode: couponCode || null,
         amountPaid: finalAmountPaid,
         currency: 'INR',
-        paymentMethod: 'UPI',
+        paymentMethod: paymentDetails?.razorpay_payment_id ? 'Razorpay' : 'UPI',
         paymentStatus: 'success',
         transactionId: txId,
+        gatewayName: paymentDetails?.razorpay_payment_id ? 'Razorpay' : null,
+        gatewayOrderId: paymentDetails?.razorpay_order_id || null,
+        gatewayPaymentId: paymentDetails?.razorpay_payment_id || null,
+        gatewaySignature: paymentDetails?.razorpay_signature || null,
         planStartDate: subscription.startDate,
         planEndDate: subscription.endDate,
         isSubscriptionActive: true,
