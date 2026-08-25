@@ -124,18 +124,22 @@ export const verifyOtp = async (phoneRaw, otpCode) => {
 };
 
 /**
- * 3. Register user with password & profile
- * Endpoint: POST /api/auth/register-password
+ * 3. Register user with OTP verification data
+ * Endpoint: POST /api/auth/register-otp
  */
-export const registerUser = async ({ phoneRaw, name, age, password }) => {
+export const registerWithOtp = async ({ phoneRaw, name, age, email, pincode, location, latitude, longitude }) => {
   const phone = formatPhone(phoneRaw, true); // "+919999999999"
-  const response = await secureFetch(`${API_BASE}/auth/register-password`, {
+  const response = await secureFetch(`${API_BASE}/auth/register-otp`, {
     method: 'POST',
     body: JSON.stringify({
       phone,
-      name,
+      name: name?.trim(),
       age: Number(age) || 30,
-      password,
+      email: email?.trim() || undefined,
+      pincode: pincode?.trim() || undefined,
+      location: location?.trim() || undefined,
+      latitude,
+      longitude,
     }),
   });
   const data = await response.json();
@@ -148,6 +152,8 @@ export const registerUser = async ({ phoneRaw, name, age, password }) => {
   }
   return result; // { token, user, ... }
 };
+
+export const registerUser = registerWithOtp;
 
 /**
  * 4. Login with phone & password

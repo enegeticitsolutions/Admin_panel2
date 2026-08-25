@@ -27,46 +27,16 @@ export default function AccountPage({ user, token, onLogout, onNavigateToPlans, 
   const hasAnySub = allSubscriptions.length > 0 || !!legacyActiveSub;
 
   return (
-    <div style={{ minHeight: "100vh", background: "#f8fafc", fontFamily: "'Poppins', sans-serif" }}>
-      {/* ── Top Header Bar ── */}
-      <header className="account-page-header" style={{
-        background: "#ffffff",
-        borderBottom: "1px solid #e2e8f0",
-        padding: "16px 40px",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
-      }}>
-        <button onClick={onGoHome} style={{
-          background: "none", border: "none", fontSize: "0.95rem",
-          fontWeight: "700", color: "#0f172a", cursor: "pointer",
-          display: "flex", alignItems: "center", gap: "8px",
-        }}>
-          ← Return to Website
-        </button>
-
-        <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
-          <span style={{ fontSize: "0.9rem", color: "#64748b", fontWeight: "500" }}>
-            Signed in as <strong style={{ color: "#0f172a" }}>{user?.name || "Subscriber"}</strong>
-          </span>
-          <button onClick={onLogout} style={{
-            padding: "8px 16px", borderRadius: "20px",
-            background: "#fef2f2", color: "#991b1b",
-            border: "1px solid #fecaca", fontWeight: "600",
-            fontSize: "0.85rem", cursor: "pointer",
-          }}>Log Out</button>
-        </div>
-      </header>
-
+    <div style={{ minHeight: "100vh", background: "#f8fafc", fontFamily: "'Poppins', sans-serif", paddingTop: "120px", paddingBottom: "60px" }}>
       {/* ── Main Dashboard Body ── */}
-      <main className="account-page-main" style={{ maxWidth: "1000px", margin: "40px auto", padding: "0 24px" }}>
+      <main className="account-page-main" style={{ maxWidth: "1000px", margin: "0 auto", padding: "0 24px" }}>
 
         {/* Profile Card */}
         <div className="account-profile-card" style={{
           background: "#ffffff", borderRadius: "20px", padding: "32px",
           border: "1px solid #e2e8f0", boxShadow: "0 4px 20px rgba(0,0,0,0.04)",
           display: "flex", alignItems: "center", justifyContent: "space-between",
+          flexWrap: "wrap", gap: "16px",
           marginBottom: "32px",
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
@@ -80,7 +50,7 @@ export default function AccountPage({ user, token, onLogout, onNavigateToPlans, 
               {user?.name ? user.name.charAt(0).toUpperCase() : "👤"}
             </div>
             <div>
-              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
                 <h1 style={{ fontSize: "1.6rem", fontWeight: "800", color: "#0f172a", margin: 0 }}>
                   {user?.name || "Subscriber"}
                 </h1>
@@ -98,15 +68,27 @@ export default function AccountPage({ user, token, onLogout, onNavigateToPlans, 
             </div>
           </div>
 
-          <button onClick={onNavigateToPlans} style={{
-            padding: "12px 24px", borderRadius: "12px",
-            background: "#fe6700", color: "#ffffff",
-            fontWeight: "700", fontSize: "0.95rem",
-            border: "none", cursor: "pointer",
-            boxShadow: "0 4px 12px rgba(254,103,0,0.25)",
-          }}>
-            Explore &amp; Upgrade Plans
-          </button>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+            <button onClick={onNavigateToPlans} style={{
+              padding: "12px 24px", borderRadius: "12px",
+              background: "#fe6700", color: "#ffffff",
+              fontWeight: "700", fontSize: "0.95rem",
+              border: "none", cursor: "pointer",
+              boxShadow: "0 4px 12px rgba(254,103,0,0.25)",
+              transition: "transform 0.15s ease",
+            }}>
+              Explore &amp; Upgrade Plans
+            </button>
+            <button onClick={onLogout} style={{
+              padding: "12px 18px", borderRadius: "12px",
+              background: "#fef2f2", color: "#991b1b",
+              border: "1px solid #fecaca", fontWeight: "700",
+              fontSize: "0.9rem", cursor: "pointer",
+              transition: "all 0.15s ease",
+            }}>
+              Log Out
+            </button>
+          </div>
         </div>
 
         {/* ── Subscriptions Section ── */}

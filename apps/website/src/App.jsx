@@ -155,18 +155,6 @@ const App = () => {
   const closeForm = () => setIsModalOpen(false);
 
   const renderAppContent = () => {
-    if (activePage === "account") {
-      return (
-        <AccountPage
-          user={user}
-          token={token}
-          onLogout={handleLogout}
-          onNavigateToPlans={() => setActivePage("plans")}
-          onGoHome={() => setActivePage("home")}
-        />
-      );
-    }
-
     if (activePage === "checkout") {
       return (
         <CheckoutPage
@@ -198,6 +186,14 @@ const App = () => {
           <HomePage openForm={openForm} />
         ) : activePage === "auth" ? (
           <AuthPage onAuthSuccess={handleAuthSuccess} onGoBack={() => setActivePage("home")} />
+        ) : activePage === "account" ? (
+          <AccountPage
+            user={user}
+            token={token}
+            onLogout={handleLogout}
+            onNavigateToPlans={() => setActivePage("plans")}
+            onGoHome={() => setActivePage("home")}
+          />
         ) : activePage === "services" ? (
           <ServicesPage setActivePage={setActivePage} openForm={openForm} />
         ) : activePage === "saathi" ? (
