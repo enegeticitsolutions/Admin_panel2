@@ -1,6 +1,7 @@
 import React from "react";
 import healthcareIcon from "../../assets/healthcare1.png";
 import homePageCutOut from "../../assets/homePageCutOut.png";
+import homeBgVideo from "../../assets/Home-Header-Background-Video.mp4";
 
 /**
  * HeroSection Component
@@ -11,7 +12,7 @@ const HeroSection = ({ openForm }) => {
       {/* Background video */}
       <video
         className="hero__bg-video"
-        src="/src/assets/Home-Header-Background-Video.mp4"
+        src={homeBgVideo}
         autoPlay
         muted
         loop

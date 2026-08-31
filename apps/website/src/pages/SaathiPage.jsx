@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { API_BASE } from '../services/api';
+import saathiBgVideo from '../assets/Sathi-Header-Background-Video.mp4';
 
 const SaathiPage = () => {
   const [content, setContent] = useState(null);
@@ -198,7 +199,7 @@ const SaathiPage = () => {
         {/* Background video */}
         <video
           className="saathi-hero__bg-video"
-          src="/src/assets/Sathi-Header-Background-Video.mp4"
+          src={saathiBgVideo}
           autoPlay
           muted
           loop

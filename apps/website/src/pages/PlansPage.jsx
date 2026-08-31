@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import PackageCard from "../components/packages/PackageCard";
+import planBgVideo from "../assets/Plan-Header-Background-Video.mp4";
 
 
 
@@ -123,7 +124,7 @@ export default function PlansPage({
         {/* Background video */}
         <video
           className="plans-hero__bg-video"
-          src="/src/assets/Plan-Header-Background-Video.mp4"
+          src={planBgVideo}
           autoPlay
           muted
           loop

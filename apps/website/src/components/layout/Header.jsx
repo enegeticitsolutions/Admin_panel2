@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import logo from "../../assets/logo.svg";
+import headerBgVideo from "../../assets/Header Video.mp4";
 
 /**
  * Header Component - Site Navigation and User Actions Bar
@@ -17,7 +18,7 @@ const Header = ({ activePage, setActivePage, user, openForm }) => {
       {/* Background video */}
       <video
         className="topbar__bg-video"
-        src="/src/assets/Header Video.mp4"
+        src={headerBgVideo}
         autoPlay
         muted
         loop
