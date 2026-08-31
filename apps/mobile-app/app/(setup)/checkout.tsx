@@ -32,10 +32,7 @@ const getRazorpayKey = (): string => {
     return clean(fromExtra) || clean(fromEnv);
 };
 const UPI_APPS = ['Google Pay', 'PhonePe', 'Paytm', 'BHIM', 'Amazon Pay'];
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const FIGMA_WIDTH = 716;
-const figmaScale = Math.min(SCREEN_WIDTH / FIGMA_WIDTH, 1);
-const fs = (value: number) => Math.round(value * figmaScale);
+import { fs } from '@/utils/responsive';
 
 export default function CheckoutScreen() {
     const router = useRouter();
@@ -787,93 +784,18 @@ export default function CheckoutScreen() {
 
             {/* MAIN BODY (Beige Background) */}
             <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+                {isProcessing ? (
+                    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+                        <ActivityIndicator size="large" color="#FE6700" />
+                        <Text style={{ marginTop: 16, color: '#6B6B6B', fontFamily: 'Poppins_400Regular', fontSize: fs(24) }}>Opening Secure Payment...</Text>
+                    </View>
+                ) : (
                 <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
                     <Text style={styles.sectionTitle}>{isVerificationFlow ? 'Verify & Activate Plan' : 'Payment Details'}</Text>
                     <Text style={styles.sectionSubtitle}>{isVerificationFlow ? 'Review details and agree to terms to activate pre-paid package' : 'Choose your preferred payment method'}</Text>
 
-                    {/* Service Location Confirmation Card */}
-                    {(serviceAddress || (fullPackage && !fullPackage.isGlobal)) && (
-                        <View style={styles.servicePincodeCard}>
-                            <View style={styles.servicePincodeHeader}>
-                                <Feather name="map-pin" size={18} color="#FE6700" />
-                                <Text style={styles.servicePincodeTitle}>
-                                    Confirm Service Location
-                                </Text>
-                            </View>
-                            <Text style={styles.servicePincodeSubtitle}>
-                                Care services will be delivered to the address below.
-                            </Text>
 
-                            {serviceAddress ? (
-                                <View style={styles.selectedAddressBox}>
-                                    <Feather name="map" size={14} color="#F97316" style={{ marginRight: 6 }} />
-                                    <Text style={styles.selectedAddressText} numberOfLines={3}>
-                                        {serviceAddress}
-                                    </Text>
-                                </View>
-                            ) : null}
-
-                            {/* If location was pre-validated on packages screen → show confirmed badge */}
-                            {serviceRegionId ? (
-                                <View style={styles.statusBox}>
-                                    <View style={styles.statusRow}>
-                                        <Ionicons name="checkmark-circle" size={18} color="#10B981" />
-                                        <Text style={styles.statusSuccessText}>
-                                            Location verified — service available in your area
-                                        </Text>
-                                    </View>
-                                </View>
-                            ) : (
-                                /* Fallback: user came without a pre-validated region (manual pincode path) */
-                                fullPackage && !fullPackage.isGlobal ? (
-                                    <>
-                                        <View style={styles.pinInputRow}>
-                                            <TextInput
-                                                style={styles.pinTextInput}
-                                                placeholder="Enter 6-digit Pincode"
-                                                placeholderTextColor="#9CA3AF"
-                                                value={servicePincode}
-                                                onChangeText={(text) => setServicePincode(text.replace(/[^0-9]/g, '').slice(0, 6))}
-                                                keyboardType="numeric"
-                                                maxLength={6}
-                                            />
-                                            {checkingPincode && <ActivityIndicator size="small" color="#FE6700" style={{ marginLeft: 10 }} />}
-                                        </View>
-
-                                        {serviceChecked && (
-                                            <View style={styles.statusBox}>
-                                                {serviceAvailable ? (
-                                                    <View style={styles.statusRow}>
-                                                        <Ionicons name="checkmark-circle" size={18} color="#10B981" />
-                                                        <Text style={styles.statusSuccessText}>
-                                                            Serving {serviceLocationName}!
-                                                        </Text>
-                                                    </View>
-                                                ) : (
-                                                    <View style={styles.statusRow}>
-                                                        <Ionicons name="close-circle" size={18} color="#EF4444" />
-                                                        <Text style={styles.statusErrorText}>
-                                                            Sorry, we do not serve this pincode yet.
-                                                        </Text>
-                                                    </View>
-                                                )}
-                                            </View>
-                                        )}
-
-                                        {serviceChecked && serviceAvailable && !isPackageAvailable && (
-                                            <View style={styles.warningBox}>
-                                                <Ionicons name="warning" size={18} color="#EA580C" />
-                                                <Text style={styles.warningText}>
-                                                    This package is not available in {serviceLocationName || 'this region'}. Please choose a different package.
-                                                </Text>
-                                            </View>
-                                        )}
-                                    </>
-                                ) : null
-                            )}
-                        </View>
-                    )}
 
                     {isVerificationFlow ? (
                         <View style={styles.paymentCard}>
@@ -1132,6 +1054,7 @@ export default function CheckoutScreen() {
                     </View>
 
                 </ScrollView>
+                )}
             </KeyboardAvoidingView>
         </View>
     );

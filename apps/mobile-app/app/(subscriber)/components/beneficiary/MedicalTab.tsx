@@ -6,6 +6,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as DocumentPicker from 'expo-document-picker';
 import * as WebBrowser from 'expo-web-browser';
 import { AddMedicineModal, MedicationFormData } from '@/components/ui/AddMedicineModal';
+import { scale } from '@/utils/responsive';
 
 const { width } = Dimensions.get('window');
 
@@ -87,17 +88,17 @@ const MedicalRecordItem = ({ doc, onRefresh, existingRecords }: { doc: any; onRe
     return (
         <View>
             <TouchableOpacity style={styles.docRow} onPress={handleViewDocument} activeOpacity={0.7}>
-                <Ionicons name="document-text" size={24} color="#F97316" />
-                <View style={{ flex: 1, marginLeft: 12 }}>
+                <Ionicons name="document-text" size={scale(24)} color="#F97316" />
+                <View style={{ flex: 1, marginLeft: scale(12) }}>
                     <Text style={styles.docTitle}>{doc.title}</Text>
                     <Text style={styles.docMeta}>{doc.createdAt ? new Date(doc.createdAt).toLocaleDateString() : new Date().toLocaleDateString()}</Text>
                 </View>
-                <View style={{ flexDirection: 'row', gap: 12 }}>
+                <View style={{ flexDirection: 'row', gap: scale(12) }}>
                     <TouchableOpacity onPress={() => setIsRenaming(true)}>
-                        <Ionicons name="pencil-outline" size={18} color="#9CA3AF" />
+                        <Ionicons name="pencil-outline" size={scale(18)} color="#9CA3AF" />
                     </TouchableOpacity>
                     <TouchableOpacity onPress={handleDelete}>
-                        <Ionicons name="trash-outline" size={18} color="#EF4444" />
+                        <Ionicons name="trash-outline" size={scale(18)} color="#EF4444" />
                     </TouchableOpacity>
                 </View>
             </TouchableOpacity>
@@ -116,7 +117,7 @@ const MedicalRecordItem = ({ doc, onRefresh, existingRecords }: { doc: any; onRe
                         <TouchableOpacity style={styles.modalBtn} onPress={handleRename}>
                             <Text style={styles.modalBtnText}>Save</Text>
                         </TouchableOpacity>
-                        <TouchableOpacity onPress={() => setIsRenaming(false)} style={{ marginTop: 10, alignItems: 'center' }}>
+                        <TouchableOpacity onPress={() => setIsRenaming(false)} style={{ marginTop: scale(10), alignItems: 'center' }}>
                             <Text style={{ color: '#6B7280' }}>Cancel</Text>
                         </TouchableOpacity>
                     </View>
@@ -292,7 +293,7 @@ export const MedicalTab = ({ beneficiary, conditions, onRefresh }: { beneficiary
     };
 
     return (
-        <View style={{ paddingHorizontal: 20 }}>
+        <View style={{ paddingHorizontal: scale(20) }}>
             {/* Medical Conditions */}
             <View style={styles.medCard}>
                 <Text style={styles.medCardTitle}>Medical Conditions</Text>
@@ -328,7 +329,7 @@ export const MedicalTab = ({ beneficiary, conditions, onRefresh }: { beneficiary
                     ))
                 ) : (
                     <View style={styles.emptyRecords}>
-                        <Ionicons name="document-outline" size={32} color="#D1D5DB" />
+                        <Ionicons name="document-outline" size={scale(32)} color="#D1D5DB" />
                         <Text style={styles.emptyRecordsText}>No medical records uploaded yet</Text>
                     </View>
                 )}
@@ -352,7 +353,7 @@ export const MedicalTab = ({ beneficiary, conditions, onRefresh }: { beneficiary
                             <TouchableOpacity style={styles.modalBtn} onPress={handleConfirmUpload} disabled={uploading}>
                                 <Text style={styles.modalBtnText}>{uploading ? "Uploading..." : "Upload"}</Text>
                             </TouchableOpacity>
-                            <TouchableOpacity onPress={() => { setIsUploadModalVisible(false); setSelectedAsset(null); }} style={{ marginTop: 10, alignItems: 'center' }}>
+                            <TouchableOpacity onPress={() => { setIsUploadModalVisible(false); setSelectedAsset(null); }} style={{ marginTop: scale(10), alignItems: 'center' }}>
                                 <Text style={{ color: '#6B7280' }}>Cancel</Text>
                             </TouchableOpacity>
                         </View>
@@ -368,7 +369,7 @@ export const MedicalTab = ({ beneficiary, conditions, onRefresh }: { beneficiary
                         style={styles.addMedBtn} 
                         onPress={() => setIsMedModalVisible(true)}
                     >
-                        <Ionicons name="add-circle" size={18} color="#F97316" />
+                        <Ionicons name="add-circle" size={scale(18)} color="#F97316" />
                         <Text style={styles.addMedBtnText}>Add</Text>
                     </TouchableOpacity>
                 </View>
@@ -388,7 +389,7 @@ export const MedicalTab = ({ beneficiary, conditions, onRefresh }: { beneficiary
                                 onPress={() => handleDeleteMedication(m.id, m.name)}
                                 style={styles.trashBtn}
                             >
-                                <Ionicons name="trash-outline" size={18} color="#EF4444" />
+                                <Ionicons name="trash-outline" size={scale(18)} color="#EF4444" />
                             </TouchableOpacity>
                         </View>
                     ))
@@ -421,9 +422,9 @@ export const MedicalTab = ({ beneficiary, conditions, onRefresh }: { beneficiary
 
 const styles = StyleSheet.create({
     medCard: {
-        backgroundColor: '#FFFFFF', borderRadius: 14, padding: 16, marginBottom: 12,
+        backgroundColor: '#FFFFFF', borderRadius: scale(14), padding: scale(16), marginBottom: scale(12),
         ...Platform.select({
-            ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 6 },
+            ios: { shadowColor: '#000', shadowOffset: { width: 0, height: scale(2) }, shadowOpacity: 0.05, shadowRadius: 6 },
             android: { elevation: 2 },
         }),
     },
@@ -431,32 +432,32 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 12,
+        marginBottom: scale(12),
     },
-    medCardTitle: { fontSize: 13, fontWeight: '600', color: '#6B7280', textTransform: 'uppercase', letterSpacing: 0.5 },
+    medCardTitle: { fontSize: scale(13), fontWeight: '600', color: '#6B7280', textTransform: 'uppercase', letterSpacing: 0.5 },
     addMedBtn: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 4,
+        gap: scale(4),
         backgroundColor: '#FFF5ED',
-        paddingHorizontal: 10,
-        paddingVertical: 5,
-        borderRadius: 8,
+        paddingHorizontal: scale(10),
+        paddingVertical: scale(5),
+        borderRadius: scale(8),
     },
     addMedBtnText: {
-        fontSize: 13,
+        fontSize: scale(13),
         fontWeight: '700',
         color: '#F97316',
     },
     medRowItem: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingVertical: 8,
+        paddingVertical: scale(8),
         borderBottomWidth: 1,
         borderBottomColor: '#F3F4F6',
     },
     medNameText: {
-        fontSize: 15,
+        fontSize: scale(15),
         fontWeight: '700',
         color: '#111827',
     },
@@ -465,37 +466,37 @@ const styles = StyleSheet.create({
         color: '#4B5563',
     },
     medSubDetail: {
-        fontSize: 12,
+        fontSize: scale(12),
         color: '#6B7280',
-        marginTop: 2,
+        marginTop: scale(2),
     },
     trashBtn: {
-        padding: 6,
-        marginLeft: 8,
+        padding: scale(6),
+        marginLeft: scale(8),
     },
     inputLabel: {
-        fontSize: 13,
+        fontSize: scale(13),
         fontWeight: '600',
         color: '#374151',
-        marginBottom: 6,
+        marginBottom: scale(6),
     },
     freqPillRow: {
         flexDirection: 'row',
         flexWrap: 'wrap',
-        gap: 8,
-        marginBottom: 16,
+        gap: scale(8),
+        marginBottom: scale(16),
     },
     freqPill: {
-        paddingHorizontal: 12,
-        paddingVertical: 8,
-        borderRadius: 8,
+        paddingHorizontal: scale(12),
+        paddingVertical: scale(8),
+        borderRadius: scale(8),
         backgroundColor: '#F3F4F6',
     },
     freqPillActive: {
         backgroundColor: '#F97316',
     },
     freqPillText: {
-        fontSize: 12,
+        fontSize: scale(12),
         fontWeight: '600',
         color: '#4B5563',
     },
@@ -503,32 +504,32 @@ const styles = StyleSheet.create({
         color: '#FFFFFF',
     },
 
-    conditionsTags: { gap: 10 },
-    condTagLarge: { backgroundColor: '#FFF5ED', borderRadius: 10, paddingHorizontal: 16, paddingVertical: 12, flexDirection: 'row', alignItems: 'center' },
-    dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#F97316', marginRight: 10 },
-    condTagLargeText: { fontSize: 14, color: '#111827', fontWeight: '500' },
+    conditionsTags: { gap: scale(10) },
+    condTagLarge: { backgroundColor: '#FFF5ED', borderRadius: scale(10), paddingHorizontal: scale(16), paddingVertical: scale(12), flexDirection: 'row', alignItems: 'center' },
+    dot: { width: scale(6), height: scale(6), borderRadius: scale(3), backgroundColor: '#F97316', marginRight: scale(10) },
+    condTagLargeText: { fontSize: scale(14), color: '#111827', fontWeight: '500' },
     
-    miniVitalsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-    miniVitalItem: { width: (width - 80) / 2, backgroundColor: '#F9FAFB', padding: 12, borderRadius: 10 },
-    miniVitalLabel: { fontSize: 11, color: '#6B7280', marginBottom: 4 },
-    miniVitalValue: { fontSize: 14, fontWeight: '700', color: '#111827' },
+    miniVitalsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: scale(10) },
+    miniVitalItem: { width: (width - 80) / 2, backgroundColor: '#F9FAFB', padding: scale(12), borderRadius: scale(10) },
+    miniVitalLabel: { fontSize: scale(11), color: '#6B7280', marginBottom: scale(4) },
+    miniVitalValue: { fontSize: scale(14), fontWeight: '700', color: '#111827' },
 
-    docRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
-    docTitle: { fontSize: 14, fontWeight: '600', color: '#111827' },
-    docMeta: { fontSize: 12, color: '#9CA3AF', marginTop: 2 },
-    emptyRecords: { alignItems: 'center', paddingVertical: 20 },
-    emptyRecordsText: { fontSize: 13, color: '#9CA3AF', marginTop: 8 },
-    uploadBtn: { backgroundColor: '#F97316', borderRadius: 12, height: 44, justifyContent: 'center', alignItems: 'center', marginTop: 15 },
-    uploadBtnText: { color: '#FFF', fontWeight: '600', fontSize: 14 },
+    docRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: scale(12), borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
+    docTitle: { fontSize: scale(14), fontWeight: '600', color: '#111827' },
+    docMeta: { fontSize: scale(12), color: '#9CA3AF', marginTop: scale(2) },
+    emptyRecords: { alignItems: 'center', paddingVertical: scale(20) },
+    emptyRecordsText: { fontSize: scale(13), color: '#9CA3AF', marginTop: scale(8) },
+    uploadBtn: { backgroundColor: '#F97316', borderRadius: scale(12), height: scale(44), justifyContent: 'center', alignItems: 'center', marginTop: scale(15) },
+    uploadBtnText: { color: '#FFF', fontWeight: '600', fontSize: scale(14) },
 
-    medValue: { fontSize: 14, color: '#111827', lineHeight: 22 },
-    medSubValue: { fontSize: 13, color: '#6B7280', marginTop: 4 },
+    medValue: { fontSize: scale(14), color: '#111827', lineHeight: scale(22) },
+    medSubValue: { fontSize: scale(13), color: '#6B7280', marginTop: scale(4) },
 
-    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 20 },
-    modalContent: { backgroundColor: '#FFF', borderRadius: 20, padding: 24 },
-    modalTitle: { fontSize: 18, fontWeight: '700', marginBottom: 20 },
-    modalInput: { backgroundColor: '#F9FAFB', borderRadius: 10, padding: 14, marginBottom: 16, borderWidth: 1, borderColor: '#E5E7EB' },
-    modalBtn: { backgroundColor: '#F97316', padding: 14, borderRadius: 10, alignItems: 'center' },
+    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: scale(20) },
+    modalContent: { backgroundColor: '#FFF', borderRadius: scale(20), padding: scale(24) },
+    modalTitle: { fontSize: scale(18), fontWeight: '700', marginBottom: scale(20) },
+    modalInput: { backgroundColor: '#F9FAFB', borderRadius: scale(10), padding: scale(14), marginBottom: scale(16), borderWidth: 1, borderColor: '#E5E7EB' },
+    modalBtn: { backgroundColor: '#F97316', padding: scale(14), borderRadius: scale(10), alignItems: 'center' },
     modalBtnText: { color: '#FFF', fontWeight: '700' },
 });
 

@@ -9,6 +9,7 @@ import { ConnectContactButton } from '@/components/shared/ConnectContactModal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_URL } from '@/constants/api';
 import { VisitDetailsModal, VisitDetailData } from './VisitDetailsModal';
+import { scale } from '@/utils/responsive';
 
 export interface VisitProps extends VisitDetailData {}
 
@@ -36,7 +37,7 @@ const RatingModal = ({
                 <Pressable style={styles.modalCard} onPress={() => {}}>
                     {/* Header */}
                     <View style={styles.modalHeader}>
-                        <Ionicons name="star" size={22} color="#F97316" />
+                        <Ionicons name="star" size={scale(22)} color="#F97316" />
                         <Text style={styles.modalTitle}>Rate Your Visit</Text>
                     </View>
                     <Text style={styles.modalSubtitle}>
@@ -50,13 +51,13 @@ const RatingModal = ({
                                 key={s}
                                 onPress={() => setSelected(s)}
                                 activeOpacity={0.8}
-                                hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
+                                hitSlop={{ top: scale(8), bottom: scale(8), left: scale(6), right: scale(6) }}
                             >
                                 <Ionicons
                                     name={s <= selected ? 'star' : 'star-outline'}
-                                    size={40}
+                                    size={scale(40)}
                                     color={s <= selected ? '#F97316' : '#D1D5DB'}
-                                    style={{ marginHorizontal: 5 }}
+                                    style={{ marginHorizontal: scale(5) }}
                                 />
                             </TouchableOpacity>
                         ))}
@@ -145,7 +146,7 @@ export const TimelineTab = ({ visits: initialVisits }: { visits: VisitProps[] })
     if (visits.length === 0) {
         return (
             <View style={styles.emptyTab}>
-                <Ionicons name="time-outline" size={40} color="#D1D5DB" />
+                <Ionicons name="time-outline" size={scale(40)} color="#D1D5DB" />
                 <Text style={styles.emptyTabText}>No visits recorded yet.</Text>
             </View>
         );
@@ -214,7 +215,7 @@ export const TimelineTab = ({ visits: initialVisits }: { visits: VisitProps[] })
                         />
 
                         <View style={{ flex: 1 }}>
-                            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 3 }}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: scale(3) }}>
                                 <Text style={styles.visitCompanionName}>{visit.companionName || 'Care Companion'}</Text>
                                 <ConnectContactButton
                                     name={visit.companionName || 'Care Companion'}
@@ -226,7 +227,7 @@ export const TimelineTab = ({ visits: initialVisits }: { visits: VisitProps[] })
                             <Text style={styles.visitDate}>{formatDisplayDate(visit.dateStr)}</Text>
                             <View style={styles.timingBadgeRow}>
                                 <View style={styles.scheduledPill}>
-                                    <Ionicons name="time-outline" size={12} color="#D97706" style={{ marginRight: 3 }} />
+                                    <Ionicons name="time-outline" size={scale(12)} color="#D97706" style={{ marginRight: scale(3) }} />
                                     <Text style={styles.scheduledPillText}>
                                         {visit.scheduledTimeRange || visit.scheduledStartTime || 'Scheduled'}
                                     </Text>
@@ -243,14 +244,14 @@ export const TimelineTab = ({ visits: initialVisits }: { visits: VisitProps[] })
                                     setRatingModalVisit(visit);
                                 }}
                                 style={styles.ratedBox}
-                                hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                                hitSlop={{ top: scale(6), bottom: scale(6), left: scale(6), right: scale(6) }}
                             >
                                 <View style={styles.starsRow}>
                                     {[1, 2, 3, 4, 5].map((s) => (
                                         <Ionicons
                                             key={s}
                                             name={s <= (visit.rating || 5) ? 'star' : 'star-outline'}
-                                            size={16}
+                                            size={scale(16)}
                                             color="#F97316"
                                             style={{ marginRight: 1 }}
                                         />
@@ -266,7 +267,7 @@ export const TimelineTab = ({ visits: initialVisits }: { visits: VisitProps[] })
                                     setRatingModalVisit(visit);
                                 }}
                             >
-                                <Ionicons name="star-outline" size={13} color="#FFF" style={{ marginRight: 4 }} />
+                                <Ionicons name="star-outline" size={scale(13)} color="#FFF" style={{ marginRight: scale(4) }} />
                                 <Text style={styles.rateButtonText}>Rate</Text>
                             </TouchableOpacity>
                         )}
@@ -277,7 +278,7 @@ export const TimelineTab = ({ visits: initialVisits }: { visits: VisitProps[] })
                         <View style={styles.actualTimeStrip}>
                             {visit.checkInTime ? (
                                 <View style={styles.timePoint}>
-                                    <Ionicons name="log-in-outline" size={14} color="#059669" />
+                                    <Ionicons name="log-in-outline" size={scale(14)} color="#059669" />
                                     <Text style={styles.timePointLabel}>In: </Text>
                                     <Text style={styles.timePointValue}>{visit.checkInTime}</Text>
                                 </View>
@@ -285,7 +286,7 @@ export const TimelineTab = ({ visits: initialVisits }: { visits: VisitProps[] })
 
                             {visit.checkOutTime ? (
                                 <View style={styles.timePoint}>
-                                    <Ionicons name="log-out-outline" size={14} color="#0284C7" />
+                                    <Ionicons name="log-out-outline" size={scale(14)} color="#0284C7" />
                                     <Text style={styles.timePointLabel}>Out: </Text>
                                     <Text style={styles.timePointValue}>{visit.checkOutTime}</Text>
                                 </View>
@@ -293,7 +294,7 @@ export const TimelineTab = ({ visits: initialVisits }: { visits: VisitProps[] })
 
                             {visit.isGeoVerified ? (
                                 <View style={styles.geoVerifiedChip}>
-                                    <Ionicons name="shield-checkmark" size={11} color="#16A34A" />
+                                    <Ionicons name="shield-checkmark" size={scale(11)} color="#16A34A" />
                                     <Text style={styles.geoVerifiedText}>Geo-Verified</Text>
                                 </View>
                             ) : null}
@@ -303,13 +304,13 @@ export const TimelineTab = ({ visits: initialVisits }: { visits: VisitProps[] })
                     {/* Beneficiary Rating Chip */}
                     {(visit.beneficiaryRating !== null && visit.beneficiaryRating !== undefined) && (
                         <View style={styles.beneficiaryRatingChip}>
-                            <Ionicons name="person-outline" size={13} color="#7C3AED" style={{ marginRight: 5 }} />
+                            <Ionicons name="person-outline" size={scale(13)} color="#7C3AED" style={{ marginRight: scale(5) }} />
                             <Text style={styles.beneficiaryRatingLabel}>Beneficiary: </Text>
                             {[1, 2, 3, 4, 5].map((s) => (
                                 <Ionicons
                                     key={s}
                                     name={s <= (visit.beneficiaryRating || 0) ? 'star' : 'star-outline'}
-                                    size={13}
+                                    size={scale(13)}
                                     color="#7C3AED"
                                     style={{ marginRight: 1 }}
                                 />
@@ -320,7 +321,7 @@ export const TimelineTab = ({ visits: initialVisits }: { visits: VisitProps[] })
 
                     {/* Activities Pills */}
                     {!!visit.activities && visit.activities.length > 0 ? (
-                        <View style={{ marginBottom: 16 }}>
+                        <View style={{ marginBottom: scale(16) }}>
                             <Text style={styles.visitSectionLabel}>Activities:</Text>
                             <View style={styles.activitiesTags}>
                                 {visit.activities.map((a, j) => (
@@ -358,7 +359,7 @@ export const TimelineTab = ({ visits: initialVisits }: { visits: VisitProps[] })
 
                     {/* Notes Section */}
                     {!!visit.notes ? (
-                        <View style={{ marginTop: 4, marginBottom: 12 }}>
+                        <View style={{ marginTop: scale(4), marginBottom: scale(12) }}>
                             <Text style={styles.visitSectionLabel}>Notes:</Text>
                             <Text style={styles.visitNotes} numberOfLines={2}>{visit.notes}</Text>
                         </View>
@@ -367,10 +368,10 @@ export const TimelineTab = ({ visits: initialVisits }: { visits: VisitProps[] })
                     {/* Tap for Encounter Report CTA */}
                     <View style={styles.cardCtaRow}>
                         <View style={styles.cardCtaBadge}>
-                            <Ionicons name="document-text-outline" size={13} color="#0369A1" style={{ marginRight: 4 }} />
+                            <Ionicons name="document-text-outline" size={scale(13)} color="#0369A1" style={{ marginRight: scale(4) }} />
                             <Text style={styles.cardCtaText}>View Full Visit Encounter Details</Text>
                         </View>
-                        <Ionicons name="chevron-forward" size={16} color="#0369A1" />
+                        <Ionicons name="chevron-forward" size={scale(16)} color="#0369A1" />
                     </View>
                 </TouchableOpacity>
             ))}
@@ -381,124 +382,124 @@ export const TimelineTab = ({ visits: initialVisits }: { visits: VisitProps[] })
 const styles = StyleSheet.create({
     container: {
         backgroundColor: '#FFFFFF',
-        marginHorizontal: 14,
-        paddingHorizontal: 18,
-        paddingTop: 25,
-        paddingBottom: 15,
+        marginHorizontal: scale(14),
+        paddingHorizontal: scale(18),
+        paddingTop: scale(25),
+        paddingBottom: scale(15),
         borderBottomLeftRadius: 15,
         borderBottomRightRadius: 15,
         ...Platform.select({
-            ios: { shadowColor: '#4A2B17', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.12, shadowRadius: 8 },
+            ios: { shadowColor: '#4A2B17', shadowOffset: { width: 0, height: scale(4) }, shadowOpacity: 0.12, shadowRadius: 8 },
             android: { elevation: 2 },
         }),
     },
-    emptyTab: { alignItems: 'center', paddingVertical: 40 },
-    emptyTabText: { fontSize: 14, color: '#9CA3AF', marginTop: 10 },
+    emptyTab: { alignItems: 'center', paddingVertical: scale(40) },
+    emptyTabText: { fontSize: scale(14), color: '#9CA3AF', marginTop: scale(10) },
 
     visitCard: {
         backgroundColor: '#F3F4F6',
-        borderRadius: 14,
-        padding: 16,
-        marginBottom: 20,
+        borderRadius: scale(14),
+        padding: scale(16),
+        marginBottom: scale(20),
         borderWidth: 1,
         borderColor: '#E5E7EB',
     },
 
-    visitHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
-    visitCompanionPhoto: { width: 48, height: 48, borderRadius: 24, marginRight: 14, backgroundColor: '#D1D5DB' },
-    visitCompanionName: { fontSize: 17, fontWeight: '700', color: '#111111', marginBottom: 3 },
-    visitDate: { fontSize: 15, color: '#111111', fontWeight: '600', marginBottom: 3 },
-    visitDuration: { fontSize: 13, color: '#4B5563', fontWeight: '500' },
+    visitHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: scale(12) },
+    visitCompanionPhoto: { width: scale(48), height: scale(48), borderRadius: scale(24), marginRight: scale(14), backgroundColor: '#D1D5DB' },
+    visitCompanionName: { fontSize: scale(17), fontWeight: '700', color: '#111111', marginBottom: scale(3) },
+    visitDate: { fontSize: scale(15), color: '#111111', fontWeight: '600', marginBottom: scale(3) },
+    visitDuration: { fontSize: scale(13), color: '#4B5563', fontWeight: '500' },
 
-    timingBadgeRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
+    timingBadgeRow: { flexDirection: 'row', alignItems: 'center', gap: scale(8), flexWrap: 'wrap' },
     scheduledPill: {
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: '#FEF3C7',
-        borderRadius: 6,
-        paddingHorizontal: 7,
-        paddingVertical: 2,
+        borderRadius: scale(6),
+        paddingHorizontal: scale(7),
+        paddingVertical: scale(2),
     },
-    scheduledPillText: { fontSize: 12, fontWeight: '700', color: '#B45309' },
+    scheduledPillText: { fontSize: scale(12), fontWeight: '700', color: '#B45309' },
 
     actualTimeStrip: {
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: '#FFFFFF',
-        borderRadius: 8,
-        paddingHorizontal: 10,
-        paddingVertical: 7,
-        marginBottom: 12,
-        gap: 12,
+        borderRadius: scale(8),
+        paddingHorizontal: scale(10),
+        paddingVertical: scale(7),
+        marginBottom: scale(12),
+        gap: scale(12),
         borderWidth: 1,
         borderColor: '#E5E7EB',
         flexWrap: 'wrap',
     },
     timePoint: { flexDirection: 'row', alignItems: 'center' },
-    timePointLabel: { fontSize: 12, color: '#6B7280', fontWeight: '500', marginLeft: 3 },
-    timePointValue: { fontSize: 12, color: '#111827', fontWeight: '700' },
+    timePointLabel: { fontSize: scale(12), color: '#6B7280', fontWeight: '500', marginLeft: scale(3) },
+    timePointValue: { fontSize: scale(12), color: '#111827', fontWeight: '700' },
     geoVerifiedChip: {
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: '#DCFCE7',
-        borderRadius: 4,
-        paddingHorizontal: 6,
-        paddingVertical: 2,
+        borderRadius: scale(4),
+        paddingHorizontal: scale(6),
+        paddingVertical: scale(2),
         marginLeft: 'auto',
-        gap: 3,
+        gap: scale(3),
     },
-    geoVerifiedText: { fontSize: 11, color: '#15803D', fontWeight: '600' },
+    geoVerifiedText: { fontSize: scale(11), color: '#15803D', fontWeight: '600' },
 
     ratedBox: { alignItems: 'center' },
-    yourRatingLabel: { fontSize: 10, color: '#6B7280', marginTop: 3, fontWeight: '500' },
+    yourRatingLabel: { fontSize: scale(10), color: '#6B7280', marginTop: scale(3), fontWeight: '500' },
     starsRow: { flexDirection: 'row', alignItems: 'center' },
     rateButton: {
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: '#FF5B0A',
-        borderRadius: 12,
-        paddingHorizontal: 12,
-        paddingVertical: 8,
+        borderRadius: scale(12),
+        paddingHorizontal: scale(12),
+        paddingVertical: scale(8),
     },
-    rateButtonText: { color: '#FFF', fontSize: 13, fontWeight: '700' },
+    rateButtonText: { color: '#FFF', fontSize: scale(13), fontWeight: '700' },
 
     // Beneficiary rating chip
     beneficiaryRatingChip: {
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: '#EDE9FE',
-        borderRadius: 8,
-        paddingHorizontal: 10,
-        paddingVertical: 6,
-        marginBottom: 14,
+        borderRadius: scale(8),
+        paddingHorizontal: scale(10),
+        paddingVertical: scale(6),
+        marginBottom: scale(14),
         alignSelf: 'flex-start',
     },
-    beneficiaryRatingLabel: { fontSize: 12, color: '#7C3AED', fontWeight: '600' },
-    beneficiaryRatingValue: { fontSize: 12, color: '#7C3AED', fontWeight: '700' },
+    beneficiaryRatingLabel: { fontSize: scale(12), color: '#7C3AED', fontWeight: '600' },
+    beneficiaryRatingValue: { fontSize: scale(12), color: '#7C3AED', fontWeight: '700' },
 
-    visitSectionLabel: { fontSize: 14, fontWeight: '700', color: '#111111', marginBottom: 8 },
-    activitiesTags: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+    visitSectionLabel: { fontSize: scale(14), fontWeight: '700', color: '#111111', marginBottom: scale(8) },
+    activitiesTags: { flexDirection: 'row', flexWrap: 'wrap', gap: scale(6) },
     activityTag: {
         backgroundColor: '#FFFFFF',
-        borderRadius: 4,
-        paddingHorizontal: 9,
-        paddingVertical: 5,
+        borderRadius: scale(4),
+        paddingHorizontal: scale(9),
+        paddingVertical: scale(5),
     },
-    activityTagText: { fontSize: 13, color: '#111111', fontWeight: '400' },
+    activityTagText: { fontSize: scale(13), color: '#111111', fontWeight: '400' },
 
-    vitalsRow: { flexDirection: 'row', gap: 8, marginBottom: 15 },
+    vitalsRow: { flexDirection: 'row', gap: scale(8), marginBottom: scale(15) },
     vitalChip: {
         backgroundColor: '#FFFFFF',
-        borderRadius: 4,
-        paddingVertical: 8,
-        paddingHorizontal: 9,
+        borderRadius: scale(4),
+        paddingVertical: scale(8),
+        paddingHorizontal: scale(9),
         flex: 1,
         alignItems: 'flex-start',
     },
-    vitalLabel: { fontSize: 12, color: '#4B5563', fontWeight: '400', marginBottom: 3 },
-    vitalValue: { fontSize: 14, fontWeight: '800', color: '#111111' },
+    vitalLabel: { fontSize: scale(12), color: '#4B5563', fontWeight: '400', marginBottom: scale(3) },
+    vitalValue: { fontSize: scale(14), fontWeight: '800', color: '#111111' },
 
-    visitNotes: { fontSize: 15, color: '#333333', lineHeight: 21, fontWeight: '400' },
+    visitNotes: { fontSize: scale(15), color: '#333333', lineHeight: scale(21), fontWeight: '400' },
 
     // Tap Encounter CTA
     cardCtaRow: {
@@ -506,9 +507,9 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'space-between',
         backgroundColor: '#EFF6FF',
-        borderRadius: 10,
-        paddingHorizontal: 12,
-        paddingVertical: 9,
+        borderRadius: scale(10),
+        paddingHorizontal: scale(12),
+        paddingVertical: scale(9),
         borderWidth: 1,
         borderColor: '#BFDBFE',
     },
@@ -517,7 +518,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     cardCtaText: {
-        fontSize: 12,
+        fontSize: scale(12),
         fontWeight: '700',
         color: '#0369A1',
     },
@@ -528,16 +529,16 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(0,0,0,0.45)',
         justifyContent: 'center',
         alignItems: 'center',
-        paddingHorizontal: 24,
+        paddingHorizontal: scale(24),
     },
     modalCard: {
         backgroundColor: '#FFFFFF',
-        borderRadius: 20,
-        padding: 28,
+        borderRadius: scale(20),
+        padding: scale(28),
         width: '100%',
         alignItems: 'center',
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 10 },
+        shadowOffset: { width: 0, height: scale(10) },
         shadowOpacity: 0.15,
         shadowRadius: 20,
         elevation: 12,
@@ -545,54 +546,54 @@ const styles = StyleSheet.create({
     modalHeader: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 8,
-        gap: 8,
+        marginBottom: scale(8),
+        gap: scale(8),
     },
     modalTitle: {
-        fontSize: 18,
+        fontSize: scale(18),
         fontWeight: '700',
         color: '#111827',
     },
     modalSubtitle: {
-        fontSize: 14,
+        fontSize: scale(14),
         color: '#6B7280',
         textAlign: 'center',
-        marginBottom: 24,
-        lineHeight: 20,
+        marginBottom: scale(24),
+        lineHeight: scale(20),
     },
     modalStars: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 12,
+        marginBottom: scale(12),
     },
     ratingLabel: {
-        fontSize: 15,
+        fontSize: scale(15),
         fontWeight: '600',
         color: '#F97316',
-        marginBottom: 24,
+        marginBottom: scale(24),
     },
     modalActions: {
         flexDirection: 'row',
-        gap: 12,
+        gap: scale(12),
         width: '100%',
     },
     cancelBtn: {
         flex: 1,
-        paddingVertical: 14,
-        borderRadius: 12,
+        paddingVertical: scale(14),
+        borderRadius: scale(12),
         borderWidth: 1,
         borderColor: '#E5E7EB',
         alignItems: 'center',
     },
     cancelBtnText: {
-        fontSize: 15,
+        fontSize: scale(15),
         fontWeight: '600',
         color: '#6B7280',
     },
     submitBtn: {
         flex: 1,
-        paddingVertical: 14,
-        borderRadius: 12,
+        paddingVertical: scale(14),
+        borderRadius: scale(12),
         backgroundColor: '#FF5B0A',
         alignItems: 'center',
     },
@@ -600,7 +601,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#FED7AA',
     },
     submitBtnText: {
-        fontSize: 15,
+        fontSize: scale(15),
         fontWeight: '700',
         color: '#FFFFFF',
     },

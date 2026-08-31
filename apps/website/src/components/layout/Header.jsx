@@ -64,9 +64,7 @@ const Header = ({ activePage, setActivePage, user, openForm }) => {
           View Plans
         </button>
 
-        <button className="view-plan-button" onClick={openForm}>
-          Join Waitlist
-        </button>
+
 
         {user ? (
           <button
@@ -138,9 +136,7 @@ const Header = ({ activePage, setActivePage, user, openForm }) => {
           >
             📋 View Plans
           </button>
-          <button onClick={() => { openForm(); setMobileMenuOpen(false); }}>
-            📝 Join Waitlist
-          </button>
+
         </div>
       )}
     </header>

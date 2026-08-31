@@ -154,7 +154,7 @@ export default function LegalModal({ isOpen, onClose, initialTab = "terms", onAc
           {activeTab === "terms" && (
             <div>
               <p style={{ marginTop: 0, color: "#64748b", fontSize: "0.8rem" }}>
-                Last Updated: January 2026 • MaiHoonNa Eldercare Pvt. Ltd.
+                Last Updated: January 2026 • MaiHoonNa Eldercare Private Limited
               </p>
 
               <h4 style={{ color: "#0f172a", margin: "16px 0 6px" }}>1. Acceptance of Terms</h4>
@@ -196,7 +196,7 @@ export default function LegalModal({ isOpen, onClose, initialTab = "terms", onAc
           {activeTab === "privacy" && (
             <div>
               <p style={{ marginTop: 0, color: "#64748b", fontSize: "0.8rem" }}>
-                Last Updated: January 2026 • MaiHoonNa Eldercare Pvt. Ltd.
+                Last Updated: January 2026 • MaiHoonNa Eldercare Private Limited
               </p>
 
               <h4 style={{ color: "#0f172a", margin: "16px 0 6px" }}>1. Information We Collect</h4>
@@ -240,7 +240,7 @@ export default function LegalModal({ isOpen, onClose, initialTab = "terms", onAc
           {activeTab === "refund" && (
             <div>
               <p style={{ marginTop: 0, color: "#64748b", fontSize: "0.8rem" }}>
-                Last Updated: January 2026 • MaiHoonNa Eldercare Pvt. Ltd.
+                Last Updated: January 2026 • MaiHoonNa Eldercare Private Limited
               </p>
 
               <h4 style={{ color: "#0f172a", margin: "16px 0 6px" }}>1. 7-Day Satisfaction Guarantee</h4>
@@ -263,7 +263,7 @@ export default function LegalModal({ isOpen, onClose, initialTab = "terms", onAc
           {activeTab === "cookie" && (
             <div>
               <p style={{ marginTop: 0, color: "#64748b", fontSize: "0.8rem" }}>
-                Last Updated: January 2026 • MaiHoonNa Eldercare Pvt. Ltd.
+                Last Updated: January 2026 • MaiHoonNa Eldercare Private Limited
               </p>
 
               <h4 style={{ color: "#0f172a", margin: "16px 0 6px" }}>1. Use of Cookies</h4>

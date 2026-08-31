@@ -24,8 +24,8 @@ const Footer = ({ setActivePage }) => {
             <a href={SITE_LINKS.social.instagram} aria-label="Instagram" target="_blank" rel="noopener noreferrer">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5" /><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" /><line x1="17.5" y1="6.5" x2="17.51" y2="6.5" /></svg>
             </a>
-            <a href={SITE_LINKS.social.twitter} aria-label="Twitter" target="_blank" rel="noopener noreferrer">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z" /></svg>
+            <a href={SITE_LINKS.social.twitter} aria-label="X (Twitter)" target="_blank" rel="noopener noreferrer">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 24.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
             </a>
             <a href={SITE_LINKS.social.facebook} aria-label="Facebook" target="_blank" rel="noopener noreferrer">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" /></svg>
@@ -96,7 +96,7 @@ const Footer = ({ setActivePage }) => {
       {/* Footer Bottom Bar */}
       <div className="footer-bottom">
         <div className="footer-bottom__left">
-          <span>2026 MaiHoonNa Eldercare Private Limited. All rights reserved.</span>
+          <span>Copyright : &copy; 2026 MaiHoonNa Eldercare Private Limited. All rights reserved.</span>
         </div>
         <div className="footer-bottom__right">
           <span>Made with <span className="heart-icon">❤️</span> for every Indian family</span>

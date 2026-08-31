@@ -314,112 +314,112 @@ const styles = StyleSheet.create({
 
     successArea: { alignItems: 'center', marginBottom: 34 },
     checkmarkCircle: {
-        width: 80, height: 80, borderRadius: 40, backgroundColor: '#D5FBDD',
-        alignItems: 'center', justifyContent: 'center', marginBottom: 20
+        width: 60, height: 60, borderRadius: 30, backgroundColor: '#D5FBDD',
+        alignItems: 'center', justifyContent: 'center', marginBottom: 16
     },
-    successTitle: { fontSize: 29, fontWeight: '500', color: '#050505', marginBottom: 8 },
-    successSubtitle: { fontSize: 18, color: '#111111', textAlign: 'center', lineHeight: 27, fontWeight: '400' },
+    successTitle: { fontSize: 18, fontWeight: '500', color: '#050505', marginBottom: 6 },
+    successSubtitle: { fontSize: 11, color: '#111111', textAlign: 'center', lineHeight: 16, fontWeight: '400' },
 
     orderRibbon: {
-        backgroundColor: '#FE6700', paddingVertical: 14, paddingHorizontal: 24, flexDirection: 'row', alignItems: 'center',
+        backgroundColor: '#FE6700', paddingVertical: 10, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center',
         borderTopLeftRadius: 6, borderTopRightRadius: 6
     },
-    ribbonTitle: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
-    ribbonId: { color: '#FFFFFF', fontSize: 15, fontWeight: '400', marginTop: 1 },
+    ribbonTitle: { color: '#FFFFFF', fontSize: 10, fontWeight: '700' },
+    ribbonId: { color: '#FFFFFF', fontSize: 10, fontWeight: '400', marginTop: 1 },
 
     invoiceCard: {
-        backgroundColor: '#FFFFFF', paddingHorizontal: 24, paddingTop: 28, paddingBottom: 30,
+        backgroundColor: '#FFFFFF', paddingHorizontal: 16, paddingTop: 18, paddingBottom: 20,
         borderBottomLeftRadius: 16, borderBottomRightRadius: 16,
         shadowColor: '#7A4A28', shadowOffset: { width: 0, height: 12 }, shadowOpacity: 0.18, shadowRadius: 22, elevation: 5,
         marginBottom: 24
     },
-    invoiceHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 18 },
-    packageName: { fontSize: 20, fontWeight: '400', color: '#050505' },
-    packageDuration: { fontSize: 14, color: '#3B3B3B', marginTop: 0 },
-    packagePrice: { fontSize: 25, fontWeight: '700', color: '#FE6700' },
-    perMonth: { fontSize: 15, color: '#3B3B3B', marginTop: 0, textAlign: 'right' },
+    invoiceHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 },
+    packageName: { fontSize: 12, fontWeight: '400', color: '#050505' },
+    packageDuration: { fontSize: 10, color: '#3B3B3B', marginTop: 0 },
+    packagePrice: { fontSize: 15, fontWeight: '700', color: '#FE6700' },
+    perMonth: { fontSize: 10, color: '#3B3B3B', marginTop: 0, textAlign: 'right' },
 
-    includesBox: { backgroundColor: '#F7F7F7', borderRadius: 9, paddingHorizontal: 16, paddingVertical: 18, marginBottom: 16 },
-    includesTitle: { fontSize: 13, fontWeight: '400', color: '#3A3A3A', marginBottom: 14 },
-    bulletRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 13 },
-    bulletText: { fontSize: 14, color: '#181818', fontWeight: '400' },
+    includesBox: { backgroundColor: '#F7F7F7', borderRadius: 9, paddingHorizontal: 12, paddingVertical: 14, marginBottom: 12 },
+    includesTitle: { fontSize: 10, fontWeight: '400', color: '#3A3A3A', marginBottom: 10 },
+    bulletRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
+    bulletText: { fontSize: 10, color: '#181818', fontWeight: '400' },
 
-    separator: { height: 1, backgroundColor: '#E5E2DE', marginBottom: 20 },
+    separator: { height: 1, backgroundColor: '#E5E2DE', marginBottom: 14 },
 
-    detailRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
-    iconBoxBlue: { width: 40, height: 40, borderRadius: 9, backgroundColor: '#FFE2CB', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
-    iconBoxGreen: { width: 40, height: 40, borderRadius: 9, backgroundColor: '#FFE2CB', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
-    iconBoxPurple: { width: 40, height: 40, borderRadius: 9, backgroundColor: '#FFE2CB', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
-    detailLabel: { fontSize: 13, color: '#3B3B3B', marginBottom: 1, fontWeight: '400' },
-    detailValue: { fontSize: 16, fontWeight: '400', color: '#050505' },
-    detailSub: { fontSize: 13, color: '#3B3B3B', marginTop: 4 },
+    detailRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 14 },
+    iconBoxBlue: { width: 32, height: 32, borderRadius: 9, backgroundColor: '#FFE2CB', alignItems: 'center', justifyContent: 'center', marginRight: 10 },
+    iconBoxGreen: { width: 32, height: 32, borderRadius: 9, backgroundColor: '#FFE2CB', alignItems: 'center', justifyContent: 'center', marginRight: 10 },
+    iconBoxPurple: { width: 32, height: 32, borderRadius: 9, backgroundColor: '#FFE2CB', alignItems: 'center', justifyContent: 'center', marginRight: 10 },
+    detailLabel: { fontSize: 10, color: '#3B3B3B', marginBottom: 1, fontWeight: '400' },
+    detailValue: { fontSize: 10, fontWeight: '400', color: '#050505' },
+    detailSub: { fontSize: 10, color: '#3B3B3B', marginTop: 2 },
 
     whatsNextCard: {
-        backgroundColor: '#FFFFFF', paddingHorizontal: 24, paddingTop: 22, paddingBottom: 20, borderRadius: 16,
+        backgroundColor: '#FFFFFF', paddingHorizontal: 16, paddingTop: 16, paddingBottom: 16, borderRadius: 16,
         shadowColor: '#7A4A28', shadowOffset: { width: 0, height: 12 }, shadowOpacity: 0.14, shadowRadius: 20, elevation: 4,
         marginBottom: 24
     },
-    whatsNextTitle: { fontSize: 16, fontWeight: '400', color: '#050505', marginBottom: 4 },
-    whatsNextSub: { fontSize: 15, color: '#3B3B3B', marginBottom: 28 },
+    whatsNextTitle: { fontSize: 10, fontWeight: '400', color: '#050505', marginBottom: 4 },
+    whatsNextSub: { fontSize: 10, color: '#3B3B3B', marginBottom: 18 },
 
-    stepRow: { flexDirection: 'row', marginBottom: 20 },
+    stepRow: { flexDirection: 'row', marginBottom: 14 },
     stepNumberCircle: {
-        width: 32, height: 32, borderRadius: 16, backgroundColor: '#FE6700',
-        alignItems: 'center', justifyContent: 'center', marginRight: 16, marginTop: 1
+        width: 24, height: 24, borderRadius: 12, backgroundColor: '#FE6700',
+        alignItems: 'center', justifyContent: 'center', marginRight: 12, marginTop: 1
     },
-    stepNumber: { color: '#FFFFFF', fontSize: 15, fontWeight: '500' },
+    stepNumber: { color: '#FFFFFF', fontSize: 10, fontWeight: '500' },
     stepContent: { flex: 1 },
-    stepTitle: { fontSize: 16, fontWeight: '400', color: '#050505', marginBottom: 4 },
-    stepDesc: { fontSize: 14, color: '#3B3B3B', lineHeight: 20 },
+    stepTitle: { fontSize: 10, fontWeight: '400', color: '#050505', marginBottom: 4 },
+    stepDesc: { fontSize: 10, color: '#3B3B3B', lineHeight: 14 },
 
     enrollBtn: {
-        backgroundColor: '#FE6700', height: 49, borderRadius: 7,
+        backgroundColor: '#FE6700', height: 38, borderRadius: 7,
         flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginBottom: 12
     },
-    enrollBtnText: { color: '#FFFFFF', fontSize: 17, fontWeight: '700', marginRight: 10 },
+    enrollBtnText: { color: '#FFFFFF', fontSize: 10, fontWeight: '700', marginRight: 8 },
 
     addBeneficiaryBtn: {
-        backgroundColor: '#FFFFFF', height: 49, borderRadius: 7,
+        backgroundColor: '#FFFFFF', height: 38, borderRadius: 7,
         borderWidth: 2, borderColor: '#FE6700',
-        flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginBottom: 18
+        flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginBottom: 12
     },
-    addBeneficiaryBtnText: { color: '#FE6700', fontSize: 16, fontWeight: '700' },
+    addBeneficiaryBtnText: { color: '#FE6700', fontSize: 10, fontWeight: '700' },
 
     beneficiaryBtn: {
-        backgroundColor: '#FFFFFF', height: 49, borderRadius: 7,
+        backgroundColor: '#FFFFFF', height: 38, borderRadius: 7,
         borderWidth: 2, borderColor: '#FE6700',
-        flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginBottom: 18
+        flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginBottom: 12
     },
-    beneficiaryBtnText: { color: '#FE6700', fontSize: 16, fontWeight: '700' },
+    beneficiaryBtnText: { color: '#FE6700', fontSize: 10, fontWeight: '700' },
 
     outlineBtn: {
-        borderWidth: 1, borderColor: '#FE6700', height: 48, borderRadius: 7,
-        flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginBottom: 22,
+        borderWidth: 1, borderColor: '#FE6700', height: 38, borderRadius: 7,
+        flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginBottom: 16,
         backgroundColor: '#FFFFFF'
     },
-    outlineBtnText: { color: '#FE6700', fontSize: 14, fontWeight: '600' },
+    outlineBtnText: { color: '#FE6700', fontSize: 10, fontWeight: '600' },
 
-    linkBtn: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: 8, marginBottom: 22 },
-    linkBtnText: { color: '#050505', fontSize: 15, fontWeight: '400' },
+    linkBtn: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: 8, marginBottom: 16 },
+    linkBtnText: { color: '#050505', fontSize: 10, fontWeight: '400' },
 
     supportCard: {
-        backgroundColor: '#FFFFFF', paddingHorizontal: 24, paddingTop: 20, paddingBottom: 28, borderRadius: 16,
+        backgroundColor: '#FFFFFF', paddingHorizontal: 16, paddingTop: 16, paddingBottom: 18, borderRadius: 16,
         shadowColor: '#7A4A28', shadowOffset: { width: 0, height: 12 }, shadowOpacity: 0.15, shadowRadius: 20, elevation: 4
     },
-    supportHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 22 },
-    supportImage: { width: 88, height: 88, marginRight: 14 },
+    supportHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
+    supportImage: { width: 60, height: 60, marginRight: 10 },
     supportTextContainer: { flex: 1 },
-    supportTitle: { fontSize: 23, fontWeight: '700', color: '#111111', marginBottom: 12 },
-    supportDesc: { fontSize: 18, color: '#111111', lineHeight: 28, fontWeight: '400' },
+    supportTitle: { fontSize: 14, fontWeight: '700', color: '#111111', marginBottom: 8 },
+    supportDesc: { fontSize: 11, color: '#111111', lineHeight: 16, fontWeight: '400' },
     supportButtonsRow: { flexDirection: 'row', alignItems: 'center' },
     callbackBtn: {
-        flex: 1, borderWidth: 1, borderColor: '#FE6700', height: 48, borderRadius: 9,
-        flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginRight: 12,
+        flex: 1, borderWidth: 1, borderColor: '#FE6700', height: 38, borderRadius: 9,
+        flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginRight: 10,
         backgroundColor: '#FFFFFF'
     },
-    callbackBtnText: { color: '#FE6700', fontSize: 15, fontWeight: '700' },
+    callbackBtnText: { color: '#FE6700', fontSize: 10, fontWeight: '700' },
     chatBtn: {
-        width: 48, height: 48, borderRadius: 9, backgroundColor: '#FFFFFF',
+        width: 38, height: 38, borderRadius: 9, backgroundColor: '#FFFFFF',
         alignItems: 'center', justifyContent: 'center'
     }
 });

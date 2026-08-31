@@ -10,6 +10,7 @@ import { useSafeBack } from '@/hooks/useSafeBack';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigationStack } from '@/contexts/NavigationStackContext';
 import { useAndroidBackHandler } from '@/hooks/useAndroidBackHandler';
+import { scale } from '@/utils/responsive';
 
 export default function PackageDetailScreen() {
     const router = useRouter();
@@ -62,13 +63,13 @@ export default function PackageDetailScreen() {
             {/* Transparent Header Over Gradient */}
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => safeBack()} style={styles.headerBtn}>
-                    <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+                    <Ionicons name="arrow-back" size={scale(24)} color="#FFFFFF" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Plan Details</Text>
-                <View style={{ width: 40 }} />
+                <View style={{ width: scale(40) }} />
             </View>
 
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: scale(100) }}>
                 {/* Top Section with Gradient */}
                 <LinearGradient colors={['#F97316', '#EA580C']} style={styles.heroSection}>
                     <View style={styles.heroContent}>
@@ -101,19 +102,19 @@ export default function PackageDetailScreen() {
                     {/* Key Stats */}
                     <View style={styles.quickStats}>
                         <View style={styles.statItem}>
-                            <Ionicons name="time-outline" size={24} color="#F97316" />
+                            <Ionicons name="time-outline" size={scale(24)} color="#F97316" />
                             <Text style={styles.statValue}>{pkg.totalHours || pkg.hoursPerMonth || 0}h</Text>
                             <Text style={styles.statLabel}>Care Hours</Text>
                         </View>
                         <View style={styles.statDivider} />
                         <View style={styles.statItem}>
-                            <Ionicons name="calendar-outline" size={24} color="#F97316" />
+                            <Ionicons name="calendar-outline" size={scale(24)} color="#F97316" />
                             <Text style={styles.statValue}>{pkg.visitsPerWeek || 0}</Text>
                             <Text style={styles.statLabel}>Visits / week</Text>
                         </View>
                         <View style={styles.statDivider} />
                         <View style={styles.statItem}>
-                            <Ionicons name="people-outline" size={24} color="#F97316" />
+                            <Ionicons name="people-outline" size={scale(24)} color="#F97316" />
                             <Text style={styles.statValue}>{pkg.maxBeneficiaries || 1}</Text>
                             <Text style={styles.statLabel}>Beneficiaries</Text>
                         </View>
@@ -135,7 +136,7 @@ export default function PackageDetailScreen() {
                                     return (
                                         <View key={i} style={styles.benefitItem}>
                                             <View style={styles.checkIcon}>
-                                                <Ionicons name="checkmark" size={16} color="#059669" />
+                                                <Ionicons name="checkmark" size={scale(16)} color="#059669" />
                                             </View>
                                             <View style={{ flex: 1 }}>
                                                 <Text style={styles.benefitText}>
@@ -143,7 +144,7 @@ export default function PackageDetailScreen() {
                                                     {' '}• {pb.benefit?.name}
                                                 </Text>
                                                 {pb.benefit?.description ? (
-                                                    <Text style={{ fontSize: 13, color: '#6B7280', marginTop: 4 }}>
+                                                    <Text style={{ fontSize: scale(13), color: '#6B7280', marginTop: scale(4) }}>
                                                         {pb.benefit.description}
                                                     </Text>
                                                 ) : null}
@@ -155,7 +156,7 @@ export default function PackageDetailScreen() {
                                 (pkg.features || []).map((feature: string, i: number) => (
                                     <View key={i} style={styles.benefitItem}>
                                         <View style={styles.checkIcon}>
-                                            <Ionicons name="checkmark" size={16} color="#059669" />
+                                            <Ionicons name="checkmark" size={scale(16)} color="#059669" />
                                         </View>
                                         <Text style={styles.benefitText}>{feature}</Text>
                                     </View>
@@ -166,7 +167,7 @@ export default function PackageDetailScreen() {
 
                     {/* Disclaimer */}
                     <View style={styles.disclaimerBox}>
-                        <Ionicons name="information-circle-outline" size={20} color="#6B7280" />
+                        <Ionicons name="information-circle-outline" size={scale(20)} color="#6B7280" />
                         <Text style={styles.disclaimerText}>
                             Actual visits and hours might vary based on Care Companion availability and your specific location in the city.
                         </Text>
@@ -189,7 +190,7 @@ export default function PackageDetailScreen() {
                     }}
                 >
                     <Text style={styles.actionBtnText}>Select this Package</Text>
-                    <Ionicons name="arrow-forward" size={20} color="#FFFFFF" style={{ marginLeft: 8 }} />
+                    <Ionicons name="arrow-forward" size={scale(20)} color="#FFFFFF" style={{ marginLeft: scale(8) }} />
                 </TouchableOpacity>
             </View>
         </SafeAreaView>
@@ -202,68 +203,68 @@ const styles = StyleSheet.create({
     header: {
         position: 'absolute', top: Platform.OS === 'ios' ? 50 : 20, 
         left: 0, right: 0, zIndex: 10,
-        flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20
+        flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: scale(20)
     },
-    headerBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.2)', justifyContent: 'center', alignItems: 'center' },
-    headerTitle: { fontSize: 18, fontWeight: '700', color: '#FFFFFF' },
+    headerBtn: { width: scale(40), height: scale(40), borderRadius: scale(20), backgroundColor: 'rgba(255,255,255,0.2)', justifyContent: 'center', alignItems: 'center' },
+    headerTitle: { fontSize: scale(18), fontWeight: '700', color: '#FFFFFF' },
     
-    heroSection: { paddingTop: 100, paddingBottom: 40, borderBottomLeftRadius: 32, borderBottomRightRadius: 32 },
-    heroContent: { alignItems: 'center', paddingHorizontal: 30 },
-    badgeWrapper: { marginBottom: 12 },
-    typeBadge: { backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 16, paddingVertical: 6, borderRadius: 12 },
-    typeBadgeText: { color: '#FFFFFF', fontSize: 13, fontWeight: '800', textTransform: 'uppercase' },
-    heroTagline: { fontSize: 24, fontWeight: '800', color: '#FFFFFF', textAlign: 'center', marginBottom: 20 },
+    heroSection: { paddingTop: scale(100), paddingBottom: scale(40), borderBottomLeftRadius: 32, borderBottomRightRadius: 32 },
+    heroContent: { alignItems: 'center', paddingHorizontal: scale(30) },
+    badgeWrapper: { marginBottom: scale(12) },
+    typeBadge: { backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: scale(16), paddingVertical: scale(6), borderRadius: scale(12) },
+    typeBadgeText: { color: '#FFFFFF', fontSize: scale(13), fontWeight: '800', textTransform: 'uppercase' },
+    heroTagline: { fontSize: scale(24), fontWeight: '800', color: '#FFFFFF', textAlign: 'center', marginBottom: scale(20) },
     
-    priceRow: { flexDirection: 'row', alignItems: 'baseline', marginBottom: 8 },
-    currency: { fontSize: 24, color: '#FFFFFF', fontWeight: '800', marginRight: 4 },
-    price: { fontSize: 42, color: '#FFFFFF', fontWeight: '900' },
-    period: { fontSize: 16, color: 'rgba(255,255,255,0.8)', marginLeft: 6 },
+    priceRow: { flexDirection: 'row', alignItems: 'baseline', marginBottom: scale(8) },
+    currency: { fontSize: scale(24), color: '#FFFFFF', fontWeight: '800', marginRight: scale(4) },
+    price: { fontSize: scale(42), color: '#FFFFFF', fontWeight: '900' },
+    period: { fontSize: scale(16), color: 'rgba(255,255,255,0.8)', marginLeft: scale(6) },
     
     savingsRow: { flexDirection: 'row', alignItems: 'center' },
-    mrp: { fontSize: 16, color: 'rgba(255,255,255,0.6)', textDecorationLine: 'line-through', marginRight: 10 },
-    discountBadge: { backgroundColor: '#FFD6BA', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
-    discountText: { color: '#EA580C', fontSize: 11, fontWeight: '800' },
+    mrp: { fontSize: scale(16), color: 'rgba(255,255,255,0.6)', textDecorationLine: 'line-through', marginRight: scale(10) },
+    discountBadge: { backgroundColor: '#FFD6BA', paddingHorizontal: scale(8), paddingVertical: scale(4), borderRadius: scale(6) },
+    discountText: { color: '#EA580C', fontSize: scale(11), fontWeight: '800' },
 
-    detailsContent: { paddingHorizontal: 24, paddingTop: 30 },
+    detailsContent: { paddingHorizontal: scale(24), paddingTop: scale(30) },
     quickStats: { 
-        flexDirection: 'row', backgroundColor: '#F9FAFB', borderRadius: 24, padding: 20, 
-        marginBottom: 32, borderWidth: 1, borderColor: '#F3F4F6' 
+        flexDirection: 'row', backgroundColor: '#F9FAFB', borderRadius: scale(24), padding: scale(20), 
+        marginBottom: scale(32), borderWidth: 1, borderColor: '#F3F4F6' 
     },
     statItem: { flex: 1, alignItems: 'center' },
-    statValue: { fontSize: 18, fontWeight: '800', color: '#111827', marginTop: 4 },
-    statLabel: { fontSize: 11, color: '#9CA3AF', marginTop: 2 },
+    statValue: { fontSize: scale(18), fontWeight: '800', color: '#111827', marginTop: scale(4) },
+    statLabel: { fontSize: scale(11), color: '#9CA3AF', marginTop: scale(2) },
     statDivider: { width: 1, height: '60%', backgroundColor: '#E5E7EB', alignSelf: 'center' },
 
-    section: { marginBottom: 32 },
-    sectionTitle: { fontSize: 18, fontWeight: '800', color: '#111827', marginBottom: 16 },
-    descriptionText: { fontSize: 15, color: '#4B5563', lineHeight: 24 },
+    section: { marginBottom: scale(32) },
+    sectionTitle: { fontSize: scale(18), fontWeight: '800', color: '#111827', marginBottom: scale(16) },
+    descriptionText: { fontSize: scale(15), color: '#4B5563', lineHeight: scale(24) },
     
-    benefitList: { gap: 16 },
+    benefitList: { gap: scale(16) },
     benefitItem: { flexDirection: 'row', alignItems: 'flex-start' },
     checkIcon: { 
-        width: 24, height: 24, borderRadius: 12, backgroundColor: '#ECFDF5', 
-        justifyContent: 'center', alignItems: 'center', marginRight: 12, marginTop: 2 
+        width: scale(24), height: scale(24), borderRadius: scale(12), backgroundColor: '#ECFDF5', 
+        justifyContent: 'center', alignItems: 'center', marginRight: scale(12), marginTop: scale(2) 
     },
-    benefitText: { fontSize: 15, color: '#374151', flex: 1, lineHeight: 22 },
+    benefitText: { fontSize: scale(15), color: '#374151', flex: 1, lineHeight: scale(22) },
 
     disclaimerBox: { 
-        flexDirection: 'row', padding: 16, backgroundColor: '#F9FAFB', 
-        borderRadius: 16, marginBottom: 20, alignItems: 'center' 
+        flexDirection: 'row', padding: scale(16), backgroundColor: '#F9FAFB', 
+        borderRadius: scale(16), marginBottom: scale(20), alignItems: 'center' 
     },
-    disclaimerText: { flex: 1, fontSize: 12, color: '#6B7280', marginLeft: 12, lineHeight: 18 },
+    disclaimerText: { flex: 1, fontSize: scale(12), color: '#6B7280', marginLeft: scale(12), lineHeight: scale(18) },
 
     footer: { 
         position: 'absolute', bottom: 0, left: 0, right: 0, 
-        backgroundColor: '#FFFFFF', padding: 20, borderTopWidth: 1, borderTopColor: '#F3F4F6',
+        backgroundColor: '#FFFFFF', padding: scale(20), borderTopWidth: 1, borderTopColor: '#F3F4F6',
         paddingBottom: Platform.OS === 'ios' ? 40 : 20
     },
     actionBtn: { 
-        backgroundColor: '#F97316', height: 56, borderRadius: 16, 
+        backgroundColor: '#F97316', height: scale(56), borderRadius: scale(16), 
         flexDirection: 'row', justifyContent: 'center', alignItems: 'center',
-        shadowColor: '#F97316', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 10, elevation: 5
+        shadowColor: '#F97316', shadowOffset: { width: 0, height: scale(4) }, shadowOpacity: 0.3, shadowRadius: 10, elevation: 5
     },
-    actionBtnText: { color: '#FFFFFF', fontSize: 16, fontWeight: '800' },
-    errorText: { fontSize: 16, color: '#6B7280', marginBottom: 20 },
-    backBtn: { backgroundColor: '#F97316', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12 },
+    actionBtnText: { color: '#FFFFFF', fontSize: scale(16), fontWeight: '800' },
+    errorText: { fontSize: scale(16), color: '#6B7280', marginBottom: scale(20) },
+    backBtn: { backgroundColor: '#F97316', paddingHorizontal: scale(24), paddingVertical: scale(12), borderRadius: scale(12) },
     backBtnText: { color: '#FFFFFF', fontWeight: '700' }
 });

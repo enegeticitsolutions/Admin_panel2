@@ -167,8 +167,7 @@ export default function VerifyOtpScreen() {
             >
                 <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
                     <View style={styles.container}>
-                        <View>
-                            <View style={styles.header}>
+                        <View style={styles.header}>
                                 <TouchableOpacity onPress={() => {
                                     if (router.canGoBack()) {
                                         pop();
@@ -180,7 +179,9 @@ export default function VerifyOtpScreen() {
                                 </TouchableOpacity>
                                 <Text style={styles.headerTitle}>Verify Phone</Text>
                                 <View style={styles.headerSpacer} />
-                            </View>
+                        </View>
+
+                        <View style={{ flex: 1, justifyContent: 'center', paddingBottom: 60 }}>
 
                             <View style={styles.heroTextWrap}>
                                 <Text style={styles.title}>Enter Verification Code</Text>

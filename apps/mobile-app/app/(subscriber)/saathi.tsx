@@ -6,6 +6,7 @@ import { API_URL } from '@/constants/api';
 import { SaathiView } from '@/components/shared/SaathiView';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSafeBack } from '@/hooks/useSafeBack';
+import { scale } from '@/utils/responsive';
 
 export default function SubscriberSaathiScreen() {
   const safeBack = useSafeBack();
@@ -47,7 +48,7 @@ export default function SubscriberSaathiScreen() {
       <SafeAreaView style={styles.container}>
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
           <ActivityIndicator size="large" color="#E11D48" />
-          <Text style={{ marginTop: 12, color: '#6B7280' }}>Loading Saathi Services...</Text>
+          <Text style={{ marginTop: scale(12), color: '#6B7280' }}>Loading Saathi Services...</Text>
         </View>
       </SafeAreaView>
     );
@@ -59,14 +60,14 @@ export default function SubscriberSaathiScreen() {
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => safeBack()} style={styles.backBtn}>
-            <Feather name="arrow-left" size={24} color="#000" />
+            <Feather name="arrow-left" size={scale(24)} color="#000" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Saathi Companion</Text>
-          <View style={{ width: 24 }} />
+          <View style={{ width: scale(24) }} />
         </View>
 
         <View style={styles.centerContent}>
-          <MaterialCommunityIcons name="account-group-outline" size={64} color="#E11D48" style={{ marginBottom: 16 }} />
+          <MaterialCommunityIcons name="account-group-outline" size={scale(64)} color="#E11D48" style={{ marginBottom: scale(16) }} />
           <Text style={styles.errorTitle}>No Eligible Beneficiaries</Text>
           <Text style={styles.errorDesc}>
             None of your beneficiaries currently have a subscription package that includes Sathi Companion hours.
@@ -85,10 +86,10 @@ export default function SubscriberSaathiScreen() {
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => safeBack()} style={styles.backBtn}>
-            <Feather name="arrow-left" size={24} color="#000" />
+            <Feather name="arrow-left" size={scale(24)} color="#000" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Select Beneficiary</Text>
-          <View style={{ width: 24 }} />
+          <View style={{ width: scale(24) }} />
         </View>
         <ScrollView contentContainerStyle={styles.listContent}>
           <Text style={styles.listPrompt}>Which beneficiary needs a companion?</Text>
@@ -99,13 +100,13 @@ export default function SubscriberSaathiScreen() {
               onPress={() => setSelectedBeneficiaryId(b.id)}
             >
               <View style={styles.beneficiaryIconBg}>
-                <Feather name="user" size={20} color="#E11D48" />
+                <Feather name="user" size={scale(20)} color="#E11D48" />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.beneficiaryName}>{b.name}</Text>
                 <Text style={styles.beneficiaryDetail}>Eligible for Saathi</Text>
               </View>
-              <Feather name="chevron-right" size={20} color="#9CA3AF" />
+              <Feather name="chevron-right" size={scale(20)} color="#9CA3AF" />
             </TouchableOpacity>
           ))}
         </ScrollView>
@@ -125,10 +126,10 @@ export default function SubscriberSaathiScreen() {
             onPress={() => setShowDropdown(!showDropdown)}
           >
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <Feather name="user" size={16} color="#E11D48" style={{ marginRight: 8 }} />
+              <Feather name="user" size={scale(16)} color="#E11D48" style={{ marginRight: scale(8) }} />
               <Text style={styles.dropdownText}>Managing for: <Text style={{ fontWeight: 'bold' }}>{selectedName}</Text></Text>
             </View>
-            <Feather name={showDropdown ? "chevron-up" : "chevron-down"} size={20} color="#6B7280" />
+            <Feather name={showDropdown ? "chevron-up" : "chevron-down"} size={scale(20)} color="#6B7280" />
           </TouchableOpacity>
           
           {showDropdown && (
@@ -176,16 +177,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingHorizontal: scale(20),
+    paddingVertical: scale(16),
     backgroundColor: '#FAFAFA',
   },
   backBtn: {
-    padding: 8,
+    padding: scale(8),
     marginLeft: -8,
   },
   headerTitle: {
-    fontSize: 18,
+    fontSize: scale(18),
     fontWeight: '700',
     color: '#111827',
   },
@@ -193,47 +194,47 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 24,
+    padding: scale(24),
   },
   errorTitle: {
-    fontSize: 20,
+    fontSize: scale(20),
     fontWeight: '800',
     color: '#111827',
-    marginBottom: 8,
+    marginBottom: scale(8),
   },
   errorDesc: {
-    fontSize: 15,
+    fontSize: scale(15),
     color: '#4B5563',
     textAlign: 'center',
-    lineHeight: 22,
-    marginBottom: 24,
+    lineHeight: scale(22),
+    marginBottom: scale(24),
   },
   closeBtn: {
     backgroundColor: '#E11D48',
-    paddingVertical: 12,
-    paddingHorizontal: 32,
-    borderRadius: 8,
+    paddingVertical: scale(12),
+    paddingHorizontal: scale(32),
+    borderRadius: scale(8),
   },
   closeBtnText: {
     color: '#FFFFFF',
     fontWeight: '600',
-    fontSize: 15,
+    fontSize: scale(15),
   },
   listContent: {
-    padding: 20,
+    padding: scale(20),
   },
   listPrompt: {
-    fontSize: 16,
+    fontSize: scale(16),
     color: '#4B5563',
-    marginBottom: 16,
+    marginBottom: scale(16),
   },
   beneficiaryCard: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
+    padding: scale(16),
+    borderRadius: scale(12),
+    marginBottom: scale(12),
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
@@ -241,29 +242,29 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   beneficiaryIconBg: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: scale(40),
+    height: scale(40),
+    borderRadius: scale(20),
     backgroundColor: '#FFF1F2',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginRight: scale(12),
   },
   beneficiaryName: {
-    fontSize: 16,
+    fontSize: scale(16),
     fontWeight: '600',
     color: '#111827',
   },
   beneficiaryDetail: {
-    fontSize: 13,
+    fontSize: scale(13),
     color: '#6B7280',
-    marginTop: 2,
+    marginTop: scale(2),
   },
   dropdownContainer: {
     position: 'absolute',
-    top: 60,
-    left: 20,
-    right: 20,
+    top: scale(60),
+    left: scale(20),
+    right: scale(20),
     zIndex: 100,
   },
   dropdownSelector: {
@@ -271,9 +272,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: '#FFFFFF',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 8,
+    paddingHorizontal: scale(16),
+    paddingVertical: scale(12),
+    borderRadius: scale(8),
     borderWidth: 1,
     borderColor: '#E5E7EB',
     shadowColor: '#000',
@@ -283,24 +284,24 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   dropdownText: {
-    fontSize: 14,
+    fontSize: scale(14),
     color: '#374151',
   },
   dropdownMenu: {
     backgroundColor: '#FFFFFF',
-    marginTop: 4,
-    borderRadius: 8,
+    marginTop: scale(4),
+    borderRadius: scale(8),
     borderWidth: 1,
     borderColor: '#E5E7EB',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: scale(4) },
     shadowOpacity: 0.1,
     shadowRadius: 6,
     elevation: 4,
   },
   dropdownItem: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: scale(16),
+    paddingVertical: scale(12),
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',
   },
@@ -308,7 +309,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF1F2',
   },
   dropdownItemText: {
-    fontSize: 14,
+    fontSize: scale(14),
     color: '#374151',
   },
   dropdownItemTextActive: {

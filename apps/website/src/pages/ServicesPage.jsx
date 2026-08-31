@@ -19,14 +19,16 @@ const ServicesPage = ({ setActivePage, openForm }) => {
               <span>Our Services</span>
             </div>
             <h1>
-              Everything your loved one needs, <br />
-              <em>delivered at their door.</em>
+              Everything your <br />
+              loved one needs, <br />
+              <em>delivered at their <br />
+              door.</em>
             </h1>
             <p>
               A full ecosystem of in-home care, health monitoring, community connection, and family transparency — all in one subscription.
             </p>
             <div className="services-hero__actions">
-              <button className="services-btn-explore" onClick={openForm}>
+              <button className="services-btn-explore" onClick={() => document.getElementById('beyond-visits')?.scrollIntoView({ behavior: 'smooth' })}>
                 Explore Services
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
               </button>
@@ -56,7 +58,7 @@ const ServicesPage = ({ setActivePage, openForm }) => {
                 )
               },
               {
-                title: "100% BGV Verified Mitras",
+                title: "100% Background Verified Mitras",
                 desc: "Police + Aadhaar + reference verified",
                 color: "#FE6700",
                 bg: "rgba(254, 103, 0, 0.133)",
@@ -101,7 +103,7 @@ const ServicesPage = ({ setActivePage, openForm }) => {
       <CareMitraServicesSection />
 
       {/* ── Full Ecosystem ── */}
-      <section className="svc-ecosystem">
+      <section id="beyond-visits" className="svc-ecosystem">
         <div className="svc-visits__header-main">
           <span className="svc-visits__eyebrow-top">BEYOND VISITS</span>
           <h2>The full MaiHoonNa ecosystem</h2>
@@ -241,7 +243,7 @@ const ServicesPage = ({ setActivePage, openForm }) => {
           <span className="svc-cta__eyebrow">GET STARTED</span>
           <h2>Ready to bring care home?</h2>
           <p>
-            Join the waitlist for Gurugram Sectors 54–57. Limited early access. We'll match your first Care Mitra within 24 hours of onboarding.
+            Join the waitlist for Gurugram Sectors 53 to 57. Limited early access. We'll match your first Care Mitra within 24 hours of onboarding.
           </p>
           <div className="svc-cta__actions">
             <button className="svc-cta-btn-plans" onClick={() => setActivePage("plans")}>View Plans</button>

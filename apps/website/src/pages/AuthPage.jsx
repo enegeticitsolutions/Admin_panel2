@@ -20,6 +20,7 @@ export default function AuthPage({ onAuthSuccess, onGoBack, initialView = "LOGIN
   const [pincode, setPincode] = useState("");
   const [location, setLocation] = useState("");
   const [consentGiven, setConsentGiven] = useState(false);
+  const [dpdpConsent, setDpdpConsent] = useState(false);
 
   // 6-digit OTP state
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
@@ -744,8 +745,53 @@ export default function AuthPage({ onAuthSuccess, onGoBack, initialView = "LOGIN
                     }}
                   >
                     Terms of Service
-                  </a>{" "}
-                  &{" "}
+                  </a>
+                  .
+                </label>
+              </div>
+
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "flex-start",
+                  gap: "10px",
+                  background: "#fff8f3",
+                  border: "1px solid #ffd7bc",
+                  borderRadius: "10px",
+                  padding: "10px 12px",
+                  margin: "4px 0",
+                  cursor: "pointer",
+                }}
+                onClick={() => setDpdpConsent(!dpdpConsent)}
+              >
+                <input
+                  type="checkbox"
+                  id="auth-dpdp-consent"
+                  checked={dpdpConsent}
+                  onChange={(e) => {
+                    setDpdpConsent(e.target.checked);
+                    setError("");
+                  }}
+                  style={{
+                    accentColor: "var(--orange, #fe6700)",
+                    marginTop: "2px",
+                    width: "16px",
+                    height: "16px",
+                    cursor: "pointer",
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                />
+                <label
+                  htmlFor="auth-dpdp-consent"
+                  style={{
+                    fontSize: "0.76rem",
+                    color: "#475569",
+                    lineHeight: "1.4",
+                    cursor: "pointer",
+                    margin: 0,
+                  }}
+                >
+                  I have read and agree to the{" "}
                   <a
                     href={LEGAL_CONFIG.PRIVACY_POLICY_URL}
                     target="_blank"
@@ -759,14 +805,14 @@ export default function AuthPage({ onAuthSuccess, onGoBack, initialView = "LOGIN
                     }}
                   >
                     Privacy Policy
-                  </a>
-                  .
+                  </a>{" "}
+                  and consent to processing of my personal data under the DPDP Act, 2023.
                 </label>
               </div>
 
               <button
                 type="submit"
-                disabled={loading || cleanPhoneNumber(phone).length < 10 || !name.trim() || !consentGiven}
+                disabled={loading || cleanPhoneNumber(phone).length < 10 || !name.trim() || !consentGiven || !dpdpConsent}
                 style={{
                   width: "100%",
                   padding: "14px",

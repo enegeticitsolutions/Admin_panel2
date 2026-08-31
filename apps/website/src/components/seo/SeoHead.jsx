@@ -23,7 +23,7 @@ const SEO_CONFIG = {
           "India's connected senior care ecosystem — blending human companionship with smart healthcare technology.",
         "address": {
           "@type": "PostalAddress",
-          "streetAddress": "Gurugram Sectors 54-57",
+          "streetAddress": "Gurugram Sectors 53 to 57",
           "addressLocality": "Gurugram",
           "addressRegion": "Haryana",
           "addressCountry": "IN"

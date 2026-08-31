@@ -7,6 +7,7 @@ import { formatHours } from '@/utils/timeFormat';
 import { useNavigationStack } from '@/contexts/NavigationStackContext';
 import { useAndroidBackHandler } from '@/hooks/useAndroidBackHandler';
 import { sanitizeImageUri } from '@/utils/sanitizeImageUri';
+import { scale } from '@/utils/responsive';
 
 interface SubscriptionTabProps {
     plan: {
@@ -68,7 +69,7 @@ const SubscriptionTab = ({ plan, beneficiaries }: SubscriptionTabProps) => {
                 </TouchableOpacity>
             ) : (
                 <View style={[styles.planEmptyCard]}>
-                    <Ionicons name="ribbon-outline" size={40} color="#D1D5DB" />
+                    <Ionicons name="ribbon-outline" size={scale(40)} color="#D1D5DB" />
                     <Text style={styles.emptyText}>No Active Subscription</Text>
                 </View>
             )}
@@ -85,13 +86,13 @@ const SubscriptionTab = ({ plan, beneficiaries }: SubscriptionTabProps) => {
                         <React.Fragment key={i}>
                             <TouchableOpacity style={styles.manageItem} onPress={item.onPress}>
                                 <View style={[styles.iconBox, manageToneByTitle[item.title]?.box]}>
-                                    <Ionicons name={item.icon as any} size={23} color={manageToneByTitle[item.title]?.color || '#FF5B0A'} />
+                                    <Ionicons name={item.icon as any} size={scale(23)} color={manageToneByTitle[item.title]?.color || '#FF5B0A'} />
                                 </View>
                                 <View style={{ flex: 1 }}>
                                     <Text style={styles.manageTitle}>{item.title}</Text>
                                     <Text style={styles.manageSub}>{item.sub}</Text>
                                 </View>
-                                <Ionicons name="chevron-forward" size={18} color="#D1D5DB" />
+                                <Ionicons name="chevron-forward" size={scale(18)} color="#D1D5DB" />
                             </TouchableOpacity>
                             {i < 2 && <View style={styles.divider} />}
                         </React.Fragment>
@@ -124,11 +125,11 @@ const SubscriptionTab = ({ plan, beneficiaries }: SubscriptionTabProps) => {
                                     </View>
                                 )}
                             </View>
-                            <View style={{ flex: 1, marginLeft: 14 }}>
+                            <View style={{ flex: 1, marginLeft: scale(14) }}>
                                 <Text style={styles.benName}>{b.name}</Text>
                                 <Text style={styles.benMeta}>{b.relationship} • {b.age} years</Text>
                             </View>
-                            <Ionicons name="chevron-forward" size={18} color="#D1D5DB" />
+                            <Ionicons name="chevron-forward" size={scale(18)} color="#D1D5DB" />
                         </TouchableOpacity>
                     ))
                 ) : (
@@ -146,36 +147,36 @@ const manageToneByTitle: Record<string, { color: string; box: object }> = {
 };
 
 const styles = StyleSheet.create({
-    container: { paddingHorizontal: 15, paddingTop: 2 },
+    container: { paddingHorizontal: scale(15), paddingTop: scale(2) },
     planCard: {
-        borderRadius: 16,
-        paddingHorizontal: 20,
-        paddingTop: 20,
-        paddingBottom: 20,
-        marginBottom: 12,
+        borderRadius: scale(16),
+        paddingHorizontal: scale(20),
+        paddingTop: scale(20),
+        paddingBottom: scale(20),
+        marginBottom: scale(12),
         ...Platform.select({
-            ios: { shadowColor: '#FF5B0A', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.22, shadowRadius: 10 },
+            ios: { shadowColor: '#FF5B0A', shadowOffset: { width: 0, height: scale(6) }, shadowOpacity: 0.22, shadowRadius: 10 },
             android: { elevation: 6 }
         })
     },
     planEmptyCard: { 
-        backgroundColor: '#FFFFFF', borderRadius: 24, padding: 30, marginBottom: 24,
+        backgroundColor: '#FFFFFF', borderRadius: scale(24), padding: scale(30), marginBottom: scale(24),
         alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#F3F4F6', borderStyle: 'dashed'
     },
-    emptyText: { color: '#9CA3AF', fontWeight: '600', marginTop: 10 },
-    emptySubText: { color: '#9CA3AF', fontSize: 13, textAlign: 'center', marginTop: 10 },
+    emptyText: { color: '#9CA3AF', fontWeight: '600', marginTop: scale(10) },
+    emptySubText: { color: '#9CA3AF', fontSize: scale(13), textAlign: 'center', marginTop: scale(10) },
 
-    planHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 18 },
-    planTitleContainer: { flex: 1, marginRight: 10 },
-    planLabel: { fontSize: 13, color: 'rgba(255, 255, 255, 0.85)', marginBottom: 4, fontWeight: '500' },
-    planName: { fontSize: 20, fontWeight: '800', color: '#FFFFFF', lineHeight: 25 },
+    planHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: scale(18) },
+    planTitleContainer: { flex: 1, marginRight: scale(10) },
+    planLabel: { fontSize: scale(13), color: 'rgba(255, 255, 255, 0.85)', marginBottom: scale(4), fontWeight: '500' },
+    planName: { fontSize: scale(20), fontWeight: '800', color: '#FFFFFF', lineHeight: scale(25) },
     activeBadge: {
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: '#FFFFFF',
-        paddingHorizontal: 10,
-        paddingVertical: 5,
-        borderRadius: 14,
+        paddingHorizontal: scale(10),
+        paddingVertical: scale(5),
+        borderRadius: scale(14),
         flexShrink: 0,
         ...Platform.select({
             ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 3 },
@@ -183,57 +184,57 @@ const styles = StyleSheet.create({
         }),
     },
     activeDot: {
-        width: 6,
-        height: 6,
-        borderRadius: 3,
+        width: scale(6),
+        height: scale(6),
+        borderRadius: scale(3),
         backgroundColor: '#16A34A',
-        marginRight: 5,
+        marginRight: scale(5),
     },
-    activeText: { color: '#16A34A', fontSize: 12, fontWeight: '700' },
+    activeText: { color: '#16A34A', fontSize: scale(12), fontWeight: '700' },
     
-    progressSection: { marginBottom: 16 },
-    progressLabels: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
-    progressText: { fontSize: 14, color: '#FFFFFF', fontWeight: '600' },
-    progressBarBg: { height: 8, backgroundColor: 'rgba(0,0,0,0.18)', borderRadius: 4, overflow: 'hidden' },
-    progressBarFill: { height: 8, backgroundColor: '#FFFFFF', borderRadius: 4 },
+    progressSection: { marginBottom: scale(16) },
+    progressLabels: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: scale(10) },
+    progressText: { fontSize: scale(14), color: '#FFFFFF', fontWeight: '600' },
+    progressBarBg: { height: scale(8), backgroundColor: 'rgba(0,0,0,0.18)', borderRadius: scale(4), overflow: 'hidden' },
+    progressBarFill: { height: scale(8), backgroundColor: '#FFFFFF', borderRadius: scale(4) },
 
-    planFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 14, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.25)' },
-    footerLabel: { fontSize: 13, color: 'rgba(255,255,255,0.85)', fontWeight: '500' },
-    footerValue: { fontSize: 14, color: '#FFFFFF', fontWeight: '700' },
+    planFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: scale(14), borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.25)' },
+    footerLabel: { fontSize: scale(13), color: 'rgba(255,255,255,0.85)', fontWeight: '500' },
+    footerValue: { fontSize: scale(14), color: '#FFFFFF', fontWeight: '700' },
 
     section: {
         backgroundColor: '#FFFFFF',
-        borderRadius: 15,
-        paddingHorizontal: 16,
-        paddingTop: 18,
-        paddingBottom: 16,
-        marginBottom: 12,
+        borderRadius: scale(15),
+        paddingHorizontal: scale(16),
+        paddingTop: scale(18),
+        paddingBottom: scale(16),
+        marginBottom: scale(12),
         borderWidth: 1,
         borderColor: '#F2E7DE',
         ...Platform.select({
-            ios: { shadowColor: '#4A2B17', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.12, shadowRadius: 8 },
+            ios: { shadowColor: '#4A2B17', shadowOffset: { width: 0, height: scale(4) }, shadowOpacity: 0.12, shadowRadius: 8 },
             android: { elevation: 3 },
         }),
     },
-    sectionHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 },
-    sectionTitle: { fontSize: 20, fontWeight: '600', color: '#111111' },
-    addBtn: { backgroundColor: '#FFFFFF', paddingHorizontal: 3, paddingVertical: 4, borderRadius: 8 },
-    addBtnText: { color: '#FF5B0A', fontWeight: '500', fontSize: 14 },
+    sectionHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: scale(15) },
+    sectionTitle: { fontSize: scale(20), fontWeight: '600', color: '#111111' },
+    addBtn: { backgroundColor: '#FFFFFF', paddingHorizontal: scale(3), paddingVertical: scale(4), borderRadius: scale(8) },
+    addBtnText: { color: '#FF5B0A', fontWeight: '500', fontSize: scale(14) },
 
     card: { backgroundColor: 'transparent', borderRadius: 0, padding: 0 },
-    manageItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12 },
-    iconBox: { width: 47, height: 47, borderRadius: 24, justifyContent: 'center', alignItems: 'center', marginRight: 14 },
-    manageTitle: { fontSize: 17, fontWeight: '600', color: '#111111' },
-    manageSub: { fontSize: 15, color: '#4B5563', marginTop: 4 },
-    divider: { height: 10, backgroundColor: 'transparent', marginLeft: 61 },
+    manageItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: scale(12) },
+    iconBox: { width: scale(47), height: scale(47), borderRadius: scale(24), justifyContent: 'center', alignItems: 'center', marginRight: scale(14) },
+    manageTitle: { fontSize: scale(17), fontWeight: '600', color: '#111111' },
+    manageSub: { fontSize: scale(15), color: '#4B5563', marginTop: scale(4) },
+    divider: { height: scale(10), backgroundColor: 'transparent', marginLeft: scale(61) },
 
-    benCard: { backgroundColor: '#F8F8F8', borderRadius: 12, padding: 12, marginBottom: 9, flexDirection: 'row', alignItems: 'center' },
-    benAvatar: { width: 40, height: 40, borderRadius: 20, overflow: 'hidden' },
-    initialsBox: { width: 40, height: 40, backgroundColor: '#FF5B0A', justifyContent: 'center', alignItems: 'center' },
-    benPhoto: { width: 40, height: 40 },
-    benInitials: { fontSize: 13, fontWeight: '700', color: '#FFFFFF' },
-    benName: { fontSize: 16, fontWeight: '700', color: '#111111', marginBottom: 2 },
-    benMeta: { fontSize: 14, color: '#4B5563' },
+    benCard: { backgroundColor: '#F8F8F8', borderRadius: scale(12), padding: scale(12), marginBottom: scale(9), flexDirection: 'row', alignItems: 'center' },
+    benAvatar: { width: scale(40), height: scale(40), borderRadius: scale(20), overflow: 'hidden' },
+    initialsBox: { width: scale(40), height: scale(40), backgroundColor: '#FF5B0A', justifyContent: 'center', alignItems: 'center' },
+    benPhoto: { width: scale(40), height: scale(40) },
+    benInitials: { fontSize: scale(13), fontWeight: '700', color: '#FFFFFF' },
+    benName: { fontSize: scale(16), fontWeight: '700', color: '#111111', marginBottom: scale(2) },
+    benMeta: { fontSize: scale(14), color: '#4B5563' },
 });
 
 export default SubscriptionTab;

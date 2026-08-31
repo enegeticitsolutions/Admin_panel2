@@ -137,7 +137,7 @@ export default function PlansPage({
               <em>not fine print.</em>
             </h1>
             <p>
-              Prepaid hours of in-home care. You always know exactly what you've used and what's left - no surprises, no caps.
+              Prepaid hours of in-home care. You always know exactly what you've used and what's left - no surprises.
             </p>
             <div className="plans-hero__badges">
               <div className="plans-hero__badge">
