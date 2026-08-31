@@ -210,6 +210,10 @@ export default function SathiDashboard() {
         },
       });
 
+      if (response.status === 401) {
+        handleLogout();
+        return;
+      }
       if (!response.ok) throw new Error('Dashboard data error');
       const data = await response.json();
       setDashboard(data.data || data);

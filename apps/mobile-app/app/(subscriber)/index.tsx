@@ -20,10 +20,7 @@ import { sanitizeImageUri } from '@/utils/sanitizeImageUri';
 const { width, height } = Dimensions.get('window');
 const DRAWER_WIDTH = width * 0.75;
 
-// Responsive scale helpers
-const BASE_WIDTH = 390; // Design base (iPhone 14 Pro)
-const scale = (size: number) => Math.round((width / BASE_WIDTH) * size);
-const vscale = (size: number) => Math.round((height / 844) * size);
+import { scale, vscale } from '@/utils/responsive';
 const HORIZONTAL_PADDING = scale(20);
 const CARD_GAP = scale(12);
 

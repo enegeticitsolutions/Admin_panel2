@@ -473,5 +473,5 @@ npx prisma generate --schema=packages/database/prisma/schema.prisma
 
 ## 📄 License & Intellectual Property
 
-Copyright © 2026 **MaiHoonNa Elder Care Technologies Pvt. Ltd.**  
+Copyright © 2026 **MaiHoonNa Eldercare Private Limited**.  
 All rights reserved. Unauthorized copying, distribution, or modification of this codebase is strictly prohibited.

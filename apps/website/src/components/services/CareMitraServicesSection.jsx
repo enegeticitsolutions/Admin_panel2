@@ -61,8 +61,8 @@ const tiersData = [
   },
   {
     tierCode: "TIER 02",
-    title: "MAA",
-    subtitle: "Basic Care Associate",
+    title: "ANM",
+    subtitle: "Auxiliary Nurse Midwife",
     desc: "Trained associates assisting with daily living activities, nutrition tracking, light mobility support, and basic health parameter check-ins.",
     tags: ["Daily Assist", "Nutrition Help", "Basic Param Check"],
     suitability: "Suitable for: Seniors needing light assistance with routine tasks, meal monitoring",
@@ -71,8 +71,8 @@ const tiersData = [
   },
   {
     tierCode: "TIER 03",
-    title: "GHM",
-    subtitle: "General Health Mitra",
+    title: "GNM",
+    subtitle: "General Nursing and Midwifery",
     desc: "Experienced health caretakers trained in standard parameter checks, vitals logging, medication reminders, and general care plan coordination.",
     tags: ["Vitals Checks", "Meds Logging", "Health Reports"],
     suitability: "Suitable for: Seniors with managed chronic conditions requiring regular check-ups",
@@ -81,8 +81,8 @@ const tiersData = [
   },
   {
     tierCode: "TIER 04",
-    title: "B To Nurse",
-    subtitle: "Advanced Care Associate",
+    title: "B.Sc. Nurse",
+    subtitle: "B.Sc. Nursing",
     desc: "Highly trained clinical care associates capable of managing complex parameter tracking, recovery schedules, and basic nursing supports under supervision.",
     tags: ["Complex Track", "Recovery Assist", "Supervised Nursing"],
     suitability: "Suitable for: Post-operative recovery support, moderate physical dependencies",

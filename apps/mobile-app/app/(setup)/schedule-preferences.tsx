@@ -348,9 +348,9 @@ const styles = StyleSheet.create({
 
     buttonContainerStacked: { alignItems: 'center' },
     completeBtn: { width: '48%', minWidth: 169, height: 50, backgroundColor: '#FE6700', borderRadius: 8, alignItems: 'center', justifyContent: 'center', marginBottom: 19 },
-    completeBtnText: { color: '#FFFFFF', fontSize: 18, lineHeight: 25, fontWeight: '600', fontFamily: 'Poppins_600SemiBold' },
+    completeBtnText: { color: '#FFFFFF', fontSize: 18, lineHeight: 25, fontWeight: '600', fontFamily: 'Poppins_600SemiBold', textAlign: 'center' },
     prevBtnStacked: { width: '48%', minWidth: 169, height: 50, borderWidth: 1, borderColor: '#FE6700', borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF' },
-    prevBtnTextStacked: { color: '#FE6700', fontSize: 18, lineHeight: 25, fontWeight: '600', fontFamily: 'Poppins_600SemiBold' },
+    prevBtnTextStacked: { color: '#FE6700', fontSize: 18, lineHeight: 25, fontWeight: '600', fontFamily: 'Poppins_600SemiBold', textAlign: 'center' },
 
     // Modal Styles
     modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },

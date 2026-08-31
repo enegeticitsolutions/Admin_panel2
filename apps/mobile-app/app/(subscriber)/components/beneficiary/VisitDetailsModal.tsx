@@ -14,6 +14,7 @@ import {
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { sanitizeImageUri } from '@/utils/sanitizeImageUri';
 import { ConnectContactButton } from '@/components/shared/ConnectContactModal';
+import { scale } from '@/utils/responsive';
 
 const DEEP_ORANGE = '#FE6700';
 
@@ -90,20 +91,20 @@ const ClipboardIllustration = () => (
       {/* Lines & Checks */}
       <View style={styles.clipContent}>
         <View style={styles.clipRow}>
-          <Ionicons name="checkmark" size={10} color="#0284C7" />
-          <View style={[styles.clipLine, { width: 28 }]} />
+          <Ionicons name="checkmark" size={scale(10)} color="#0284C7" />
+          <View style={[styles.clipLine, { width: scale(28) }]} />
         </View>
         <View style={styles.clipRow}>
-          <Ionicons name="checkmark" size={10} color="#0284C7" />
-          <View style={[styles.clipLine, { width: 22 }]} />
+          <Ionicons name="checkmark" size={scale(10)} color="#0284C7" />
+          <View style={[styles.clipLine, { width: scale(22) }]} />
         </View>
         <View style={styles.clipRow}>
-          <View style={[styles.clipLine, { width: 32, marginLeft: 12 }]} />
+          <View style={[styles.clipLine, { width: scale(32), marginLeft: scale(12) }]} />
         </View>
       </View>
       {/* Floating Checkmark Badge */}
       <View style={styles.floatingBadge}>
-        <Ionicons name="checkmark" size={15} color="#FFFFFF" />
+        <Ionicons name="checkmark" size={scale(15)} color="#FFFFFF" />
       </View>
     </View>
   </View>
@@ -206,17 +207,17 @@ export function VisitDetailsModal({
           
           {/* ── Top Navigation Bar (Back + Close) ── */}
           <View style={styles.topNavRow}>
-            <TouchableOpacity style={styles.navCircleBtn} onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-              <Ionicons name="arrow-back" size={22} color="#0F172A" />
+            <TouchableOpacity style={styles.navCircleBtn} onPress={onClose} hitSlop={{ top: scale(10), bottom: scale(10), left: scale(10), right: scale(10) }}>
+              <Ionicons name="arrow-back" size={scale(22)} color="#0F172A" />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.navCircleBtn} onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-              <Ionicons name="close" size={22} color="#0F172A" />
+            <TouchableOpacity style={styles.navCircleBtn} onPress={onClose} hitSlop={{ top: scale(10), bottom: scale(10), left: scale(10), right: scale(10) }}>
+              <Ionicons name="close" size={scale(22)} color="#0F172A" />
             </TouchableOpacity>
           </View>
 
           {/* ── Header Title & Graphic Area ── */}
           <View style={styles.headerHero}>
-            <View style={{ flex: 1, paddingRight: 10 }}>
+            <View style={{ flex: 1, paddingRight: scale(10) }}>
               {/* Badge Row */}
               <View style={styles.badgeRow}>
                 <View style={styles.encounterBadge}>
@@ -227,9 +228,9 @@ export function VisitDetailsModal({
                 <View style={[styles.statusBadge, isCompleted ? styles.statusCompleted : styles.statusProgress]}>
                   <Ionicons
                     name={isCompleted ? 'checkmark-circle' : 'time'}
-                    size={13}
+                    size={scale(13)}
                     color={isCompleted ? '#16A34A' : '#D97706'}
-                    style={{ marginRight: 4 }}
+                    style={{ marginRight: scale(4) }}
                   />
                   <Text style={[styles.statusBadgeText, isCompleted ? { color: '#16A34A' } : { color: '#D97706' }]}>
                     {isCompleted ? 'Completed' : 'In Progress'}
@@ -242,7 +243,7 @@ export function VisitDetailsModal({
 
               {/* Subtitle with Calendar Icon */}
               <View style={styles.heroSubRow}>
-                <Ionicons name="calendar-outline" size={15} color="#64748B" style={{ marginRight: 6 }} />
+                <Ionicons name="calendar-outline" size={scale(15)} color="#64748B" style={{ marginRight: scale(6) }} />
                 <Text style={styles.heroSubText}>
                   {getFormattedDateSubtitle(visit.dateStr)}
                 </Text>
@@ -277,7 +278,7 @@ export function VisitDetailsModal({
                 <Text style={styles.companionRole}>Dedicated Care Companion</Text>
                 {visit.duration ? (
                   <View style={styles.durationChip}>
-                    <Ionicons name="time-outline" size={12} color="#0284C7" style={{ marginRight: 4 }} />
+                    <Ionicons name="time-outline" size={scale(12)} color="#0284C7" style={{ marginRight: scale(4) }} />
                     <Text style={styles.durationChipText}>{visit.duration}</Text>
                   </View>
                 ) : null}
@@ -293,7 +294,7 @@ export function VisitDetailsModal({
             {/* ── 2. Arrival & Departure Verification ── */}
             <View style={styles.sectionCard}>
               <View style={styles.sectionHeader}>
-                <Ionicons name="time" size={18} color="#0284C7" />
+                <Ionicons name="time" size={scale(18)} color="#0284C7" />
                 <Text style={styles.sectionTitle}>Visit Timing & Verification</Text>
               </View>
 
@@ -303,21 +304,21 @@ export function VisitDetailsModal({
                   backgroundColor: '#F0FDF4',
                   borderWidth: 1,
                   borderColor: '#BBF7D0',
-                  borderRadius: 10,
-                  paddingHorizontal: 12,
-                  paddingVertical: 8,
-                  marginBottom: 14,
+                  borderRadius: scale(10),
+                  paddingHorizontal: scale(12),
+                  paddingVertical: scale(8),
+                  marginBottom: scale(14),
                   flexDirection: 'row',
                   alignItems: 'center',
                   justifyContent: 'space-between'
                 }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                    <Ionicons name="calendar-outline" size={15} color="#16A34A" />
-                    <Text style={{ fontSize: 13, fontWeight: '600', color: '#166534' }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: scale(6) }}>
+                    <Ionicons name="calendar-outline" size={scale(15)} color="#16A34A" />
+                    <Text style={{ fontSize: scale(13), fontWeight: '600', color: '#166534' }}>
                       Scheduled: {visit.scheduledTimeRange || visit.scheduledStartTime}
                     </Text>
                   </View>
-                  <Text style={{ fontSize: 12, fontWeight: '700', color: '#15803D' }}>
+                  <Text style={{ fontSize: scale(12), fontWeight: '700', color: '#15803D' }}>
                     {visit.duration || '60 mins'}
                   </Text>
                 </View>
@@ -327,7 +328,7 @@ export function VisitDetailsModal({
                 {/* Check-in Block */}
                 <View style={styles.checkBlock}>
                   <View style={styles.checkBlockHeader}>
-                    <Ionicons name="log-in-outline" size={16} color="#059669" />
+                    <Ionicons name="log-in-outline" size={scale(16)} color="#059669" />
                     <Text style={styles.checkBlockLabel}>Check-in</Text>
                   </View>
                   <Text style={styles.checkTimeText}>
@@ -336,9 +337,9 @@ export function VisitDetailsModal({
                   <View style={[styles.typePill, visit.isGeoVerified ? styles.typePillGeo : (visit.manualCheckInReason ? styles.typePillManual : styles.typePillGeo)]}>
                     <Ionicons
                       name={visit.isGeoVerified ? 'shield-checkmark' : (visit.manualCheckInReason ? 'alert-circle' : 'shield-checkmark')}
-                      size={12}
+                      size={scale(12)}
                       color={visit.isGeoVerified ? '#16A34A' : (visit.manualCheckInReason ? '#D97706' : '#16A34A')}
-                      style={{ marginRight: 4 }}
+                      style={{ marginRight: scale(4) }}
                     />
                     <Text style={[styles.typePillText, visit.isGeoVerified ? { color: '#16A34A' } : (visit.manualCheckInReason ? { color: '#B45309' } : { color: '#16A34A' })]}>
                       {visit.isGeoVerified
@@ -358,7 +359,7 @@ export function VisitDetailsModal({
                 {/* Check-out Block */}
                 <View style={styles.checkBlock}>
                   <View style={styles.checkBlockHeader}>
-                    <Ionicons name="log-out-outline" size={16} color="#0284C7" />
+                    <Ionicons name="log-out-outline" size={scale(16)} color="#0284C7" />
                     <Text style={styles.checkBlockLabel}>Check-out</Text>
                   </View>
                   <Text style={styles.checkTimeText}>
@@ -367,9 +368,9 @@ export function VisitDetailsModal({
                   <View style={[styles.typePill, !visit.manualCheckOutReason ? styles.typePillGeo : styles.typePillManual]}>
                     <Ionicons
                       name={!visit.manualCheckOutReason ? 'shield-checkmark' : 'information-circle'}
-                      size={12}
+                      size={scale(12)}
                       color={!visit.manualCheckOutReason ? '#16A34A' : '#D97706'}
-                      style={{ marginRight: 4 }}
+                      style={{ marginRight: scale(4) }}
                     />
                     <Text style={[styles.typePillText, !visit.manualCheckOutReason ? { color: '#16A34A' } : { color: '#B45309' }]}>
                       {visit.checkOutType || 'Standard Check-out'}
@@ -387,14 +388,14 @@ export function VisitDetailsModal({
             {/* ── 3. Beneficiary Mood & Well-being ── */}
             <View style={styles.sectionCard}>
               <View style={styles.sectionHeader}>
-                <Ionicons name="heart" size={18} color="#DB2777" />
+                <Ionicons name="heart" size={scale(18)} color="#DB2777" />
                 <Text style={styles.sectionTitle}>Beneficiary Mood & Well-being</Text>
               </View>
               <View style={[styles.moodBanner, { backgroundColor: moodMeta.bg, borderColor: moodMeta.border }]}>
                 <View style={styles.moodEmojiContainer}>
                   <Text style={styles.moodEmoji}>{moodMeta.emoji}</Text>
                 </View>
-                <View style={{ flex: 1, marginLeft: 14 }}>
+                <View style={{ flex: 1, marginLeft: scale(14) }}>
                   <Text style={styles.moodHeading}>
                     {visit.mood || 'Neutral'}
                   </Text>
@@ -406,7 +407,7 @@ export function VisitDetailsModal({
             {/* ── 4. Recorded Vital Signs ── */}
             <View style={styles.sectionCard}>
               <View style={styles.sectionHeader}>
-                <Ionicons name="pulse" size={18} color="#DC2626" />
+                <Ionicons name="pulse" size={scale(18)} color="#DC2626" />
                 <Text style={styles.sectionTitle}>Recorded Vital Signs</Text>
               </View>
 
@@ -418,9 +419,9 @@ export function VisitDetailsModal({
                       <View key={idx} style={styles.vitalCard}>
                         <View style={[styles.vitalIconWrap, { backgroundColor: meta.bg }]}>
                           {meta.lib === 'mci' ? (
-                            <MaterialCommunityIcons name={meta.icon as any} size={18} color={meta.color} />
+                            <MaterialCommunityIcons name={meta.icon as any} size={scale(18)} color={meta.color} />
                           ) : (
-                            <Ionicons name={meta.icon as any} size={18} color={meta.color} />
+                            <Ionicons name={meta.icon as any} size={scale(18)} color={meta.color} />
                           )}
                         </View>
                         <Text style={styles.vitalName} numberOfLines={1}>{vt.name}</Text>
@@ -434,7 +435,7 @@ export function VisitDetailsModal({
                   {visit.bp ? (
                     <View style={styles.vitalCard}>
                       <View style={[styles.vitalIconWrap, { backgroundColor: '#FEE2E2' }]}>
-                        <MaterialCommunityIcons name="blood-bag" size={18} color="#DC2626" />
+                        <MaterialCommunityIcons name="blood-bag" size={scale(18)} color="#DC2626" />
                       </View>
                       <Text style={styles.vitalName}>Blood Pressure</Text>
                       <Text style={styles.vitalValue}>{visit.bp}</Text>
@@ -443,7 +444,7 @@ export function VisitDetailsModal({
                   {visit.heartRate ? (
                     <View style={styles.vitalCard}>
                       <View style={[styles.vitalIconWrap, { backgroundColor: '#FFE4E6' }]}>
-                        <MaterialCommunityIcons name="heart-pulse" size={18} color="#E11D48" />
+                        <MaterialCommunityIcons name="heart-pulse" size={scale(18)} color="#E11D48" />
                       </View>
                       <Text style={styles.vitalName}>Pulse / Heart Rate</Text>
                       <Text style={styles.vitalValue}>{visit.heartRate}</Text>
@@ -452,7 +453,7 @@ export function VisitDetailsModal({
                   {visit.bloodSugar ? (
                     <View style={styles.vitalCard}>
                       <View style={[styles.vitalIconWrap, { backgroundColor: '#FEF3C7' }]}>
-                        <MaterialCommunityIcons name="water" size={18} color="#D97706" />
+                        <MaterialCommunityIcons name="water" size={scale(18)} color="#D97706" />
                       </View>
                       <Text style={styles.vitalName}>Blood Sugar</Text>
                       <Text style={styles.vitalValue}>{visit.bloodSugar}</Text>
@@ -461,7 +462,7 @@ export function VisitDetailsModal({
                 </View>
               ) : (
                 <View style={styles.emptyNoticeBox}>
-                  <Ionicons name="pulse-outline" size={20} color="#94A3B8" style={{ marginRight: 8 }} />
+                  <Ionicons name="pulse-outline" size={scale(20)} color="#94A3B8" style={{ marginRight: scale(8) }} />
                   <Text style={styles.emptyNoticeText}>No clinical vitals were recorded for this encounter.</Text>
                 </View>
               )}
@@ -470,7 +471,7 @@ export function VisitDetailsModal({
             {/* ── 5. Medications Verification ── */}
             <View style={styles.sectionCard}>
               <View style={styles.sectionHeader}>
-                <MaterialCommunityIcons name="pill" size={18} color="#9333EA" />
+                <MaterialCommunityIcons name="pill" size={scale(18)} color="#9333EA" />
                 <Text style={styles.sectionTitle}>Medications Verification</Text>
               </View>
 
@@ -481,11 +482,11 @@ export function VisitDetailsModal({
                       <View style={[styles.medStatusIcon, m.taken ? styles.medTakenBg : styles.medMissedBg]}>
                         <Ionicons
                           name={m.taken ? 'checkmark-circle' : 'close-circle'}
-                          size={18}
+                          size={scale(18)}
                           color={m.taken ? '#16A34A' : '#DC2626'}
                         />
                       </View>
-                      <View style={{ flex: 1, marginLeft: 10 }}>
+                      <View style={{ flex: 1, marginLeft: scale(10) }}>
                         <Text style={styles.medItemName}>{m.name}</Text>
                         {m.dosage ? (
                           <Text style={styles.medItemDosage}>{m.dosage}</Text>
@@ -504,7 +505,7 @@ export function VisitDetailsModal({
                 </View>
               ) : (
                 <View style={styles.emptyNoticeBox}>
-                  <MaterialCommunityIcons name="pill" size={20} color="#94A3B8" style={{ marginRight: 8 }} />
+                  <MaterialCommunityIcons name="pill" size={scale(20)} color="#94A3B8" style={{ marginRight: scale(8) }} />
                   <Text style={styles.emptyNoticeText}>No specific prescription schedule was flagged during this visit.</Text>
                 </View>
               )}
@@ -513,7 +514,7 @@ export function VisitDetailsModal({
             {/* ── 6. Clinical & Care Notes ── */}
             <View style={styles.sectionCard}>
               <View style={styles.sectionHeader}>
-                <Ionicons name="document-text" size={18} color="#4F46E5" />
+                <Ionicons name="document-text" size={scale(18)} color="#4F46E5" />
                 <Text style={styles.sectionTitle}>Observations & Notes</Text>
               </View>
               <View style={styles.notesBox}>
@@ -527,7 +528,7 @@ export function VisitDetailsModal({
             {visit.photos && visit.photos.length > 0 ? (
               <View style={styles.sectionCard}>
                 <View style={styles.sectionHeader}>
-                  <Ionicons name="images" size={18} color="#0891B2" />
+                  <Ionicons name="images" size={scale(18)} color="#0891B2" />
                   <Text style={styles.sectionTitle}>
                     Visit Photos ({visit.photos.length})
                   </Text>
@@ -550,7 +551,7 @@ export function VisitDetailsModal({
             {/* ── 8. Rating & Feedback ── */}
             <View style={styles.sectionCard}>
               <View style={styles.sectionHeader}>
-                <Ionicons name="star" size={18} color="#F97316" />
+                <Ionicons name="star" size={scale(18)} color="#F97316" />
                 <Text style={styles.sectionTitle}>Feedback & Ratings</Text>
               </View>
 
@@ -564,7 +565,7 @@ export function VisitDetailsModal({
                         <Ionicons
                           key={s}
                           name={s <= (visit.rating || 5) ? 'star' : 'star-outline'}
-                          size={16}
+                          size={scale(16)}
                           color="#F97316"
                         />
                       ))}
@@ -578,7 +579,7 @@ export function VisitDetailsModal({
                         if (onRatePress) onRatePress();
                       }}
                     >
-                      <Ionicons name="star-outline" size={14} color="#FFF" style={{ marginRight: 4 }} />
+                      <Ionicons name="star-outline" size={scale(14)} color="#FFF" style={{ marginRight: scale(4) }} />
                       <Text style={styles.rateNowBtnText}>Rate Visit</Text>
                     </TouchableOpacity>
                   )}
@@ -593,7 +594,7 @@ export function VisitDetailsModal({
                         <Ionicons
                           key={s}
                           name={s <= (visit.beneficiaryRating || 5) ? 'star' : 'star-outline'}
-                          size={16}
+                          size={scale(16)}
                           color="#7C3AED"
                         />
                       ))}
@@ -606,7 +607,7 @@ export function VisitDetailsModal({
               </View>
             </View>
 
-            <View style={{ height: 16 }} />
+            <View style={{ height: scale(16) }} />
           </ScrollView>
 
           {/* ── Sticky Footer Button ── */}
@@ -634,7 +635,7 @@ export function VisitDetailsModal({
             />
           )}
           <TouchableOpacity style={styles.previewCloseBtn} onPress={() => setPreviewPhoto(null)}>
-            <Ionicons name="close-circle" size={38} color="#FFFFFF" />
+            <Ionicons name="close-circle" size={scale(38)} color="#FFFFFF" />
           </TouchableOpacity>
         </Pressable>
       </Modal>
@@ -666,15 +667,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 6,
+    paddingHorizontal: scale(20),
+    paddingTop: scale(16),
+    paddingBottom: scale(6),
     backgroundColor: '#FFFFFF',
   },
   navCircleBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: scale(36),
+    height: scale(36),
+    borderRadius: scale(18),
     backgroundColor: '#F8FAFC',
     justifyContent: 'center',
     alignItems: 'center',
@@ -687,9 +688,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingTop: 6,
-    paddingBottom: 16,
+    paddingHorizontal: scale(20),
+    paddingTop: scale(6),
+    paddingBottom: scale(16),
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: '#F1F5F9',
@@ -697,28 +698,28 @@ const styles = StyleSheet.create({
   badgeRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginBottom: 8,
+    gap: scale(8),
+    marginBottom: scale(8),
   },
   encounterBadge: {
     backgroundColor: '#EFF6FF',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingHorizontal: scale(10),
+    paddingVertical: scale(4),
+    borderRadius: scale(12),
     borderWidth: 1,
     borderColor: '#DBEAFE',
   },
   encounterBadgeText: {
-    fontSize: 11,
+    fontSize: scale(11),
     fontWeight: '700',
     color: '#0284C7',
   },
   statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingHorizontal: scale(10),
+    paddingVertical: scale(4),
+    borderRadius: scale(12),
   },
   statusCompleted: {
     backgroundColor: '#DCFCE7',
@@ -727,52 +728,52 @@ const styles = StyleSheet.create({
     backgroundColor: '#FEF3C7',
   },
   statusBadgeText: {
-    fontSize: 11,
+    fontSize: scale(11),
     fontWeight: '700',
   },
   heroTitle: {
-    fontSize: 22,
+    fontSize: scale(22),
     fontWeight: '800',
     color: '#0F172A',
     letterSpacing: -0.3,
-    marginBottom: 4,
+    marginBottom: scale(4),
   },
   heroSubRow: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   heroSubText: {
-    fontSize: 13,
+    fontSize: scale(13),
     color: '#64748B',
     fontWeight: '500',
   },
 
   // Clipboard Graphic
   graphicContainer: {
-    width: 74,
-    height: 74,
+    width: scale(74),
+    height: scale(74),
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative',
   },
   graphicBlob: {
     position: 'absolute',
-    width: 70,
-    height: 70,
-    borderRadius: 35,
+    width: scale(70),
+    height: scale(70),
+    borderRadius: scale(35),
     backgroundColor: '#F0F9FF',
   },
   clipboardBase: {
-    width: 48,
-    height: 58,
+    width: scale(48),
+    height: scale(58),
     backgroundColor: '#FFFFFF',
-    borderRadius: 8,
+    borderRadius: scale(8),
     borderWidth: 1.5,
     borderColor: '#CBD5E1',
     alignItems: 'center',
-    paddingTop: 8,
+    paddingTop: scale(8),
     shadowColor: '#0284C7',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: scale(2) },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
@@ -781,24 +782,24 @@ const styles = StyleSheet.create({
   clipboardClip: {
     position: 'absolute',
     top: -5,
-    width: 20,
-    height: 8,
+    width: scale(20),
+    height: scale(8),
     backgroundColor: '#94A3B8',
-    borderRadius: 4,
+    borderRadius: scale(4),
   },
   clipContent: {
     width: '100%',
-    paddingHorizontal: 6,
-    gap: 5,
-    marginTop: 4,
+    paddingHorizontal: scale(6),
+    gap: scale(5),
+    marginTop: scale(4),
   },
   clipRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 3,
+    gap: scale(3),
   },
   clipLine: {
-    height: 3,
+    height: scale(3),
     backgroundColor: '#E2E8F0',
     borderRadius: 1.5,
   },
@@ -806,9 +807,9 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: -6,
     right: -6,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: scale(24),
+    height: scale(24),
+    borderRadius: scale(12),
     backgroundColor: '#10B981',
     justifyContent: 'center',
     alignItems: 'center',
@@ -822,10 +823,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8FAFC',
   },
   scrollContent: {
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 24,
-    gap: 14,
+    paddingHorizontal: scale(16),
+    paddingTop: scale(16),
+    paddingBottom: scale(24),
+    gap: scale(14),
   },
 
   // Companion Card (matching screenshot 2)
@@ -833,46 +834,46 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    borderRadius: 18,
-    padding: 16,
+    borderRadius: scale(18),
+    padding: scale(16),
     borderWidth: 1,
     borderColor: '#E2E8F0',
     ...Platform.select({
-      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 6 },
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: scale(2) }, shadowOpacity: 0.04, shadowRadius: 6 },
       android: { elevation: 2 },
     }),
   },
   companionAvatar: {
-    width: 54,
-    height: 54,
-    borderRadius: 27,
+    width: scale(54),
+    height: scale(54),
+    borderRadius: scale(27),
     backgroundColor: '#E2E8F0',
-    marginRight: 14,
+    marginRight: scale(14),
     borderWidth: 2,
     borderColor: '#FE6700',
   },
   companionName: {
-    fontSize: 17,
+    fontSize: scale(17),
     fontWeight: '700',
     color: '#0F172A',
-    marginBottom: 2,
+    marginBottom: scale(2),
   },
   companionRole: {
-    fontSize: 13,
+    fontSize: scale(13),
     color: '#64748B',
-    marginBottom: 5,
+    marginBottom: scale(5),
   },
   durationChip: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#EFF6FF',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
+    paddingHorizontal: scale(8),
+    paddingVertical: scale(3),
+    borderRadius: scale(6),
     alignSelf: 'flex-start',
   },
   durationChipText: {
-    fontSize: 11,
+    fontSize: scale(11),
     fontWeight: '700',
     color: '#0284C7',
   },
@@ -880,23 +881,23 @@ const styles = StyleSheet.create({
   // Section Cards
   sectionCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 18,
-    padding: 16,
+    borderRadius: scale(18),
+    padding: scale(16),
     borderWidth: 1,
     borderColor: '#E2E8F0',
     ...Platform.select({
-      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.03, shadowRadius: 6 },
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: scale(2) }, shadowOpacity: 0.03, shadowRadius: 6 },
       android: { elevation: 2 },
     }),
   },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginBottom: 14,
+    gap: scale(8),
+    marginBottom: scale(14),
   },
   sectionTitle: {
-    fontSize: 15,
+    fontSize: scale(15),
     fontWeight: '700',
     color: '#0F172A',
   },
@@ -904,39 +905,39 @@ const styles = StyleSheet.create({
   // Check-in / Check-out Grid
   checkInOutGrid: {
     flexDirection: 'row',
-    gap: 12,
+    gap: scale(12),
   },
   checkBlock: {
     flex: 1,
     backgroundColor: '#F8FAFC',
-    borderRadius: 14,
-    padding: 12,
+    borderRadius: scale(14),
+    padding: scale(12),
     borderWidth: 1,
     borderColor: '#E2E8F0',
   },
   checkBlockHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
-    marginBottom: 6,
+    gap: scale(5),
+    marginBottom: scale(6),
   },
   checkBlockLabel: {
-    fontSize: 12,
+    fontSize: scale(12),
     fontWeight: '600',
     color: '#64748B',
   },
   checkTimeText: {
-    fontSize: 17,
+    fontSize: scale(17),
     fontWeight: '800',
     color: '#0F172A',
-    marginBottom: 8,
+    marginBottom: scale(8),
   },
   typePill: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
+    paddingHorizontal: scale(8),
+    paddingVertical: scale(4),
+    borderRadius: scale(6),
     alignSelf: 'flex-start',
   },
   typePillGeo: {
@@ -946,13 +947,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#FEF3C7',
   },
   typePillText: {
-    fontSize: 10,
+    fontSize: scale(10),
     fontWeight: '700',
   },
   manualNoteText: {
-    fontSize: 11,
+    fontSize: scale(11),
     color: '#B45309',
-    marginTop: 8,
+    marginTop: scale(8),
     fontStyle: 'italic',
   },
 
@@ -960,14 +961,14 @@ const styles = StyleSheet.create({
   moodBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 14,
-    borderRadius: 14,
+    padding: scale(14),
+    borderRadius: scale(14),
     borderWidth: 1,
   },
   moodEmojiContainer: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
+    width: scale(46),
+    height: scale(46),
+    borderRadius: scale(23),
     backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
@@ -978,70 +979,70 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   moodEmoji: {
-    fontSize: 26,
+    fontSize: scale(26),
   },
   moodHeading: {
-    fontSize: 16,
+    fontSize: scale(16),
     fontWeight: '800',
     color: '#0F172A',
   },
   moodDescription: {
-    fontSize: 12,
+    fontSize: scale(12),
     color: '#64748B',
-    marginTop: 2,
+    marginTop: scale(2),
   },
 
   // Vitals Grid
   vitalsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 10,
+    gap: scale(10),
   },
   vitalCard: {
     width: '48%',
     backgroundColor: '#F8FAFC',
-    borderRadius: 12,
-    padding: 12,
+    borderRadius: scale(12),
+    padding: scale(12),
     borderWidth: 1,
     borderColor: '#E2E8F0',
   },
   vitalIconWrap: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
+    width: scale(32),
+    height: scale(32),
+    borderRadius: scale(8),
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: scale(8),
   },
   vitalName: {
-    fontSize: 12,
+    fontSize: scale(12),
     color: '#64748B',
     fontWeight: '500',
-    marginBottom: 2,
+    marginBottom: scale(2),
   },
   vitalValue: {
-    fontSize: 16,
+    fontSize: scale(16),
     fontWeight: '800',
     color: '#0F172A',
   },
 
   // Medications List
   medsList: {
-    gap: 10,
+    gap: scale(10),
   },
   medItem: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#F8FAFC',
-    borderRadius: 12,
-    padding: 10,
+    borderRadius: scale(12),
+    padding: scale(10),
     borderWidth: 1,
     borderColor: '#E2E8F0',
   },
   medStatusIcon: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: scale(28),
+    height: scale(28),
+    borderRadius: scale(14),
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1052,24 +1053,24 @@ const styles = StyleSheet.create({
     backgroundColor: '#FEE2E2',
   },
   medItemName: {
-    fontSize: 14,
+    fontSize: scale(14),
     fontWeight: '700',
     color: '#0F172A',
   },
   medItemDosage: {
-    fontSize: 11,
+    fontSize: scale(11),
     color: '#64748B',
     marginTop: 1,
   },
   medItemInstructions: {
-    fontSize: 10,
+    fontSize: scale(10),
     color: '#94A3B8',
     fontStyle: 'italic',
   },
   medStatusChip: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
+    paddingHorizontal: scale(8),
+    paddingVertical: scale(4),
+    borderRadius: scale(6),
   },
   medStatusChipTaken: {
     backgroundColor: '#DCFCE7',
@@ -1078,68 +1079,68 @@ const styles = StyleSheet.create({
     backgroundColor: '#FEE2E2',
   },
   medStatusChipText: {
-    fontSize: 11,
+    fontSize: scale(11),
     fontWeight: '700',
   },
 
   // Observations & Notes Box
   notesBox: {
     backgroundColor: '#F8FAFC',
-    borderRadius: 12,
-    padding: 14,
+    borderRadius: scale(12),
+    padding: scale(14),
     borderWidth: 1,
     borderColor: '#E2E8F0',
   },
   notesText: {
-    fontSize: 13,
+    fontSize: scale(13),
     color: '#334155',
-    lineHeight: 20,
+    lineHeight: scale(20),
   },
 
   // Photos Gallery
   photosStrip: {
     flexDirection: 'row',
-    gap: 10,
-    paddingVertical: 4,
+    gap: scale(10),
+    paddingVertical: scale(4),
   },
   photoThumbWrapper: {
-    borderRadius: 12,
+    borderRadius: scale(12),
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: '#E2E8F0',
   },
   photoThumb: {
-    width: 90,
-    height: 90,
+    width: scale(90),
+    height: scale(90),
     backgroundColor: '#F1F5F9',
   },
 
   // Feedback & Ratings
   ratingsRow: {
     flexDirection: 'row',
-    gap: 12,
+    gap: scale(12),
   },
   ratingBox: {
     flex: 1,
     backgroundColor: '#F8FAFC',
-    borderRadius: 12,
-    padding: 12,
+    borderRadius: scale(12),
+    padding: scale(12),
     borderWidth: 1,
     borderColor: '#E2E8F0',
     alignItems: 'center',
   },
   ratingLabel: {
-    fontSize: 11,
+    fontSize: scale(11),
     fontWeight: '600',
     color: '#64748B',
-    marginBottom: 6,
+    marginBottom: scale(6),
   },
   starsWrap: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   ratingScoreText: {
-    fontSize: 12,
+    fontSize: scale(12),
     fontWeight: '700',
     color: '#F97316',
   },
@@ -1147,17 +1148,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: DEEP_ORANGE,
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    borderRadius: scale(8),
+    paddingHorizontal: scale(10),
+    paddingVertical: scale(6),
   },
   rateNowBtnText: {
-    fontSize: 11,
+    fontSize: scale(11),
     fontWeight: '700',
     color: '#FFFFFF',
   },
   unratedText: {
-    fontSize: 12,
+    fontSize: scale(12),
     color: '#94A3B8',
     fontStyle: 'italic',
   },
@@ -1167,13 +1168,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#F8FAFC',
-    borderRadius: 10,
-    padding: 12,
+    borderRadius: scale(10),
+    padding: scale(12),
     borderWidth: 1,
     borderColor: '#E2E8F0',
   },
   emptyNoticeText: {
-    fontSize: 12,
+    fontSize: scale(12),
     color: '#64748B',
     fontStyle: 'italic',
     flex: 1,
@@ -1181,21 +1182,21 @@ const styles = StyleSheet.create({
 
   // Sticky Footer Action
   modalFooter: {
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingHorizontal: scale(16),
+    paddingVertical: scale(14),
     backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
     borderTopColor: '#F1F5F9',
   },
   closeFooterBtn: {
     backgroundColor: '#0F172A',
-    borderRadius: 14,
-    height: 48,
+    borderRadius: scale(14),
+    height: scale(48),
     justifyContent: 'center',
     alignItems: 'center',
   },
   closeFooterBtnText: {
-    fontSize: 15,
+    fontSize: scale(15),
     fontWeight: '700',
     color: '#FFFFFF',
   },
@@ -1213,8 +1214,8 @@ const styles = StyleSheet.create({
   },
   previewCloseBtn: {
     position: 'absolute',
-    top: 52,
-    right: 20,
+    top: scale(52),
+    right: scale(20),
   },
 });
 

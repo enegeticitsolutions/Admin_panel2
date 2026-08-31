@@ -25,6 +25,8 @@ const SaathiPage = () => {
   });
   
   const [agreementChecked, setAgreementChecked] = useState(false);
+  const [termsChecked, setTermsChecked] = useState(false);
+  const [dpdpChecked, setDpdpChecked] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitMessage, setSubmitMessage] = useState(null);
   
@@ -106,6 +108,16 @@ const SaathiPage = () => {
       return;
     }
 
+    if (!termsChecked) {
+      setSubmitMessage({ type: 'error', text: 'You must accept the Terms and Conditions.' });
+      return;
+    }
+
+    if (!dpdpChecked) {
+      setSubmitMessage({ type: 'error', text: 'You must consent to the Privacy Policy and DPDP Act.' });
+      return;
+    }
+
     if (formData.phone && formData.phone.length !== 10) {
       setSubmitMessage({ type: 'error', text: 'Please enter a valid 10-digit phone number.' });
       return;
@@ -149,6 +161,7 @@ const SaathiPage = () => {
           state: '', city: '', pincode: '', area: '', whyJoin: '', dob: '', interests: []
         });
         setAgreementChecked(false);
+        setTermsChecked(false);
         fetchContent();
       } else {
         setSubmitMessage({ type: 'error', text: data.message || "Something went wrong. Please try again." });
@@ -487,11 +500,11 @@ const SaathiPage = () => {
               let tierBg = preset.tierBg;
               let themeColor = preset.color;
 
-              if (creditHours >= 100) {
+              if (creditHours >= 50) {
                 tierName = "Legend Saathi";
                 tierBg = "#059669";
                 themeColor = "#059669";
-              } else if (creditHours >= 50) {
+              } else if (creditHours >= 20) {
                 tierName = "Top Saathi";
                 tierBg = "#FE6700";
                 themeColor = "#FE6700";
@@ -600,7 +613,7 @@ const SaathiPage = () => {
               Saathi Enrollment Application
             </h2>
             <p className="saathi-enrollment__desc">
-              Your application first takes about 10–14 days. Here's what to expect:
+              Your application process takes about 7–8 days. Here's what to expect:
             </p>
 
             <div className="saathi-enrollment__steps">
@@ -874,9 +887,36 @@ const SaathiPage = () => {
                 </label>
               </div>
 
+              {/* Privacy & Terms Consent */}
+              <div className="saathi-form-banner" style={{ marginTop: '12px' }}>
+                <input
+                  type="checkbox"
+                  id="termsConsent"
+                  checked={termsChecked}
+                  onChange={(e) => setTermsChecked(e.target.checked)}
+                  style={{ width: '16px', height: '16px', marginTop: '2px', accentColor: '#FE6700', cursor: 'pointer' }}
+                />
+                <label htmlFor="termsConsent" style={{ cursor: 'pointer', margin: 0 }}>
+                  I accept the <a href="/legal#terms" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--orange, #fe6700)', textDecoration: 'underline' }}>Terms & Conditions</a>.
+                </label>
+              </div>
+
+              <div className="saathi-form-banner" style={{ marginTop: '12px' }}>
+                <input
+                  type="checkbox"
+                  id="dpdpConsent"
+                  checked={dpdpChecked}
+                  onChange={(e) => setDpdpChecked(e.target.checked)}
+                  style={{ width: '16px', height: '16px', marginTop: '2px', accentColor: '#FE6700', cursor: 'pointer' }}
+                />
+                <label htmlFor="dpdpConsent" style={{ cursor: 'pointer', margin: 0 }}>
+                  I have read and agree to the <a href="/legal#privacy" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--orange, #fe6700)', textDecoration: 'underline' }}>Privacy Policy</a> and consent to processing of my personal data under the DPDP Act, 2023.
+                </label>
+              </div>
+
               {/* Submit Button */}
               <button
-                disabled={isSubmitting || !agreementChecked}
+                disabled={isSubmitting || !agreementChecked || !termsChecked || !dpdpChecked}
                 type="submit"
                 className="saathi-form-submit"
               >

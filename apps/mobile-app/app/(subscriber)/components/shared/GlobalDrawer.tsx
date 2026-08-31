@@ -11,6 +11,7 @@ import { useAndroidBackHandler } from '@/hooks/useAndroidBackHandler';
 import { useAuth } from '@/contexts/AuthContext';
 import { sanitizeImageUri } from '@/utils/sanitizeImageUri';
 import { LEGAL_CONFIG } from '@/constants/legal';
+import { scale } from '@/utils/responsive';
 
 const { width } = Dimensions.get('window');
 const DRAWER_WIDTH = Math.min(width * 0.82, 350);
@@ -93,8 +94,8 @@ const GlobalDrawer = ({ isOpen, onClose, drawerAnim, userData: _userDataProp }: 
                     {/* Header Card */}
                     <View style={styles.headerContainer}>
                         <View style={styles.headerCard}>
-                            <TouchableOpacity style={styles.closeBtn} onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                                <Ionicons name="close-outline" size={20} color="#6B7280" />
+                            <TouchableOpacity style={styles.closeBtn} onPress={onClose} hitSlop={{ top: scale(10), bottom: scale(10), left: scale(10), right: scale(10) }}>
+                                <Ionicons name="close-outline" size={scale(20)} color="#6B7280" />
                             </TouchableOpacity>
 
                             <View style={styles.headerProfileRow}>
@@ -148,7 +149,7 @@ const GlobalDrawer = ({ isOpen, onClose, drawerAnim, userData: _userDataProp }: 
                                                     {isSwitchingRole ? (
                                                         <ActivityIndicator size="small" color="#FF5C00" />
                                                     ) : (
-                                                        <Ionicons name="heart-outline" size={18} color="#FF5C00" />
+                                                        <Ionicons name="heart-outline" size={scale(18)} color="#FF5C00" />
                                                     )}
                                                 </View>
                                                 <View>
@@ -156,7 +157,7 @@ const GlobalDrawer = ({ isOpen, onClose, drawerAnim, userData: _userDataProp }: 
                                                     <Text style={styles.switchRoleSub}>Daily meds, visits & SOS</Text>
                                                 </View>
                                             </View>
-                                            <Ionicons name="swap-horizontal-outline" size={20} color="#FFFFFF" />
+                                            <Ionicons name="swap-horizontal-outline" size={scale(20)} color="#FFFFFF" />
                                         </LinearGradient>
                                     </TouchableOpacity>
                                 )}
@@ -320,11 +321,11 @@ const DrawerItem = ({ label, icon, bg, color, active = false, showArrow = true, 
         activeOpacity={0.7}
     >
         <View style={[styles.itemIconBox, { backgroundColor: bg || '#F3F4F6' }]}>
-            <Ionicons name={icon} size={18} color={color || '#374151'} />
+            <Ionicons name={icon} size={scale(18)} color={color || '#374151'} />
         </View>
         <Text style={[styles.drawerItemText, active && styles.drawerItemTextActive]}>{label}</Text>
         {showArrow && (
-            <Ionicons name="chevron-forward" size={14} color={active ? '#F97316' : '#D1D5DB'} />
+            <Ionicons name="chevron-forward" size={scale(14)} color={active ? '#F97316' : '#D1D5DB'} />
         )}
     </TouchableOpacity>
 );
@@ -346,24 +347,24 @@ const styles = StyleSheet.create({
         }),
     },
     headerContainer: {
-        paddingHorizontal: 16,
-        marginBottom: 8,
+        paddingHorizontal: scale(16),
+        marginBottom: scale(8),
     },
     headerCard: {
         backgroundColor: '#FAF7F2',
-        borderRadius: 20,
-        padding: 16,
+        borderRadius: scale(20),
+        padding: scale(16),
         position: 'relative',
         borderWidth: 1,
         borderColor: '#F3EFE6',
     },
     closeBtn: {
         position: 'absolute',
-        top: 12,
-        right: 12,
-        width: 28,
-        height: 28,
-        borderRadius: 14,
+        top: scale(12),
+        right: scale(12),
+        width: scale(28),
+        height: scale(28),
+        borderRadius: scale(14),
         backgroundColor: '#FFFFFF',
         justifyContent: 'center',
         alignItems: 'center',
@@ -376,64 +377,64 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     avatarImage: {
-        width: 48,
-        height: 48,
-        borderRadius: 24,
+        width: scale(48),
+        height: scale(48),
+        borderRadius: scale(24),
         borderWidth: 2,
         borderColor: '#FFFFFF',
-        marginRight: 12,
+        marginRight: scale(12),
     },
     avatarBadge: {
-        width: 48,
-        height: 48,
-        borderRadius: 24,
+        width: scale(48),
+        height: scale(48),
+        borderRadius: scale(24),
         justifyContent: 'center',
         alignItems: 'center',
-        marginRight: 12,
+        marginRight: scale(12),
         borderWidth: 2,
         borderColor: '#FFFFFF',
     },
     avatarText: {
-        fontSize: 17,
+        fontSize: scale(17),
         fontWeight: '800',
         color: '#FFFFFF',
     },
     headerInfo: {
         flex: 1,
         justifyContent: 'center',
-        paddingRight: 24,
+        paddingRight: scale(24),
     },
     drawerName: {
-        fontSize: 16,
+        fontSize: scale(16),
         fontWeight: '700',
         color: '#1E293B',
     },
     drawerPhone: {
-        fontSize: 12,
+        fontSize: scale(12),
         color: '#64748B',
-        marginTop: 2,
+        marginTop: scale(2),
     },
     roleBadge: {
         flexDirection: 'row',
         alignItems: 'center',
         alignSelf: 'flex-start',
         backgroundColor: '#FFFFFF',
-        paddingHorizontal: 8,
-        paddingVertical: 2,
-        borderRadius: 8,
-        marginTop: 6,
+        paddingHorizontal: scale(8),
+        paddingVertical: scale(2),
+        borderRadius: scale(8),
+        marginTop: scale(6),
         borderWidth: 1,
         borderColor: '#E2E8F0',
     },
     onlineDot: {
-        width: 6,
-        height: 6,
-        borderRadius: 3,
+        width: scale(6),
+        height: scale(6),
+        borderRadius: scale(3),
         backgroundColor: '#10B981',
-        marginRight: 5,
+        marginRight: scale(5),
     },
     roleBadgeText: {
-        fontSize: 10,
+        fontSize: scale(10),
         fontWeight: '600',
         color: '#475569',
     },
@@ -442,30 +443,30 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     menuScrollContent: {
-        paddingVertical: 8,
+        paddingVertical: scale(8),
     },
     sectionLabel: {
-        fontSize: 10,
+        fontSize: scale(10),
         fontWeight: '700',
         color: '#94A3B8',
-        paddingHorizontal: 24,
-        marginTop: 10,
-        marginBottom: 6,
+        paddingHorizontal: scale(24),
+        marginTop: scale(10),
+        marginBottom: scale(6),
         letterSpacing: 1,
     },
     sectionDivider: {
         height: 1,
         backgroundColor: '#F1F5F9',
-        marginHorizontal: 24,
-        marginVertical: 10,
+        marginHorizontal: scale(24),
+        marginVertical: scale(10),
     },
     drawerItem: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginHorizontal: 14,
-        paddingHorizontal: 12,
-        paddingVertical: 9,
-        borderRadius: 14,
+        marginHorizontal: scale(14),
+        paddingHorizontal: scale(12),
+        paddingVertical: scale(9),
+        borderRadius: scale(14),
     },
     drawerItemActive: {
         backgroundColor: '#FFF7ED',
@@ -473,16 +474,16 @@ const styles = StyleSheet.create({
         borderColor: '#FFEDD5',
     },
     itemIconBox: {
-        width: 36,
-        height: 36,
-        borderRadius: 12,
+        width: scale(36),
+        height: scale(36),
+        borderRadius: scale(12),
         justifyContent: 'center',
         alignItems: 'center',
-        marginRight: 12,
+        marginRight: scale(12),
     },
     drawerItemText: {
         flex: 1,
-        fontSize: 14,
+        fontSize: scale(14),
         fontWeight: '600',
         color: '#334155',
     },
@@ -493,18 +494,18 @@ const styles = StyleSheet.create({
 
     // ── Dual-role Switch Card ─────────────────────────────────────────────────
     switchRoleCard: {
-        marginHorizontal: 14,
-        marginTop: 8,
-        marginBottom: 4,
-        borderRadius: 14,
+        marginHorizontal: scale(14),
+        marginTop: scale(8),
+        marginBottom: scale(4),
+        borderRadius: scale(14),
         overflow: 'hidden',
     },
     switchRoleGradient: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingHorizontal: 14,
-        paddingVertical: 12,
+        paddingHorizontal: scale(14),
+        paddingVertical: scale(12),
     },
     switchRoleLeft: {
         flexDirection: 'row',
@@ -512,28 +513,28 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     switchRoleIconBox: {
-        width: 34,
-        height: 34,
-        borderRadius: 10,
+        width: scale(34),
+        height: scale(34),
+        borderRadius: scale(10),
         backgroundColor: '#FFFFFF',
         justifyContent: 'center',
         alignItems: 'center',
-        marginRight: 10,
+        marginRight: scale(10),
     },
     switchRoleTitle: {
-        fontSize: 13,
+        fontSize: scale(13),
         fontWeight: '700',
         color: '#FFFFFF',
     },
     switchRoleSub: {
-        fontSize: 10,
+        fontSize: scale(10),
         color: 'rgba(255,255,255,0.8)',
         marginTop: 1,
     },
 
     drawerFooter: {
-        paddingHorizontal: 20,
-        paddingVertical: 14,
+        paddingHorizontal: scale(20),
+        paddingVertical: scale(14),
         borderTopWidth: 1,
         borderTopColor: '#F1F5F9',
         flexDirection: 'row',
@@ -546,19 +547,19 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     brandDot: {
-        width: 7,
-        height: 7,
+        width: scale(7),
+        height: scale(7),
         borderRadius: 3.5,
         backgroundColor: '#F97316',
-        marginRight: 6,
+        marginRight: scale(6),
     },
     brandText: {
-        fontSize: 12,
+        fontSize: scale(12),
         fontWeight: '600',
         color: '#475569',
     },
     versionText: {
-        fontSize: 11,
+        fontSize: scale(11),
         fontWeight: '500',
         color: '#94A3B8',
     },

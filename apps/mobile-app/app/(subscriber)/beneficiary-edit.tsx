@@ -12,6 +12,7 @@ import { useSafeBack } from '@/hooks/useSafeBack';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigationStack } from '@/contexts/NavigationStackContext';
 import { useAndroidBackHandler } from '@/hooks/useAndroidBackHandler';
+import { scale } from '@/utils/responsive';
 
 export default function EditBeneficiaryScreen() {
     const router = useRouter();
@@ -241,14 +242,14 @@ export default function EditBeneficiaryScreen() {
         <SafeAreaView style={styles.safeArea}>
             <View style={styles.inlineHeader}>
                 <TouchableOpacity onPress={() => safeBack()} style={styles.iconBtn}>
-                    <Ionicons name="arrow-back" size={24} color="#111827" />
+                    <Ionicons name="arrow-back" size={scale(24)} color="#111827" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Edit Profile</Text>
                 <View style={styles.iconBtn} />
             </View>
             <View style={[styles.center, { flex: 1, backgroundColor: '#FAF5F0' }]}>
                 <ActivityIndicator size="large" color="#F97316" />
-                <Text style={{ marginTop: 12, fontSize: 14, color: '#6B7280', fontWeight: '500' }}>
+                <Text style={{ marginTop: scale(12), fontSize: scale(14), color: '#6B7280', fontWeight: '500' }}>
                     Loading profile details...
                 </Text>
             </View>
@@ -260,11 +261,11 @@ export default function EditBeneficiaryScreen() {
             {/* Simple inline header */}
             <View style={styles.inlineHeader}>
                 <TouchableOpacity onPress={() => safeBack()} style={styles.iconBtn}>
-                    <Ionicons name="arrow-back" size={24} color="#111827" />
+                    <Ionicons name="arrow-back" size={scale(24)} color="#111827" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Edit Profile</Text>
                 <TouchableOpacity onPress={openDrawer} style={styles.iconBtn}>
-                    <Ionicons name="menu-outline" size={28} color="#111827" />
+                    <Ionicons name="menu-outline" size={scale(28)} color="#111827" />
                 </TouchableOpacity>
             </View>
             <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
@@ -277,27 +278,27 @@ export default function EditBeneficiaryScreen() {
                         <TextInput style={styles.input} value={name} onChangeText={setName} />
 
                         <View style={styles.row}>
-                            <View style={{ flex: 1, marginRight: 10 }}>
+                            <View style={{ flex: 1, marginRight: scale(10) }}>
                                 <Text style={styles.inputLabel}>Age</Text>
                                 <TextInput style={styles.input} value={age} onChangeText={setAge} keyboardType="numeric" />
                             </View>
                             <View style={{ flex: 1 }}>
                                 <Text style={styles.inputLabel}>Relationship</Text>
                                 <TouchableOpacity
-                                    style={[styles.input, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 14 }]}
+                                    style={[styles.input, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: scale(14) }]}
                                     onPress={() => setShowRelationshipModal(true)}
                                 >
                                     <Text style={{ flex: 1, color: relationship ? '#111827' : '#9CA3AF' }}>
                                         {relationship || 'Select'}
                                     </Text>
-                                    <Ionicons name="chevron-down" size={18} color="#9CA3AF" />
+                                    <Ionicons name="chevron-down" size={scale(18)} color="#9CA3AF" />
                                 </TouchableOpacity>
                             </View>
                         </View>
 
                         {/* Custom Relationship Input for 'Other' */}
                         {(relationship === 'Other' || (!relationships.includes(relationship) && relationship !== '')) && (
-                            <View style={{ marginTop: 8 }}>
+                            <View style={{ marginTop: scale(8) }}>
                                 <Text style={styles.inputLabel}>Please Specify Relationship</Text>
                                 <TextInput
                                     style={styles.input}
@@ -310,18 +311,18 @@ export default function EditBeneficiaryScreen() {
                         )}
 
                         <Text style={styles.inputLabel}>Gender</Text>
-                        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
+                        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: scale(8), marginBottom: scale(8) }}>
                             {['male', 'female', 'other', 'prefer_not_to_say'].map((g) => (
                                 <TouchableOpacity
                                     key={g}
                                     onPress={() => setGender(g)}
                                     style={{
-                                        paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20,
+                                        paddingHorizontal: scale(12), paddingVertical: scale(8), borderRadius: scale(20),
                                         backgroundColor: gender === g ? '#F97316' : '#F3F4F6',
                                         borderWidth: 1, borderColor: gender === g ? '#F97316' : '#E5E7EB'
                                     }}
                                 >
-                                    <Text style={{ fontSize: 12, color: gender === g ? '#FFF' : '#374151', textTransform: 'capitalize', fontWeight: gender === g ? '700' : '500' }}>
+                                    <Text style={{ fontSize: scale(12), color: gender === g ? '#FFF' : '#374151', textTransform: 'capitalize', fontWeight: gender === g ? '700' : '500' }}>
                                         {g === 'prefer_not_to_say' ? 'Private' : g}
                                     </Text>
                                 </TouchableOpacity>
@@ -346,7 +347,7 @@ export default function EditBeneficiaryScreen() {
                         />
 
                         <View style={styles.row}>
-                            <View style={{ flex: 1, marginRight: 10 }}>
+                            <View style={{ flex: 1, marginRight: scale(10) }}>
                                 <Text style={styles.inputLabel}>Flat / Plot / Building</Text>
                                 <TextInput style={styles.input} value={flatPlot} onChangeText={setFlatPlot} placeholder="e.g. 402, Sunshine" />
                             </View>
@@ -360,7 +361,7 @@ export default function EditBeneficiaryScreen() {
                         <TextInput style={styles.input} value={landmark} onChangeText={setLandmark} placeholder="e.g. Near HDFC Bank" />
 
                         <View style={styles.row}>
-                            <View style={{ flex: 1, marginRight: 10 }}>
+                            <View style={{ flex: 1, marginRight: scale(10) }}>
                                 <Text style={styles.inputLabel}>City *</Text>
                                 <TextInput style={styles.input} value={city} onChangeText={setCity} placeholder="City" />
                             </View>
@@ -375,7 +376,7 @@ export default function EditBeneficiaryScreen() {
 
                         {latitude !== 0 && (
                             <View style={styles.coordsBadge}>
-                                <Ionicons name="location" size={12} color="#10B981" />
+                                <Ionicons name="location" size={scale(12)} color="#10B981" />
                                 <Text style={styles.coordsText}>GPS coordinates saved</Text>
                             </View>
                         )}
@@ -386,7 +387,7 @@ export default function EditBeneficiaryScreen() {
                         <View style={styles.cardHeader}>
                             <Text style={styles.sectionTitle}>Medical Conditions</Text>
                             <TouchableOpacity onPress={() => setShowConditionModal(true)} style={styles.addBtn}>
-                                <Ionicons name="add" size={20} color="#FFF" />
+                                <Ionicons name="add" size={scale(20)} color="#FFF" />
                             </TouchableOpacity>
                         </View>
                         <View style={styles.tagsContainer}>
@@ -394,7 +395,7 @@ export default function EditBeneficiaryScreen() {
                                 <View key={i} style={styles.tag}>
                                     <Text style={styles.tagText}>{c}</Text>
                                     <TouchableOpacity onPress={() => setConditions(conditions.filter((_, idx) => idx !== i))}>
-                                        <Ionicons name="close-circle" size={18} color="#F97316" />
+                                        <Ionicons name="close-circle" size={scale(18)} color="#F97316" />
                                     </TouchableOpacity>
                                 </View>
                             ))}
@@ -407,7 +408,7 @@ export default function EditBeneficiaryScreen() {
                         <View style={styles.cardHeader}>
                             <Text style={styles.sectionTitle}>Current Medications</Text>
                             <TouchableOpacity onPress={() => setShowMedicineModal(true)} style={styles.addBtn}>
-                                <Ionicons name="add" size={20} color="#FFF" />
+                                <Ionicons name="add" size={scale(20)} color="#FFF" />
                             </TouchableOpacity>
                         </View>
                         {medications.map((m, i) => (
@@ -417,7 +418,7 @@ export default function EditBeneficiaryScreen() {
                                     <Text style={styles.medSub}>{m.dosage} • {m.frequency}</Text>
                                 </View>
                                 <TouchableOpacity onPress={() => setMedications(medications.filter((_, idx) => idx !== i))}>
-                                    <Ionicons name="trash-outline" size={20} color="#EF4444" />
+                                    <Ionicons name="trash-outline" size={scale(20)} color="#EF4444" />
                                 </TouchableOpacity>
                             </View>
                         ))}
@@ -487,7 +488,7 @@ export default function EditBeneficiaryScreen() {
                         }}>
                             <Text style={styles.modalBtnText}>Add</Text>
                         </TouchableOpacity>
-                        <TouchableOpacity onPress={() => setShowConditionModal(false)} style={{ marginTop: 15, alignItems: 'center' }}>
+                        <TouchableOpacity onPress={() => setShowConditionModal(false)} style={{ marginTop: scale(15), alignItems: 'center' }}>
                             <Text style={{ color: '#6B7280' }}>Cancel</Text>
                         </TouchableOpacity>
                     </View>
@@ -519,7 +520,7 @@ export default function EditBeneficiaryScreen() {
                         <View style={styles.modalHeader}>
                             <Text style={styles.modalTitle}>Select Relationship</Text>
                             <TouchableOpacity onPress={() => setShowRelationshipModal(false)}>
-                                <Ionicons name="close" size={24} color="#111827" />
+                                <Ionicons name="close" size={scale(24)} color="#111827" />
                             </TouchableOpacity>
                         </View>
                         <ScrollView showsVerticalScrollIndicator={false}>
@@ -540,7 +541,7 @@ export default function EditBeneficiaryScreen() {
                                         relationship === rel && styles.optionTextActive
                                     ]}>{rel}</Text>
                                     {relationship === rel && (
-                                        <Ionicons name="checkmark-circle" size={20} color="#F97316" />
+                                        <Ionicons name="checkmark-circle" size={scale(20)} color="#F97316" />
                                     )}
                                 </TouchableOpacity>
                             ))}
@@ -555,7 +556,7 @@ export default function EditBeneficiaryScreen() {
                     <View style={styles.hobbiesContent}>
                         <View style={styles.modalHeader}>
                             <Text style={styles.modalTitle}>Interests & Hobbies</Text>
-                            <TouchableOpacity onPress={() => setShowHobbiesModal(false)}><Ionicons name="close" size={24} /></TouchableOpacity>
+                            <TouchableOpacity onPress={() => setShowHobbiesModal(false)}><Ionicons name="close" size={scale(24)} /></TouchableOpacity>
                         </View>
                         <ScrollView contentContainerStyle={styles.hobbiesGrid}>
                             {availableHobbies.map((h) => {
@@ -579,7 +580,7 @@ export default function EditBeneficiaryScreen() {
                 <View style={styles.modalOverlay}>
                     <View style={styles.modalContent}>
                         <Text style={styles.modalTitle}>{alertConfig.title}</Text>
-                        <Text style={{ fontSize: 15, color: '#4B5563', marginBottom: 24, lineHeight: 22 }}>
+                        <Text style={{ fontSize: scale(15), color: '#4B5563', marginBottom: scale(24), lineHeight: scale(22) }}>
                             {alertConfig.message}
                         </Text>
                         <TouchableOpacity 
@@ -607,46 +608,46 @@ const styles = StyleSheet.create({
     safeArea: { flex: 1, backgroundColor: '#FAF5F0' },
     inlineHeader: {
         flexDirection: 'row', alignItems: 'center',
-        paddingHorizontal: 12, paddingVertical: 10, backgroundColor: '#FAF5F0',
+        paddingHorizontal: scale(12), paddingVertical: scale(10), backgroundColor: '#FAF5F0',
     },
-    headerTitle: { flex: 1, fontSize: 17, fontWeight: '600', color: '#111827', marginLeft: 6 },
-    iconBtn: { width: 36, height: 36, justifyContent: 'center', alignItems: 'center' },
+    headerTitle: { flex: 1, fontSize: scale(17), fontWeight: '600', color: '#111827', marginLeft: scale(6) },
+    iconBtn: { width: scale(36), height: scale(36), justifyContent: 'center', alignItems: 'center' },
     center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-    scrollContent: { padding: 20 },
-    card: { backgroundColor: '#FFF', borderRadius: 16, padding: 20, marginBottom: 16, elevation: 2 },
-    sectionTitle: { fontSize: 16, fontWeight: '700', color: '#111827', marginBottom: 16 },
-    inputLabel: { fontSize: 13, fontWeight: '600', color: '#6B7280', marginBottom: 8, marginTop: 8 },
-    input: { backgroundColor: '#F9FAFB', borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 10, padding: 12, fontSize: 15, color: '#111827' },
-    row: { flexDirection: 'row', marginTop: 8 },
-    cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-    addBtn: { width: 30, height: 30, borderRadius: 15, backgroundColor: '#F97316', justifyContent: 'center', alignItems: 'center' },
-    tagsContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-    tag: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF5ED', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 },
-    tagText: { fontSize: 14, color: '#F97316', marginRight: 4 },
-    emptyText: { color: '#9CA3AF', fontStyle: 'italic', fontSize: 13 },
-    medItem: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F9FAFB', padding: 12, borderRadius: 10, marginBottom: 8 },
+    scrollContent: { padding: scale(20) },
+    card: { backgroundColor: '#FFF', borderRadius: scale(16), padding: scale(20), marginBottom: scale(16), elevation: 2 },
+    sectionTitle: { fontSize: scale(16), fontWeight: '700', color: '#111827', marginBottom: scale(16) },
+    inputLabel: { fontSize: scale(13), fontWeight: '600', color: '#6B7280', marginBottom: scale(8), marginTop: scale(8) },
+    input: { backgroundColor: '#F9FAFB', borderWidth: 1, borderColor: '#E5E7EB', borderRadius: scale(10), padding: scale(12), fontSize: scale(15), color: '#111827' },
+    row: { flexDirection: 'row', marginTop: scale(8) },
+    cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: scale(12) },
+    addBtn: { width: scale(30), height: scale(30), borderRadius: scale(15), backgroundColor: '#F97316', justifyContent: 'center', alignItems: 'center' },
+    tagsContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: scale(8) },
+    tag: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF5ED', paddingHorizontal: scale(12), paddingVertical: scale(6), borderRadius: scale(20) },
+    tagText: { fontSize: scale(14), color: '#F97316', marginRight: scale(4) },
+    emptyText: { color: '#9CA3AF', fontStyle: 'italic', fontSize: scale(13) },
+    medItem: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F9FAFB', padding: scale(12), borderRadius: scale(10), marginBottom: scale(8) },
     medName: { fontWeight: '600', color: '#111827' },
-    medSub: { fontSize: 12, color: '#6B7280' },
-    switchRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
-    switchLabel: { fontSize: 14, color: '#374151' },
-    saveBtn: { backgroundColor: '#F97316', paddingVertical: 16, borderRadius: 12, alignItems: 'center', marginTop: 10 },
-    saveBtnText: { color: '#FFF', fontSize: 16, fontWeight: '700' },
-    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 20 },
-    modalContent: { backgroundColor: '#FFF', borderRadius: 20, padding: 24 },
-    modalTitle: { fontSize: 18, fontWeight: '700', marginBottom: 20 },
-    modalInput: { backgroundColor: '#F9FAFB', borderRadius: 10, padding: 14, marginBottom: 16 },
-    modalBtn: { backgroundColor: '#F97316', padding: 14, borderRadius: 10, alignItems: 'center' },
+    medSub: { fontSize: scale(12), color: '#6B7280' },
+    switchRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: scale(10), borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
+    switchLabel: { fontSize: scale(14), color: '#374151' },
+    saveBtn: { backgroundColor: '#F97316', paddingVertical: scale(16), borderRadius: scale(12), alignItems: 'center', marginTop: scale(10) },
+    saveBtnText: { color: '#FFF', fontSize: scale(16), fontWeight: '700' },
+    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: scale(20) },
+    modalContent: { backgroundColor: '#FFF', borderRadius: scale(20), padding: scale(24) },
+    modalTitle: { fontSize: scale(18), fontWeight: '700', marginBottom: scale(20) },
+    modalInput: { backgroundColor: '#F9FAFB', borderRadius: scale(10), padding: scale(14), marginBottom: scale(16) },
+    modalBtn: { backgroundColor: '#F97316', padding: scale(14), borderRadius: scale(10), alignItems: 'center' },
     modalBtnText: { color: '#FFF', fontWeight: '700' },
     hobbiesOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-    hobbiesContent: { backgroundColor: '#FFF', borderTopLeftRadius: 25, borderTopRightRadius: 25, padding: 24, maxHeight: '80%' },
-    modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-    hobbiesGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, paddingBottom: 20 },
-    hobbyItem: { backgroundColor: '#F3F4F6', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, borderWidth: 1, borderColor: '#E5E7EB' },
+    hobbiesContent: { backgroundColor: '#FFF', borderTopLeftRadius: 25, borderTopRightRadius: 25, padding: scale(24), maxHeight: '80%' },
+    modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: scale(20) },
+    hobbiesGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: scale(10), paddingBottom: scale(20) },
+    hobbyItem: { backgroundColor: '#F3F4F6', paddingHorizontal: scale(16), paddingVertical: scale(8), borderRadius: scale(20), borderWidth: 1, borderColor: '#E5E7EB' },
     hobbyActive: { backgroundColor: '#FFF5ED', borderColor: '#F97316' },
-    optionBtn: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 15, paddingHorizontal: 10, borderRadius: 10, marginBottom: 5 },
+    optionBtn: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: scale(15), paddingHorizontal: scale(10), borderRadius: scale(10), marginBottom: scale(5) },
     optionBtnActive: { backgroundColor: '#FFF5ED' },
-    optionText: { fontSize: 16, color: '#4B5563' },
+    optionText: { fontSize: scale(16), color: '#4B5563' },
     optionTextActive: { color: '#F97316', fontWeight: '600' },
-    coordsBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 10, backgroundColor: '#ECFDF5', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, alignSelf: 'flex-start' },
-    coordsText: { fontSize: 12, color: '#10B981', fontWeight: '600' }
+    coordsBadge: { flexDirection: 'row', alignItems: 'center', gap: scale(4), marginTop: scale(10), backgroundColor: '#ECFDF5', paddingHorizontal: scale(10), paddingVertical: scale(6), borderRadius: scale(8), alignSelf: 'flex-start' },
+    coordsText: { fontSize: scale(12), color: '#10B981', fontWeight: '600' }
 });

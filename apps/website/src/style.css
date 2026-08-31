@@ -191,11 +191,31 @@ a {
 }
 
 .hero {
-  min-height: 696px;
-  padding: 120px 24px 88px;
+  min-height: 630px;
+  padding: 120px 24px 60px;
   background: #fff1e8;
   position: relative;
   overflow: hidden;
+}
+
+.hero-cutout-wrapper {
+  position: absolute;
+  inset: 0;
+  margin: 0 auto;
+  width: 100%;
+  max-width: 1180px;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.hero-cutout {
+  position: absolute;
+  bottom: 0;
+  right: -120px;
+  width: 704px;
+  height: auto;
+  display: block;
+  pointer-events: auto;
 }
 
 .hero__bg-video {
@@ -243,7 +263,7 @@ a {
   border-radius: 50px;
   color: var(--orange);
   background: #FFF1E8;
-  font-size: 13px;
+  font-size: 10px;
   font-weight: 600;
 }
 
@@ -253,36 +273,37 @@ a {
 }
 
 .hero h1 {
-  width: 569px;
+  width: 435px;
   max-width: 100%;
-  height: 276px;
+  height: auto;
+  min-height: 208px;
   margin: 0;
   color: #111111;
   font-family: 'Poppins', sans-serif;
-  font-size: 60px;
+  font-size: 32px;
   font-weight: 700;
   letter-spacing: 0;
-  line-height: 69px;
+  line-height: 42px;
 }
 
 .hero h1 span {
   display: block;
   color: var(--orange);
   font-family: 'Poppins', sans-serif;
-  font-size: 60px;
+  font-size: 32px;
   font-weight: 700;
-  line-height: 69px;
+  line-height: 42px;
 }
 
 .hero__copy>p {
-  width: 645px;
+  width: 516px;
   max-width: 100%;
-  margin: 20px 0 0;
+  margin: 16px 0 0;
   color: #666666;
   font-family: 'Poppins', sans-serif;
-  font-size: 18px;
+  font-size: 14px;
   font-weight: 400;
-  line-height: 32px;
+  line-height: 26px;
   letter-spacing: 0px;
 }
 
@@ -302,8 +323,8 @@ a {
   color: var(--ink);
   background: #fff;
   font-family: 'Poppins', sans-serif;
-  font-size: 15px;
-  line-height: 22px;
+  font-size: 12px;
+  line-height: 18px;
   border-radius: 50px 0 0 50px;
   height: 55.17px;
   box-sizing: border-box;
@@ -329,9 +350,9 @@ a {
   padding: 15px 28px;
   white-space: nowrap;
   font-family: 'Poppins', sans-serif;
-  font-size: 15px;
+  font-size: 12px;
   font-weight: 600;
-  line-height: 22px;
+  line-height: 18px;
   border-radius: 0 50px 50px 0;
   height: 55.17px;
   width: 150px;
@@ -339,11 +360,11 @@ a {
 }
 
 .hero-location {
-  margin-top: 10px;
+  margin-top: 8px;
   font-family: 'Poppins', sans-serif;
-  font-size: 13px;
+  font-size: 10px;
   font-weight: 400;
-  line-height: 20px;
+  line-height: 16px;
   color: #999999;
   padding-left: 4px;
 }
@@ -3328,6 +3349,32 @@ a {
     height: auto;
     font-size: 44px;
     line-height: 1.2;
+    min-height: auto;
+  }
+
+  .hero-cutout-wrapper {
+    position: relative;
+    inset: auto;
+    margin: 40px auto 0;
+    width: 100%;
+    max-width: 100%;
+    z-index: 2;
+    display: flex;
+    justify-content: center;
+  }
+
+  .hero-cutout {
+    position: relative;
+    right: 0;
+    width: 100%;
+    max-width: 500px;
+    height: auto;
+    bottom: -60px; /* Offset the 60px bottom padding of hero to still touch bottom if needed, or 0 */
+  }
+
+  .hero {
+    padding-bottom: 0; /* Removing bottom padding since image will handle it */
+    min-height: auto;
   }
 
   .hero__copy>p {
@@ -4008,10 +4055,14 @@ a {
 .services-hero {
   background: #111111;
   color: #fff;
-  padding: 108px max(24px, calc((100vw - 1200px) / 2)) 96px;
+  padding: 120px max(24px, calc((100vw - 1200px) / 2)) 60px;
   position: relative;
   overflow: hidden;
   box-sizing: border-box;
+  min-height: 630px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .services-hero::before {
@@ -4043,7 +4094,8 @@ a {
 .services-hero__inner {
   display: flex;
   flex-direction: row;
-  justify-content: space-between;
+  justify-content: center;
+  gap: 140px;
   align-items: center;
   max-width: 1200px;
   margin: 0 auto;
@@ -4052,7 +4104,7 @@ a {
 }
 
 .services-hero__copy {
-  width: 544px;
+  width: 380px;
   max-width: 100%;
 }
 
@@ -4066,7 +4118,7 @@ a {
   border: 0.67px solid rgba(254, 103, 0, 0.27);
   color: #FE6700;
   font-family: 'Poppins', sans-serif;
-  font-size: 13px;
+  font-size: 10px;
   font-weight: 600;
   margin-bottom: 24px;
 }
@@ -4077,9 +4129,9 @@ a {
 
 .services-hero__copy h1 {
   font-family: 'Poppins', sans-serif;
-  font-size: 56px;
+  font-size: 32px;
   font-weight: 700;
-  line-height: 63px;
+  line-height: 42px;
   margin: 0 0 24px;
   color: #FFFFFF;
 }
@@ -4090,11 +4142,10 @@ a {
 }
 
 .services-hero__copy p {
-  width: 480px;
-  max-width: 100%;
+  width: 100%;
   font-family: 'Poppins', sans-serif;
-  font-size: 18px;
-  line-height: 32px;
+  font-size: 14px;
+  line-height: 26px;
   color: rgba(255, 255, 255, 0.82);
   margin: 0 0 40px;
 }
@@ -5282,13 +5333,13 @@ a {
   }
 
   .services-hero__copy h1 {
-    font-size: 32px;
-    line-height: 42px;
+    font-size: 28px;
+    line-height: 36px;
   }
 
   .services-hero__copy p {
-    font-size: 15px;
-    line-height: 26px;
+    font-size: 14px;
+    line-height: 24px;
     width: 100%;
   }
 
@@ -6020,12 +6071,12 @@ a {
 .saathi-hero {
   position: relative;
   width: 100%;
-  min-height: 790px;
+  min-height: 630px;
   background-color: #1c1c1e;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: 140px 24px 80px;
+  padding: 120px 24px 60px;
   box-sizing: border-box;
   overflow: hidden;
 }
@@ -6074,7 +6125,7 @@ a {
   font-family: 'Poppins', sans-serif;
   font-style: normal;
   font-weight: 600;
-  font-size: 13px;
+  font-size: 10px;
   line-height: 20px;
   color: #FE6700;
 }
@@ -6084,8 +6135,8 @@ a {
   font-family: 'Poppins', sans-serif;
   font-style: normal;
   font-weight: 700;
-  font-size: 64px;
-  line-height: 70px;
+  font-size: 32px;
+  line-height: 42px;
   color: #FFFFFF;
   margin: 0 0 24px;
   text-align: left;
@@ -6101,8 +6152,8 @@ a {
   font-family: 'Poppins', sans-serif;
   font-style: normal;
   font-weight: 400;
-  font-size: 18px;
-  line-height: 32px;
+  font-size: 14px;
+  line-height: 26px;
   color: rgba(255, 255, 255, 0.75);
   margin: 0 0 40px;
   text-align: left;
@@ -6204,15 +6255,7 @@ a {
     min-height: auto;
   }
 
-  .saathi-hero__title {
-    font-size: 44px;
-    line-height: 52px;
-  }
 
-  .saathi-hero__desc {
-    font-size: 16px;
-    line-height: 28px;
-  }
 
   .saathi-hero__stats {
     gap: 32px;
@@ -6226,12 +6269,12 @@ a {
   }
 
   .saathi-hero__title {
-    font-size: 32px;
-    line-height: 40px;
+    font-size: 28px;
+    line-height: 36px;
   }
 
   .saathi-hero__desc {
-    font-size: 15px;
+    font-size: 14px;
     line-height: 24px;
     margin-bottom: 32px;
   }

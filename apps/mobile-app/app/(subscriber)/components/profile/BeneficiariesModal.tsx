@@ -18,6 +18,7 @@ import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { sanitizeImageUri } from '@/utils/sanitizeImageUri';
 import { API_URL } from '@/constants/api';
+import { scale } from '@/utils/responsive';
 
 export interface BeneficiaryItemData {
   id: string;
@@ -269,7 +270,7 @@ export const BeneficiariesModal: React.FC<BeneficiariesModalProps> = ({
 
             {packageName && (
               <View style={styles.planBadgeRow}>
-                <Ionicons name="shield-checkmark" size={12} color="#059669" />
+                <Ionicons name="shield-checkmark" size={scale(12)} color="#059669" />
                 <Text style={styles.planBadgeText} numberOfLines={1}>
                   {packageName}
                 </Text>
@@ -292,13 +293,13 @@ export const BeneficiariesModal: React.FC<BeneficiariesModalProps> = ({
             <TouchableOpacity
               style={styles.deleteIconBtn}
               onPress={() => handleDeleteBeneficiary(item)}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              hitSlop={{ top: scale(8), bottom: scale(8), left: scale(8), right: scale(8) }}
               disabled={isDeleting}
             >
               {isDeleting ? (
                 <ActivityIndicator size="small" color="#DC2626" />
               ) : (
-                <Ionicons name="trash-outline" size={18} color="#EF4444" />
+                <Ionicons name="trash-outline" size={scale(18)} color="#EF4444" />
               )}
             </TouchableOpacity>
           )}
@@ -340,15 +341,15 @@ export const BeneficiariesModal: React.FC<BeneficiariesModalProps> = ({
             <TouchableOpacity
               style={styles.closeBtn}
               onPress={onClose}
-              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              hitSlop={{ top: scale(12), bottom: scale(12), left: scale(12), right: scale(12) }}
             >
-              <Feather name="x" size={20} color="#4B5563" />
+              <Feather name="x" size={scale(20)} color="#4B5563" />
             </TouchableOpacity>
           </View>
 
           {/* Search Bar */}
           <View style={styles.searchContainer}>
-            <Ionicons name="search" size={18} color="#9CA3AF" style={styles.searchIcon} />
+            <Ionicons name="search" size={scale(18)} color="#9CA3AF" style={styles.searchIcon} />
             <TextInput
               style={styles.searchInput}
               placeholder="Search by name, relation or age..."
@@ -358,8 +359,8 @@ export const BeneficiariesModal: React.FC<BeneficiariesModalProps> = ({
               clearButtonMode="while-editing"
             />
             {searchQuery.length > 0 && (
-              <TouchableOpacity onPress={() => setSearchQuery('')} style={{ padding: 4 }}>
-                <Feather name="x-circle" size={16} color="#9CA3AF" />
+              <TouchableOpacity onPress={() => setSearchQuery('')} style={{ padding: scale(4) }}>
+                <Feather name="x-circle" size={scale(16)} color="#9CA3AF" />
               </TouchableOpacity>
             )}
           </View>
@@ -414,7 +415,7 @@ export const BeneficiariesModal: React.FC<BeneficiariesModalProps> = ({
             showsVerticalScrollIndicator={false}
             ListEmptyComponent={
               <View style={styles.emptyState}>
-                <Ionicons name="people-outline" size={44} color="#D1D5DB" />
+                <Ionicons name="people-outline" size={scale(44)} color="#D1D5DB" />
                 <Text style={styles.emptyTitle}>No beneficiaries found</Text>
                 <Text style={styles.emptySubtitle}>
                   {searchQuery
@@ -437,7 +438,7 @@ export const BeneficiariesModal: React.FC<BeneficiariesModalProps> = ({
                 router.push('/(setup)/beneficiary-info');
               }}
             >
-              <Ionicons name="person-add-outline" size={18} color="#FFFFFF" style={{ marginRight: 8 }} />
+              <Ionicons name="person-add-outline" size={scale(18)} color="#FFFFFF" style={{ marginRight: scale(8) }} />
               <Text style={styles.addBtnText}>Add New Beneficiary</Text>
             </TouchableOpacity>
           </View>
@@ -447,7 +448,7 @@ export const BeneficiariesModal: React.FC<BeneficiariesModalProps> = ({
             <View style={styles.confirmOverlay}>
               <View style={styles.confirmCard}>
                 <View style={styles.confirmIconContainer}>
-                  <Feather name="alert-triangle" size={36} color="#D97706" />
+                  <Feather name="alert-triangle" size={scale(36)} color="#D97706" />
                 </View>
                 <Text style={styles.confirmTitle}>Delete Beneficiary</Text>
                 <Text style={styles.confirmMessage}>
@@ -487,16 +488,16 @@ export const BeneficiariesModal: React.FC<BeneficiariesModalProps> = ({
               <View style={styles.confirmCard}>
                 <View style={styles.confirmIconContainer}>
                   {feedback.type === 'success' && (
-                    <Feather name="check-circle" size={38} color="#059669" />
+                    <Feather name="check-circle" size={scale(38)} color="#059669" />
                   )}
                   {feedback.type === 'error' && (
-                    <Feather name="alert-circle" size={38} color="#DC2626" />
+                    <Feather name="alert-circle" size={scale(38)} color="#DC2626" />
                   )}
                   {feedback.type === 'warning' && (
-                    <Feather name="alert-triangle" size={38} color="#D97706" />
+                    <Feather name="alert-triangle" size={scale(38)} color="#D97706" />
                   )}
                   {feedback.type === 'info' && (
-                    <Feather name="info" size={38} color="#2563EB" />
+                    <Feather name="info" size={scale(38)} color="#2563EB" />
                   )}
                 </View>
                 <Text style={styles.confirmTitle}>{feedback.title}</Text>
@@ -535,7 +536,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    paddingTop: 10,
+    paddingTop: scale(10),
     ...Platform.select({
       ios: {
         shadowColor: '#000',
@@ -549,52 +550,52 @@ const styles = StyleSheet.create({
     }),
   },
   grabHandle: {
-    width: 40,
-    height: 4,
-    borderRadius: 2,
+    width: scale(40),
+    height: scale(4),
+    borderRadius: scale(2),
     backgroundColor: '#E5E7EB',
     alignSelf: 'center',
-    marginBottom: 10,
+    marginBottom: scale(10),
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingBottom: 12,
+    paddingHorizontal: scale(20),
+    paddingBottom: scale(12),
   },
   titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: scale(8),
   },
   title: {
-    fontSize: 20,
+    fontSize: scale(20),
     fontWeight: '700',
     color: '#111827',
   },
   countBadge: {
     backgroundColor: '#FFF2E8',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 12,
+    paddingHorizontal: scale(8),
+    paddingVertical: scale(2),
+    borderRadius: scale(12),
     borderWidth: 1,
     borderColor: '#FFD8BF',
   },
   countBadgeText: {
-    fontSize: 12,
+    fontSize: scale(12),
     fontWeight: '700',
     color: '#EA580C',
   },
   subtitle: {
-    fontSize: 13,
+    fontSize: scale(13),
     color: '#6B7280',
-    marginTop: 2,
+    marginTop: scale(2),
   },
   closeBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: scale(34),
+    height: scale(34),
+    borderRadius: scale(17),
     backgroundColor: '#F3F4F6',
     justifyContent: 'center',
     alignItems: 'center',
@@ -603,42 +604,42 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#F9FAFB',
-    borderRadius: 12,
+    borderRadius: scale(12),
     borderWidth: 1,
     borderColor: '#E5E7EB',
-    marginHorizontal: 20,
-    paddingHorizontal: 12,
+    marginHorizontal: scale(20),
+    paddingHorizontal: scale(12),
     paddingVertical: Platform.OS === 'ios' ? 10 : 6,
-    marginBottom: 12,
+    marginBottom: scale(12),
   },
   searchIcon: {
-    marginRight: 8,
+    marginRight: scale(8),
   },
   searchInput: {
     flex: 1,
-    fontSize: 14,
+    fontSize: scale(14),
     color: '#111827',
     padding: 0,
   },
   filterPillsRow: {
     flexDirection: 'row',
-    paddingHorizontal: 20,
-    gap: 8,
-    marginBottom: 14,
+    paddingHorizontal: scale(20),
+    gap: scale(8),
+    marginBottom: scale(14),
   },
   filterPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: 20,
+    paddingHorizontal: scale(14),
+    paddingVertical: scale(7),
+    borderRadius: scale(20),
     backgroundColor: '#F3F4F6',
   },
   filterPillSelected: {
     backgroundColor: '#111827',
   },
   filterPillText: {
-    fontSize: 13,
+    fontSize: scale(13),
     fontWeight: '600',
     color: '#4B5563',
   },
@@ -646,22 +647,22 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   pillDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    marginRight: 6,
+    width: scale(6),
+    height: scale(6),
+    borderRadius: scale(3),
+    marginRight: scale(6),
   },
   listContent: {
-    paddingHorizontal: 20,
-    paddingBottom: 16,
-    gap: 10,
+    paddingHorizontal: scale(20),
+    paddingBottom: scale(16),
+    gap: scale(10),
   },
   benCard: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    padding: 12,
+    borderRadius: scale(14),
+    padding: scale(12),
     borderWidth: 1,
     borderColor: '#F3F4F6',
     ...Platform.select({
@@ -688,18 +689,18 @@ const styles = StyleSheet.create({
   },
   avatarContainer: {
     position: 'relative',
-    marginRight: 12,
+    marginRight: scale(12),
   },
   avatarImg: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: scale(48),
+    height: scale(48),
+    borderRadius: scale(24),
     backgroundColor: '#E5E7EB',
   },
   avatarFallback: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: scale(48),
+    height: scale(48),
+    borderRadius: scale(24),
     backgroundColor: '#FFF5ED',
     justifyContent: 'center',
     alignItems: 'center',
@@ -711,7 +712,7 @@ const styles = StyleSheet.create({
     borderColor: '#BFDBFE',
   },
   avatarInitials: {
-    fontSize: 16,
+    fontSize: scale(16),
     fontWeight: '700',
     color: '#EA580C',
   },
@@ -722,9 +723,9 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 0,
     right: 0,
-    width: 12,
-    height: 12,
-    borderRadius: 6,
+    width: scale(12),
+    height: scale(12),
+    borderRadius: scale(6),
     borderWidth: 2,
     borderColor: '#FFFFFF',
   },
@@ -740,53 +741,53 @@ const styles = StyleSheet.create({
   nameRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: scale(6),
   },
   benName: {
-    fontSize: 15,
+    fontSize: scale(15),
     fontWeight: '700',
     color: '#111827',
     maxWidth: '80%',
   },
   selfBadge: {
     backgroundColor: '#EFF6FF',
-    paddingHorizontal: 6,
+    paddingHorizontal: scale(6),
     paddingVertical: 1,
-    borderRadius: 6,
+    borderRadius: scale(6),
   },
   selfBadgeText: {
-    fontSize: 10,
+    fontSize: scale(10),
     fontWeight: '700',
     color: '#2563EB',
   },
   benSubText: {
-    fontSize: 12,
+    fontSize: scale(12),
     color: '#6B7280',
-    marginTop: 2,
+    marginTop: scale(2),
   },
   planBadgeRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    marginTop: 4,
+    gap: scale(4),
+    marginTop: scale(4),
   },
   planBadgeText: {
-    fontSize: 11,
+    fontSize: scale(11),
     fontWeight: '600',
     color: '#059669',
   },
   actionsCol: {
     alignItems: 'flex-end',
     justifyContent: 'center',
-    marginLeft: 8,
-    gap: 8,
+    marginLeft: scale(8),
+    gap: scale(8),
   },
   statusPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 10,
+    paddingHorizontal: scale(8),
+    paddingVertical: scale(3),
+    borderRadius: scale(10),
   },
   statusPillActive: {
     backgroundColor: '#ECFDF5',
@@ -795,10 +796,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#F3F4F6',
   },
   miniDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    marginRight: 5,
+    width: scale(6),
+    height: scale(6),
+    borderRadius: scale(3),
+    marginRight: scale(5),
   },
   miniDotActive: {
     backgroundColor: '#10B981',
@@ -807,7 +808,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#9CA3AF',
   },
   statusText: {
-    fontSize: 11,
+    fontSize: scale(11),
     fontWeight: '700',
   },
   statusTextActive: {
@@ -817,8 +818,8 @@ const styles = StyleSheet.create({
     color: '#6B7280',
   },
   deleteIconBtn: {
-    padding: 5,
-    borderRadius: 8,
+    padding: scale(5),
+    borderRadius: scale(8),
     backgroundColor: '#FEE2E2',
     alignItems: 'center',
     justifyContent: 'center',
@@ -826,23 +827,23 @@ const styles = StyleSheet.create({
   emptyState: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 40,
+    paddingVertical: scale(40),
   },
   emptyTitle: {
-    fontSize: 15,
+    fontSize: scale(15),
     fontWeight: '600',
     color: '#374151',
-    marginTop: 10,
+    marginTop: scale(10),
   },
   emptySubtitle: {
-    fontSize: 13,
+    fontSize: scale(13),
     color: '#9CA3AF',
-    marginTop: 4,
+    marginTop: scale(4),
     textAlign: 'center',
   },
   footer: {
-    paddingHorizontal: 20,
-    paddingTop: 12,
+    paddingHorizontal: scale(20),
+    paddingTop: scale(12),
     paddingBottom: Platform.OS === 'ios' ? 24 : 16,
     borderTopWidth: 1,
     borderTopColor: '#F3F4F6',
@@ -852,11 +853,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#FF5B0A',
-    borderRadius: 12,
-    paddingVertical: 13,
+    borderRadius: scale(12),
+    paddingVertical: scale(13),
   },
   addBtnText: {
-    fontSize: 15,
+    fontSize: scale(15),
     fontWeight: '700',
     color: '#FFFFFF',
   },
@@ -865,7 +866,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.45)',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    padding: scale(20),
     zIndex: 999,
     elevation: 20,
     borderTopLeftRadius: 24,
@@ -873,79 +874,79 @@ const styles = StyleSheet.create({
   },
   confirmCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    paddingHorizontal: 24,
-    paddingVertical: 24,
+    borderRadius: scale(20),
+    paddingHorizontal: scale(24),
+    paddingVertical: scale(24),
     width: '100%',
     maxWidth: 320,
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
+    shadowOffset: { width: 0, height: scale(6) },
     shadowOpacity: 0.15,
     shadowRadius: 14,
     elevation: 10,
   },
   confirmIconContainer: {
-    marginBottom: 14,
+    marginBottom: scale(14),
     alignItems: 'center',
     justifyContent: 'center',
   },
   confirmTitle: {
-    fontSize: 18,
+    fontSize: scale(18),
     fontWeight: '700',
     color: '#111827',
-    marginBottom: 8,
+    marginBottom: scale(8),
     textAlign: 'center',
   },
   confirmMessage: {
-    fontSize: 14,
+    fontSize: scale(14),
     color: '#4B5563',
     textAlign: 'center',
-    lineHeight: 22,
-    marginBottom: 22,
+    lineHeight: scale(22),
+    marginBottom: scale(22),
   },
   confirmBtnRow: {
     flexDirection: 'row',
     width: '100%',
-    gap: 12,
+    gap: scale(12),
   },
   confirmCancelBtn: {
     flex: 1,
-    paddingVertical: 12,
-    borderRadius: 10,
+    paddingVertical: scale(12),
+    borderRadius: scale(10),
     backgroundColor: '#F3F4F6',
     alignItems: 'center',
     justifyContent: 'center',
   },
   confirmCancelBtnText: {
     color: '#4B5563',
-    fontSize: 15,
+    fontSize: scale(15),
     fontWeight: '600',
   },
   confirmDeleteBtn: {
     flex: 1,
-    paddingVertical: 12,
-    borderRadius: 10,
+    paddingVertical: scale(12),
+    borderRadius: scale(10),
     backgroundColor: '#E11D48',
     alignItems: 'center',
     justifyContent: 'center',
   },
   confirmDeleteBtnText: {
     color: '#FFFFFF',
-    fontSize: 15,
+    fontSize: scale(15),
     fontWeight: '600',
   },
   confirmOkBtn: {
     width: '100%',
-    paddingVertical: 12,
-    borderRadius: 10,
+    paddingVertical: scale(12),
+    borderRadius: scale(10),
     backgroundColor: '#FF5B0A',
     alignItems: 'center',
     justifyContent: 'center',
   },
   confirmOkBtnText: {
     color: '#FFFFFF',
-    fontSize: 15,
+    fontSize: scale(15),
     fontWeight: '700',
   },
 });

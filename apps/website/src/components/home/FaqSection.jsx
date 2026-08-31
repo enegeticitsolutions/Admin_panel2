@@ -29,7 +29,7 @@ const faqs = [
   {
     question: "Is MaiHoonNa available outside Gurugram?",
     answer:
-      "We're currently live in Gurugram (Sectors 54–57) as part of our pilot. We're planning to expand across the NCR region — reach out and we'll notify you as soon as we're live in your area.",
+      "We're currently live in Gurugram (Sectors 53 to 57) as part of our pilot. We're planning to expand across the NCR region — reach out and we'll notify you as soon as we're live in your area.",
   },
   {
     question: "What does the Saathi Network do?",

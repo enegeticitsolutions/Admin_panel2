@@ -20,6 +20,7 @@ import { useSafeBack } from '@/hooks/useSafeBack';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigationStack } from '@/contexts/NavigationStackContext';
 import { useAndroidBackHandler } from '@/hooks/useAndroidBackHandler';
+import { scale } from '@/utils/responsive';
 
 type TabType = 'Timeline' | 'Vitals' | 'Medical';
 
@@ -114,7 +115,7 @@ export default function BeneficiaryProfileScreen() {
     if (!beneficiary) {
         return (
             <SafeAreaView style={styles.centerContainer}>
-                <Ionicons name="warning-outline" size={48} color="#9CA3AF" style={{ marginBottom: 12 }} />
+                <Ionicons name="warning-outline" size={scale(48)} color="#9CA3AF" style={{ marginBottom: scale(12) }} />
                 <Text style={styles.notFoundText}>Beneficiary not found.</Text>
                 <TouchableOpacity style={styles.backBtn} onPress={() => safeBack()}>
                     <Text style={styles.backBtnText}>← Go Back</Text>
@@ -160,14 +161,14 @@ export default function BeneficiaryProfileScreen() {
             {/* Simple inline header */}
             <View style={styles.inlineHeader}>
                 <TouchableOpacity onPress={() => safeBack()} style={styles.iconBtn}>
-                    <Ionicons name="arrow-back" size={24} color="#111827" />
+                    <Ionicons name="arrow-back" size={scale(24)} color="#111827" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Beneficiary Details</Text>
                 <TouchableOpacity onPress={() => push({ pathname: '/(subscriber)/beneficiary-edit', params: { id } })} style={styles.iconBtn}>
-                    <Ionicons name="pencil-outline" size={22} color="#FE6700" />
+                    <Ionicons name="pencil-outline" size={scale(22)} color="#FE6700" />
                 </TouchableOpacity>
                 <TouchableOpacity onPress={openDrawer} style={styles.iconBtn}>
-                    <Ionicons name="menu-outline" size={28} color="#111827" />
+                    <Ionicons name="menu-outline" size={scale(28)} color="#111827" />
                 </TouchableOpacity>
             </View>
 
@@ -196,7 +197,7 @@ export default function BeneficiaryProfileScreen() {
                                 accentColor: '#F97316',
                                 onSuccess: (url) => refetch(), // Instead of modifying local state, trigger refetch to update cache
                             }}
-                            style={{ marginBottom: 12 }}
+                            style={{ marginBottom: scale(12) }}
                         />
                     </View>
 
@@ -215,7 +216,7 @@ export default function BeneficiaryProfileScreen() {
                             </View>
                             <View style={styles.statItem}>
                                 <View style={[styles.statIconBox, styles.hoursIconBox]}>
-                                    <Ionicons name="hourglass-outline" size={25} color="#1F6BFF" />
+                                    <Ionicons name="hourglass-outline" size={scale(25)} color="#1F6BFF" />
                                 </View>
                                 <Text style={styles.statValue}>{beneficiary.hoursUsedPercent || 0}%</Text>
                                 <Text style={styles.statLabel}>Hours Used</Text>
@@ -223,7 +224,7 @@ export default function BeneficiaryProfileScreen() {
                             {beneficiary.vitalsData?.slice(0, 4).map((v: any, i: number) => (
                                 <View key={v.label} style={styles.statItem}>
                                     <View style={[styles.statIconBox, { backgroundColor: getVitalBgColor(v.code || '', v.label) }]}>
-                                        <MaterialCommunityIcons name={v.icon} size={24} color={v.color} />
+                                        <MaterialCommunityIcons name={v.icon} size={scale(24)} color={v.color} />
                                     </View>
                                     <Text style={styles.statValue}>{v.value}</Text>
                                     <Text style={styles.statLabel}>{v.label}</Text>
@@ -259,9 +260,9 @@ export default function BeneficiaryProfileScreen() {
                         >
                             <Ionicons
                                 name={tab === 'Timeline' ? 'time-outline' : tab === 'Vitals' ? 'pulse-outline' : 'document-text-outline'}
-                                size={16}
+                                size={scale(16)}
                                 color={activeTab === tab ? '#FF5B0A' : '#333333'}
-                                style={{ marginRight: 4 }}
+                                style={{ marginRight: scale(4) }}
                             />
                             <Text style={[styles.tabText, activeTab === tab && styles.tabTextActive]}>{tab}</Text>
                         </TouchableOpacity>
@@ -280,10 +281,10 @@ export default function BeneficiaryProfileScreen() {
                             <Image
                                 source={require("../../assets/images/group4.png")}
                                 resizeMode="contain"
-                                style={{ width: 94, height: 94 }}
+                                style={{ width: scale(94), height: scale(94) }}
                             />
                         </View>
-                        <View style={{ flex: 1, marginLeft: 15 }}>
+                        <View style={{ flex: 1, marginLeft: scale(15) }}>
                             <Text style={styles.assistanceTitle}>Need assistance?</Text>
                             <Text style={styles.assistanceSub}>Our experts are here to help you choose the right plan via Phone or WhatsApp.</Text>
                         </View>
@@ -297,7 +298,7 @@ export default function BeneficiaryProfileScreen() {
                             textStyle={styles.callbackText}
                         />
                         <TouchableOpacity style={styles.whatsappBtn}>
-                            <MaterialCommunityIcons name="whatsapp" size={28} color="#F97316" />
+                            <MaterialCommunityIcons name="whatsapp" size={scale(28)} color="#F97316" />
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -318,16 +319,16 @@ const styles = StyleSheet.create({
     safeArea: { flex: 1, backgroundColor: '#FFF2E8' },
     inlineHeader: {
         flexDirection: 'row', alignItems: 'center',
-        paddingHorizontal: 12, paddingVertical: 10, backgroundColor: '#FFF2E8',
+        paddingHorizontal: scale(12), paddingVertical: scale(10), backgroundColor: '#FFF2E8',
     },
-    headerTitle: { flex: 1, fontSize: 17, fontWeight: '600', color: '#111827', marginLeft: 6 },
-    iconBtn: { width: 36, height: 36, justifyContent: 'center', alignItems: 'center' },
+    headerTitle: { flex: 1, fontSize: scale(17), fontWeight: '600', color: '#111827', marginLeft: scale(6) },
+    iconBtn: { width: scale(36), height: scale(36), justifyContent: 'center', alignItems: 'center' },
     centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FFF2E8' },
-    notFoundText: { fontSize: 16, color: '#6B7280', marginBottom: 16 },
-    backBtn: { backgroundColor: '#F97316', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 8 },
+    notFoundText: { fontSize: scale(16), color: '#6B7280', marginBottom: scale(16) },
+    backBtn: { backgroundColor: '#F97316', paddingHorizontal: scale(20), paddingVertical: scale(10), borderRadius: scale(8) },
     backBtnText: { color: '#FFF', fontWeight: '600' },
 
-    scrollContent: { paddingBottom: 34 },
+    scrollContent: { paddingBottom: scale(34) },
 
     /* Hero */
     heroSection: {
@@ -336,7 +337,7 @@ const styles = StyleSheet.create({
     },
     heroGradient: {
         width: '100%',
-        height: 151,
+        height: scale(151),
         overflow: 'hidden',
         borderBottomLeftRadius: 23,
         borderBottomRightRadius: 23,
@@ -352,7 +353,7 @@ const styles = StyleSheet.create({
     },
     avatarFloating: {
         position: 'absolute',
-        top: 58,
+        top: scale(58),
         left: 0,
         right: 0,
         alignItems: 'center',
@@ -361,115 +362,115 @@ const styles = StyleSheet.create({
     },
     profileCard: {
         backgroundColor: '#FFFFFF',
-        marginHorizontal: 14,
+        marginHorizontal: scale(14),
         marginTop: -48,
-        borderRadius: 15,
-        paddingTop: 83,
-        paddingHorizontal: 30,
-        paddingBottom: 28,
+        borderRadius: scale(15),
+        paddingTop: scale(83),
+        paddingHorizontal: scale(30),
+        paddingBottom: scale(28),
         alignItems: 'center',
         zIndex: 1,
         ...Platform.select({
-            ios: { shadowColor: '#4A2B17', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.14, shadowRadius: 8 },
+            ios: { shadowColor: '#4A2B17', shadowOffset: { width: 0, height: scale(4) }, shadowOpacity: 0.14, shadowRadius: 8 },
             android: { elevation: 3 },
         }),
     },
-    heroPhoto: { width: 80, height: 80, borderRadius: 40, marginBottom: 12, borderWidth: 3, borderColor: '#FFF' },
-    heroName: { fontSize: 25, fontWeight: '800', color: '#111111', marginBottom: 3 },
-    heroMeta: { fontSize: 17, color: '#333333' },
+    heroPhoto: { width: scale(80), height: scale(80), borderRadius: scale(40), marginBottom: scale(12), borderWidth: 3, borderColor: '#FFF' },
+    heroName: { fontSize: scale(25), fontWeight: '800', color: '#111111', marginBottom: scale(3) },
+    heroMeta: { fontSize: scale(17), color: '#333333' },
 
     /* Stats Row */
     statsRow: {
         flexDirection: 'row',
         flexWrap: 'wrap',
         width: '100%',
-        marginTop: 34,
+        marginTop: scale(34),
         rowGap: 25,
     },
-    statItem: { width: '50%', alignItems: 'flex-start', paddingLeft: 20 },
+    statItem: { width: '50%', alignItems: 'flex-start', paddingLeft: scale(20) },
     statDivider: { width: 0, height: 0 },
     statIconBox: {
-        width: 40,
-        height: 40,
-        borderRadius: 12,
+        width: scale(40),
+        height: scale(40),
+        borderRadius: scale(12),
         alignItems: 'center',
         justifyContent: 'center',
-        marginBottom: 4,
+        marginBottom: scale(4),
     },
     happinessIconBox: { backgroundColor: '#FFEBCB' },
     hoursIconBox: { backgroundColor: '#DDEBFF' },
-    statEmoji: { fontSize: 22 },
-    statValue: { fontSize: 21, fontWeight: '800', color: '#111111', marginBottom: 0 },
-    statLabel: { fontSize: 15, color: '#333333' },
+    statEmoji: { fontSize: scale(22) },
+    statValue: { fontSize: scale(21), fontWeight: '800', color: '#111111', marginBottom: 0 },
+    statLabel: { fontSize: scale(15), color: '#333333' },
     conditionsSection: {
         width: '100%',
-        marginTop: 26,
-        paddingLeft: 20,
+        marginTop: scale(26),
+        paddingLeft: scale(20),
     },
-    conditionsTitle: { fontSize: 15, color: '#4B5563', marginBottom: 9 },
-    conditionsTags: { flexDirection: 'row', flexWrap: 'wrap', gap: 9 },
+    conditionsTitle: { fontSize: scale(15), color: '#4B5563', marginBottom: scale(9) },
+    conditionsTags: { flexDirection: 'row', flexWrap: 'wrap', gap: scale(9) },
     conditionTag: {
         backgroundColor: '#FFE2E2',
-        borderRadius: 14,
-        paddingHorizontal: 13,
-        paddingVertical: 6,
+        borderRadius: scale(14),
+        paddingHorizontal: scale(13),
+        paddingVertical: scale(6),
     },
-    conditionTagText: { fontSize: 14, color: '#DC2626', fontWeight: '500' },
+    conditionTagText: { fontSize: scale(14), color: '#DC2626', fontWeight: '500' },
 
     /* Tab Bar */
     tabBar: {
         flexDirection: 'row',
         backgroundColor: '#FFFFFF',
-        marginHorizontal: 14,
+        marginHorizontal: scale(14),
         borderTopLeftRadius: 15,
         borderTopRightRadius: 15,
         paddingHorizontal: 0,
         paddingTop: 0,
-        marginTop: 20,
+        marginTop: scale(20),
         marginBottom: 0,
         borderBottomWidth: 1,
         borderBottomColor: '#E5E7EB',
         ...Platform.select({
-            ios: { shadowColor: '#4A2B17', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.08, shadowRadius: 6 },
+            ios: { shadowColor: '#4A2B17', shadowOffset: { width: 0, height: scale(3) }, shadowOpacity: 0.08, shadowRadius: 6 },
             android: { elevation: 2 },
         }),
     },
-    tabItem: { flex: 1, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: 15 },
+    tabItem: { flex: 1, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: scale(15) },
     tabItemActive: { borderBottomWidth: 2, borderBottomColor: '#FF5B0A' },
-    tabText: { fontSize: 17, fontWeight: '500', color: '#333333' },
+    tabText: { fontSize: scale(17), fontWeight: '500', color: '#333333' },
     tabTextActive: { color: '#FF5B0A' },
 
     /* Assistance Card */
     assistanceCard: {
         backgroundColor: '#FFFFFF',
-        borderRadius: 15,
-        paddingHorizontal: 25,
-        paddingTop: 26,
-        paddingBottom: 29,
-        marginHorizontal: 14,
-        marginTop: 20,
-        marginBottom: 20,
+        borderRadius: scale(15),
+        paddingHorizontal: scale(25),
+        paddingTop: scale(26),
+        paddingBottom: scale(29),
+        marginHorizontal: scale(14),
+        marginTop: scale(20),
+        marginBottom: scale(20),
         ...Platform.select({
-            ios: { shadowColor: '#4A2B17', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.12, shadowRadius: 8 },
+            ios: { shadowColor: '#4A2B17', shadowOffset: { width: 0, height: scale(4) }, shadowOpacity: 0.12, shadowRadius: 8 },
             android: { elevation: 2 },
         }),
     },
-    assistanceHeader: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 24 },
-    assistanceIllustration: { width: 94, height: 94, justifyContent: 'center', alignItems: 'center' },
-    assistanceTitle: { fontSize: 25, fontWeight: '800', color: '#111111', marginBottom: 12 },
-    assistanceSub: { fontSize: 20, color: '#111111', lineHeight: 29 },
+    assistanceHeader: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: scale(24) },
+    assistanceIllustration: { width: scale(94), height: scale(94), justifyContent: 'center', alignItems: 'center' },
+    assistanceTitle: { fontSize: scale(25), fontWeight: '800', color: '#111111', marginBottom: scale(12) },
+    assistanceSub: { fontSize: scale(20), color: '#111111', lineHeight: scale(29) },
     assistanceActions: { flexDirection: 'row', alignItems: 'center' },
     callbackBtn: {
-        flex: 1, flexDirection: 'row', borderWidth: 1, borderColor: '#FF5B0A', borderRadius: 8,
-        height: 48, alignItems: 'center', justifyContent: 'center', marginRight: 31
+        flex: 1, flexDirection: 'row', borderWidth: 1, borderColor: '#FF5B0A', borderRadius: scale(8),
+        height: scale(48), alignItems: 'center', justifyContent: 'center', marginRight: scale(31)
     },
-    callbackText: { color: '#FF5B0A', fontWeight: '700', fontSize: 16 },
+    callbackText: { color: '#FF5B0A', fontWeight: '700', fontSize: scale(16) },
     whatsappBtn: {
-        width: 52, height: 52, borderRadius: 12, backgroundColor: '#FFF5ED',
+        width: scale(52), height: scale(52), borderRadius: scale(12), backgroundColor: '#FFF5ED',
         justifyContent: 'center', alignItems: 'center',
     },
 
     /* Empty tab */
-    emptyTab: { alignItems: 'center', paddingVertical: 40 },
-    emptyTabText: { fontSize: 14, color: '#9CA3AF', marginTop: 10 },
+    emptyTab: { alignItems: 'center', paddingVertical: scale(40) },
+    emptyTabText: { fontSize: scale(14), color: '#9CA3AF', marginTop: scale(10) },
 });
