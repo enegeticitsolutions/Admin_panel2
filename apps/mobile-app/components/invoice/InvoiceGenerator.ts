@@ -1,6 +1,21 @@
+import { Platform, Alert } from 'react-native';
 import { numberToWords } from '../../utils/numberToWords';
-import * as Print from 'expo-print';
-import * as Sharing from 'expo-sharing';
+
+const getPrintModule = async () => {
+  try {
+    return await import('expo-print');
+  } catch {
+    return null;
+  }
+};
+
+const getSharingModule = async () => {
+  try {
+    return await import('expo-sharing');
+  } catch {
+    return null;
+  }
+};
 
 export interface InvoiceItem {
   description: string;
@@ -288,16 +303,36 @@ export const generateInvoicePDF = async (data: InvoiceData) => {
   `;
 
   try {
-    const { uri } = await Print.printToFileAsync({
-      html,
-      base64: false,
-    });
-    
-    await Sharing.shareAsync(uri, {
-      mimeType: 'application/pdf',
-      dialogTitle: 'Download Invoice',
-      UTI: 'com.adobe.pdf'
-    });
+    if (Platform.OS === 'web') {
+      if (typeof window !== 'undefined') {
+        const printWindow = window.open('', '_blank');
+        if (printWindow) {
+          printWindow.document.write(html);
+          printWindow.document.close();
+          printWindow.focus();
+          printWindow.print();
+          return;
+        }
+      }
+    }
+
+    const Print = await getPrintModule();
+    const Sharing = await getSharingModule();
+
+    if (Print && Sharing) {
+      const { uri } = await Print.printToFileAsync({
+        html,
+        base64: false,
+      });
+      
+      await Sharing.shareAsync(uri, {
+        mimeType: 'application/pdf',
+        dialogTitle: 'Download Invoice',
+        UTI: 'com.adobe.pdf'
+      });
+    } else {
+      Alert.alert('Notice', 'Invoice printing is not available on this platform/configuration.');
+    }
   } catch (error) {
     console.error('Error generating PDF:', error);
     throw error;

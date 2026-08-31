@@ -221,7 +221,7 @@ export default function AuthScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+      <TouchableWithoutFeedback onPress={Platform.OS === 'web' ? undefined : Keyboard.dismiss} accessible={false}>
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : "height"}
           style={styles.keyboardView}
@@ -432,6 +432,7 @@ const styles = StyleSheet.create({
     fontSize: scale(15),
     color: "#111827",
     fontFamily: "Poppins-Regular",
+    ...(Platform.OS === 'web' ? { outlineStyle: 'none' as any, cursor: 'text' as any } : {}),
   },
   otpButton: {
     height: scale(50),
