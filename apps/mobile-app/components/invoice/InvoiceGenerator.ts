@@ -23,6 +23,7 @@ export interface InvoiceItem {
   quantity: number;
   unitPrice: number;
   taxRate: number;
+  tax?: number;
   amount: number;
 }
 
@@ -59,7 +60,7 @@ export interface InvoiceData {
 }
 
 export const generateInvoicePDF = async (data: InvoiceData) => {
-  const itemsHtml = data.items.map((item, index) => `
+const itemsHtml = data.items.map((item, index) => `
     <tr>
       <td>${index + 1}</td>
       <td>${item.description}</td>
@@ -67,7 +68,8 @@ export const generateInvoicePDF = async (data: InvoiceData) => {
       <td>${item.quantity}</td>
       <td>₹${item.unitPrice.toFixed(2)}</td>
       <td>${item.taxRate}%</td>
-      <td>₹${item.amount.toFixed(2)}</td>
+      <td>₹${(item.tax || 0).toFixed(2)}</td>
+      <td>₹${((item.unitPrice * item.quantity) + (item.tax || 0)).toFixed(2)}</td>
     </tr>
   `).join('');
 
@@ -222,11 +224,12 @@ export const generateInvoicePDF = async (data: InvoiceData) => {
         <thead>
           <tr>
             <th>#</th>
-            <th>Description of Services</th>
+            <th>Name</th>
             <th>HSN/SAC</th>
-            <th>Qty</th>
-            <th>Rate</th>
-            <th>GST %</th>
+            <th>Quantity</th>
+            <th>Price</th>
+            <th>Tax %</th>
+            <th>Tax Amount</th>
             <th>Amount</th>
           </tr>
         </thead>
@@ -238,8 +241,8 @@ export const generateInvoicePDF = async (data: InvoiceData) => {
       <div class="totals-section">
         <table class="totals-table">
           <tr>
-            <td>Base Amount</td>
-            <td>₹${data.baseAmount.toFixed(2)}</td>
+            <td>Total Amount</td>
+            <td>₹${(data.baseAmount + (data.cgstAmount || 0) + (data.sgstAmount || 0) + (data.igstAmount || 0)).toFixed(2)}</td>
           </tr>
           ${data.discountAmount > 0 ? `
           <tr>
@@ -247,24 +250,8 @@ export const generateInvoicePDF = async (data: InvoiceData) => {
             <td>-₹${data.discountAmount.toFixed(2)}</td>
           </tr>
           ` : ''}
-          ${data.cgstAmount > 0 ? `
-          <tr>
-            <td>CGST</td>
-            <td>₹${data.cgstAmount.toFixed(2)}</td>
-          </tr>
-          <tr>
-            <td>SGST</td>
-            <td>₹${data.sgstAmount.toFixed(2)}</td>
-          </tr>
-          ` : ''}
-          ${data.igstAmount > 0 ? `
-          <tr>
-            <td>IGST</td>
-            <td>₹${data.igstAmount.toFixed(2)}</td>
-          </tr>
-          ` : ''}
           <tr class="bold">
-            <td>Grand Total</td>
+            <td>Total Payable Amount</td>
             <td>₹${data.totalAmount.toFixed(2)}</td>
           </tr>
         </table>

@@ -8,7 +8,7 @@ import { createOrder, verifyPaymentSignature } from '../../services/razorpay_ser
 import { config } from '../../core/config';
 import { sendAddonPurchaseNotifications } from '../../services/notification_service';
 import { generateUUID } from '../../utils/helpers';
-import { generateInvoiceNumber, calculateGST } from '../../utils/invoice_utils';
+import { generateInvoiceNumber, calculateItemizedInvoice, BenefitTaxItem } from '../../utils/invoice_utils';
 
 const router = Router();
 
@@ -139,8 +139,43 @@ async function calculatePricing(
     }
   }
 
-  const tax = parseFloat((finalBase * GST_RATE).toFixed(2));
-  const total = parseFloat((finalBase + tax).toFixed(2));
+  // Build tax items for precise calculation matching the invoice
+  const taxItems: BenefitTaxItem[] = [];
+  
+  // Package treated as a single composite supply (18%)
+  taxItems.push({
+    benefitId: undefined as any,
+    name: pkg.name,
+    quantity: 1,
+    unitPrice: packageBasePrice,
+    gstRate: 18,
+    hsnSacCode: '998399',
+    isGstExempt: false,
+  });
+
+  // Addons
+  if (selectedAddons && Array.isArray(selectedAddons) && selectedAddons.length > 0) {
+    for (const addonItem of selectedAddons) {
+      if (!addonItem.benefitId) continue;
+      const benefit = addonsBreakdown.find((a: any) => a.benefitId === addonItem.benefitId);
+      if (benefit) {
+        taxItems.push({
+          benefitId: benefit.benefitId,
+          name: benefit.name,
+          quantity: benefit.quantity,
+          unitPrice: benefit.unitPrice,
+          gstRate: benefit.gstRate,
+          hsnSacCode: benefit.hsnSacCode,
+          isGstExempt: benefit.isGstExempt,
+        });
+      }
+    }
+  }
+
+  const invoiceCalc = calculateItemizedInvoice(taxItems, discountApplied, 'Haryana', 'Haryana');
+  
+  const tax = invoiceCalc.taxAmount;
+  const total = invoiceCalc.totalAmount;
 
   // Compute projected start / end dates (shown in order summary — actual dates set at activation)
   const now = new Date();
@@ -884,7 +919,19 @@ router.post('/addon/purchase', paymentLimiter as unknown as RequestHandler, auth
 
       // Generate invoice
       const invoiceNumber = await generateInvoiceNumber(tx as any);
-      const gstCalc = calculateGST(p.basePrice, 0, GST_RATE, false);
+      
+      const taxItems: BenefitTaxItem[] = [{
+        benefitId: p.benefit.id,
+        name: `Add-on: ${p.benefit.name}`,
+        quantity: p.quantity || 1,
+        unitPrice: p.unitPrice,
+        gstRate: p.benefit.gstRate ?? 18,
+        hsnSacCode: p.benefit.hsnSacCode || '998399',
+        isGstExempt: p.benefit.isGstExempt || false,
+      }];
+
+      const invoiceCalc = calculateItemizedInvoice(taxItems, 0, 'Haryana', 'Haryana');
+      
       const invoiceId = generateUUID();
       const beneficiaryId = p.subscription.beneficiaryId || null;
 
@@ -897,24 +944,27 @@ router.post('/addon/purchase', paymentLimiter as unknown as RequestHandler, auth
           subscriberId: userId,
           beneficiaryId,
           subscriptionId: subscriptionId,
-          baseAmount: p.basePrice,
+          baseAmount: invoiceCalc.baseAmount,
           discountAmount: 0,
-          taxAmount: gstCalc.taxAmount,
-          totalAmount: p.total,
+          taxAmount: invoiceCalc.taxAmount,
+          totalAmount: invoiceCalc.totalAmount,
           placeOfSupply: 'Haryana', // Default state for add-on unless fetched
-          cgstAmount: gstCalc.cgstAmount,
-          sgstAmount: gstCalc.sgstAmount,
-          igstAmount: gstCalc.igstAmount,
+          cgstAmount: invoiceCalc.cgstAmount,
+          sgstAmount: invoiceCalc.sgstAmount,
+          igstAmount: invoiceCalc.igstAmount,
           issuedAt: new Date(),
           paidAt: new Date(),
           items: {
-            create: [{
-              description: `Add-on: ${p.benefit.name}`,
-              quantity: p.quantity || 1,
-              unitPrice: p.unitPrice,
-              amount: p.basePrice,
-              taxRate: GST_RATE * 100
-            }]
+            create: invoiceCalc.items.map(item => ({
+              description: item.description,
+              quantity: item.quantity,
+              unitPrice: item.unitPrice,
+              amount: item.amount,
+              taxRate: item.taxRate,
+              taxAmount: item.tax,
+              hsnSacCode: item.hsnSacCode,
+              isGstExempt: item.isGstExempt
+            }))
           }
         }
       });
@@ -930,7 +980,7 @@ router.post('/addon/purchase', paymentLimiter as unknown as RequestHandler, auth
           invoiceId: invoiceId,
           packageType: 'ADD_ON',
           baseAmount: p.basePrice,
-          taxAmount: gstCalc.taxAmount,
+          taxAmount: invoiceCalc.taxAmount,
           amountPaid: p.total,
           currency: 'INR',
           paymentStatus: 'success',

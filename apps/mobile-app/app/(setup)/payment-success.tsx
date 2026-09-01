@@ -110,6 +110,7 @@ export default function PaymentSuccessScreen() {
                     quantity: i.quantity,
                     unitPrice: i.unitPrice,
                     taxRate: i.taxRate,
+                    tax: i.isGstExempt ? 0 : Math.round(((i.amount * (i.taxRate || 0)) / 100) * 100) / 100,
                     amount: i.amount
                 })),
                 baseAmount: invoice.baseAmount,

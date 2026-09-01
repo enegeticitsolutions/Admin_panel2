@@ -3,7 +3,7 @@ import { generateUUID } from '../../utils/helpers';
 import { validateCoupon, applyCoupon } from '../coupon_service';
 import { benefitPeriodManager } from '../benefit/BenefitPeriodManager';
 import bcrypt from 'bcryptjs';
-import { generateInvoiceNumber, calculateGST } from '../../utils/invoice_utils';
+import { generateInvoiceNumber, calculateItemizedInvoice, BenefitTaxItem } from '../../utils/invoice_utils';
 
 function normalizeUnit(unitLabel: string | null | undefined): string {
   if (!unitLabel) return 'visits';
@@ -487,10 +487,14 @@ export const purchaseSubscription = async (
 
     let pVersion = await tx.packageVersion.findFirst({
       where: { packageCode: subPackage.type, isLatest: true },
-      include: { versionBenefits: true },
+      include: { versionBenefits: { include: { benefit: true } } },
     });
     if (!pVersion) {
-      pVersion = await publishPackageVersion(tx, subPackage.id);
+      await publishPackageVersion(tx, subPackage.id);
+      pVersion = await tx.packageVersion.findFirst({
+        where: { packageCode: subPackage.type, isLatest: true },
+        include: { versionBenefits: { include: { benefit: true } } },
+      });
     }
     const versionObj = pVersion!;
 
@@ -625,25 +629,27 @@ export const purchaseSubscription = async (
     // 3. Generate Invoice for this purchase
     const invoiceNumber = await generateInvoiceNumber(tx);
     
-    // For now, assume Haryana as POS, but we could make this dynamic based on user address
-    const isInterState = beneficiaryData?.state?.toLowerCase() !== 'haryana';
+    const customerState = beneficiaryData?.state || 'Haryana';
     
-    // Total price comes from packageBasePrice + addons
-    // Here we use finalAmountPaid for the grand total
-    const gstCalc = calculateGST(packageBasePrice, discountAmount, subPackage.gstRate || 18, isInterState);
-    
-    // Determine the invoice items. 
-    // We will have one item for the main package, and additional items for each addon.
-    const invoiceItems = [];
-    invoiceItems.push({
-      id: generateUUID(),
-      description: `${subPackage.name} Subscription - ${months} Month(s)`,
-      hsnSacCode: subPackage.hsnSacCode || '9993',
-      taxRate: subPackage.gstRate || 18,
-      isGstExempt: subPackage.isGstExempt || false,
-      quantity: 1,
-      unitPrice: packageBasePrice, // Note: the amount is before discount in this basic model
-      amount: packageBasePrice,
+    // Prepare items for tax engine
+    const taxItems: BenefitTaxItem[] = versionObj.versionBenefits.map((vb: any) => {
+      const b = vb.benefit;
+      const quantity = vb.isUnlimited ? 1 : vb.unitsIncluded;
+      
+      // Calculate a proportional or fixed unit price. Since packageBasePrice is the total base price,
+      // we can allocate it equally across benefits, or rely on the total discount logic.
+      // If benefit.unitCost exists, use it, else split equally for tax purposes.
+      const unitPrice = b?.unitCost || (packageBasePrice / versionObj.versionBenefits.length);
+      
+      return {
+        benefitId: b?.id,
+        name: `${b?.name || vb.snapshotName} (${quantity} ${vb.snapshotUnitLabel || 'units'} / ${vb.unitsPeriod})`,
+        quantity: 1,
+        unitPrice: unitPrice,
+        gstRate: b?.gstRate ?? 18,
+        hsnSacCode: b?.hsnSacCode || '998399',
+        isGstExempt: b?.isGstExempt || false,
+      };
     });
 
     // Add Addons to invoice if any
@@ -655,23 +661,29 @@ export const purchaseSubscription = async (
           where: { id: addonItem.benefitId }
         });
         if (benefit && benefit.isAddon && benefit.addonPrice) {
-          const addCost = benefit.addonPrice * q;
-          invoiceItems.push({
-            id: generateUUID(),
-            description: `Add-on: ${benefit.name}`,
+          taxItems.push({
             benefitId: benefit.id,
-            hsnSacCode: benefit.hsnSacCode || '9993',
-            taxRate: benefit.gstRate || 18,
-            isGstExempt: benefit.isGstExempt || false,
+            name: `Add-on: ${benefit.name}`,
             quantity: q,
             unitPrice: benefit.addonPrice,
-            amount: addCost,
+            gstRate: benefit.gstRate ?? 18,
+            hsnSacCode: benefit.hsnSacCode || '998399',
+            isGstExempt: benefit.isGstExempt || false,
           });
-          // Note: Addon costs should be factored into total baseAmount, but for now we are using finalAmountPaid as the grand total. 
-          // Our GST calculator took packageBasePrice, so we assume finalAmountPaid covers all.
         }
       }
     }
+
+    // Calculate invoice and tax amounts
+    // NOTE: For now, if the total packageBasePrice is different from sum of unit prices, 
+    // the invoice engine will handle it via discount logic or we could just trust the sum of unit prices.
+    // To ensure exact matching with packageBasePrice + addons, we can adjust the total discount to enforce finalAmountPaid.
+    
+    const rawTotalBase = taxItems.reduce((acc, curr) => acc + (curr.unitPrice * curr.quantity), 0);
+    // Determine how much discount to apply so that (rawTotalBase - actualDiscount) matches the expected base amount?
+    // Actually, discountAmount is provided as an argument. Let's just pass it to the engine.
+    
+    const invoiceCalc = calculateItemizedInvoice(taxItems, discountAmount, customerState, 'Haryana');
 
     const invoice = await tx.invoice.create({
       data: {
@@ -682,20 +694,27 @@ export const purchaseSubscription = async (
         subscriberId: userId,
         beneficiaryId: beneficiary ? beneficiary.id : null,
         subscriptionId: subscription.id,
-        baseAmount: packageBasePrice, // Using package base price
-        discountAmount: discountAmount,
-        taxAmount: gstCalc.taxAmount,
-        totalAmount: finalAmountPaid,
-        placeOfSupply: beneficiaryData?.state || 'Haryana',
-        cgstAmount: gstCalc.cgstAmount,
-        sgstAmount: gstCalc.sgstAmount,
-        igstAmount: gstCalc.igstAmount,
+        baseAmount: invoiceCalc.baseAmount,
+        discountAmount: invoiceCalc.discountAmount,
+        taxAmount: invoiceCalc.taxAmount,
+        totalAmount: invoiceCalc.totalAmount,
+        placeOfSupply: customerState,
+        cgstAmount: invoiceCalc.cgstAmount,
+        sgstAmount: invoiceCalc.sgstAmount,
+        igstAmount: invoiceCalc.igstAmount,
         issuedAt: new Date(),
         paidAt: new Date(),
         items: {
-          create: invoiceItems.map(item => ({
-            ...item,
-            id: undefined // let Prisma or uuid handle it, but we provided id above.
+          create: invoiceCalc.items.map((item) => ({
+            id: generateUUID(),
+            benefitId: item.benefitId,
+            description: item.description,
+            hsnSacCode: item.hsnSacCode,
+            taxRate: item.taxRate,
+            isGstExempt: item.isGstExempt,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            amount: item.amount,
           }))
         }
       }

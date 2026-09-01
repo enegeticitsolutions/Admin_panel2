@@ -3,6 +3,7 @@ import { useCallback } from 'react';
 import { router } from 'expo-router';
 import { accountService } from '@/services/account.service';
 import { useCustomAlert } from '@/contexts/CustomAlertContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 /**
  * Hook that returns a confirm-then-delete function for account deletion.
@@ -13,6 +14,7 @@ import { useCustomAlert } from '@/contexts/CustomAlertContext';
  */
 export function useDeleteAccountWithConfirm(onBeforeDelete?: () => void): () => void {
   const { showConfirm, showAlert } = useCustomAlert();
+  const { logout } = useAuth();
 
   return useCallback(() => {
     const performDelete = async () => {
@@ -25,7 +27,10 @@ export function useDeleteAccountWithConfirm(onBeforeDelete?: () => void): () => 
           } else {
             showAlert('Account Deleted', 'Your account has been deactivated and deleted successfully.', 'success');
           }
-          router.replace('/(auth)');
+          logout();
+          setTimeout(() => {
+            router.replace('/(auth)');
+          }, 0);
         } else {
           if (Platform.OS === 'web') {
             window.alert(result.message || 'Failed to delete account.');
