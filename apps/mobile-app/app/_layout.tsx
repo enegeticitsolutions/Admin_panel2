@@ -53,7 +53,11 @@ function RootNavigator() {
   // Reset logical navigation stack when auth state changes
   useEffect(() => {
     resetStack();
-  }, [isLoggedIn, resetStack]);
+    if (!isLoading && !isLoggedIn) {
+      // Force navigation back to the auth stack globally upon logout
+      router.replace('/(auth)');
+    }
+  }, [isLoggedIn, isLoading, resetStack]);
 
   // Register for push notifications and listen for incoming messages when logged in
   useEffect(() => {

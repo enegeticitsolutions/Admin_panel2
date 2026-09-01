@@ -52,7 +52,7 @@ export default function SathiGuide() {
     try {
       const response = await fetch(`${API_URL}/public/sathi-guide`);
       const json = await response.json();
-      
+
       if (json.success) {
         setBestPractices(json.data.bestPractices || []);
         setActivities(json.data.suggestedActivities || []);
@@ -78,7 +78,7 @@ export default function SathiGuide() {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        
+
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Saathi Guide</Text>
           <Text style={styles.headerSubtitle}>Tips and best practices for meaningful visits</Text>
@@ -210,7 +210,7 @@ export default function SathiGuide() {
 
               <View style={styles.supportContact}>
                 <Text style={styles.contactLabel}>Program Coordinator:</Text>
-                <Text style={styles.contactValue}>+91 98765 43210</Text>
+                <Text style={styles.contactValue}>+91 8827070049</Text>
               </View>
 
               <View style={styles.supportContact}>

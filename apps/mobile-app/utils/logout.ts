@@ -14,6 +14,7 @@ import { Platform } from 'react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCallback } from 'react';
 import { useCustomAlert } from '@/contexts/CustomAlertContext';
+import { router } from 'expo-router';
 
 /**
  * Hook that returns a confirm-then-logout function, ready to be used as onPress.
@@ -27,6 +28,9 @@ export function useLogoutWithConfirm(): () => void {
       // Calling logout() immediately transitions AuthContext state,
       // which automatically navigates back to the (auth) group via the root navigator.
       logout();
+      setTimeout(() => {
+        router.replace('/(auth)');
+      }, 0);
     };
 
     if (Platform.OS === 'web') {

@@ -2414,9 +2414,9 @@ DEPENDENCIES:
   - ExpoLocalAuthentication (from `../node_modules/expo-local-authentication/ios`)
   - ExpoLocation (from `../node_modules/expo-location/ios`)
   - ExpoModulesCore (from `../../../node_modules/expo-modules-core`)
-  - ExpoPrint (from `../../../node_modules/expo-print/ios`)
+  - ExpoPrint (from `../node_modules/expo-print/ios`)
   - ExpoSecureStore (from `../node_modules/expo-secure-store/ios`)
-  - ExpoSharing (from `../../../node_modules/expo-sharing/ios`)
+  - ExpoSharing (from `../node_modules/expo-sharing/ios`)
   - ExpoSplashScreen (from `../node_modules/expo-splash-screen/ios`)
   - ExpoSymbols (from `../node_modules/expo-symbols/ios`)
   - ExpoSystemUI (from `../node_modules/expo-system-ui/ios`)
@@ -2575,11 +2575,11 @@ EXTERNAL SOURCES:
   ExpoModulesCore:
     :path: "../../../node_modules/expo-modules-core"
   ExpoPrint:
-    :path: "../../../node_modules/expo-print/ios"
+    :path: "../node_modules/expo-print/ios"
   ExpoSecureStore:
     :path: "../node_modules/expo-secure-store/ios"
   ExpoSharing:
-    :path: "../../../node_modules/expo-sharing/ios"
+    :path: "../node_modules/expo-sharing/ios"
   ExpoSplashScreen:
     :path: "../node_modules/expo-splash-screen/ios"
   ExpoSymbols:
