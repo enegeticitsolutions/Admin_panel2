@@ -9,7 +9,7 @@ const trustSignals = [
         <path d="m9 12 2 2 4-4" />
       </svg>
     ),
-    title: "100% BGV Verified",
+    title: "100% Background Verified",
     text: "Every Care Mitra"
   },
   {

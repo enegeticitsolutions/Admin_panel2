@@ -710,7 +710,7 @@ export default function StaffEditModal({ userId, role, onClose, onSuccess }: Sta
                             <div className="w-8 h-8 rounded-lg bg-green-50 flex items-center justify-center text-green-600">
                               <ShieldCheck size={16} />
                             </div>
-                            <span className="font-bold text-gray-700">BGV Verified</span>
+                            <span className="font-bold text-gray-700">Background Verified</span>
                           </div>
                           <input
                             type="checkbox"
