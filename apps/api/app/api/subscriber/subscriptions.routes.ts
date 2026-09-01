@@ -85,11 +85,13 @@ async function calculatePricing(
       const q = Math.max(1, Math.floor(Number(addonItem.quantity) || 1));
       const benefit = await prisma.benefit.findUnique({
         where: { id: addonItem.benefitId },
-        select: { id: true, name: true, unitLabel: true, addonPrice: true, addonDiscountPrice: true, addonIncludedUnits: true }
+        select: { id: true, name: true, unitLabel: true, addonPrice: true, addonDiscountPrice: true, addonIncludedUnits: true, taxCategory: true, gstRate: true, hsnSacCode: true, isGstExempt: true }
       });
       if (benefit && benefit.addonPrice) {
         const unitP = benefit.addonDiscountPrice ?? benefit.addonPrice;
         const itemTotal = unitP * q;
+        const effectiveGstRate = benefit.isGstExempt ? 0 : (benefit.gstRate !== null && benefit.gstRate !== undefined ? benefit.gstRate : 18);
+        const itemTax = parseFloat(((itemTotal * effectiveGstRate) / 100).toFixed(2));
         addonsTotalPrice += itemTotal;
         addonsBreakdown.push({
           benefitId: benefit.id,
@@ -98,7 +100,13 @@ async function calculatePricing(
           quantity: q,
           includedUnits: (benefit.addonIncludedUnits || 1) * q,
           unitPrice: unitP,
-          totalPrice: itemTotal
+          totalPrice: itemTotal,
+          taxCategory: benefit.taxCategory,
+          gstRate: effectiveGstRate,
+          hsnSacCode: benefit.hsnSacCode,
+          isGstExempt: benefit.isGstExempt || false,
+          taxAmount: itemTax,
+          totalWithTax: parseFloat((itemTotal + itemTax).toFixed(2)),
         });
       }
     }
@@ -620,7 +628,8 @@ async function calculateAddonPricing(benefitId: string, subscriptionId: string, 
 
   const basePrice = parseFloat((singleBasePrice * q).toFixed(2));
   const originalPrice = parseFloat((singleOriginalPrice * q).toFixed(2));
-  const tax = parseFloat((basePrice * GST_RATE).toFixed(2));
+  const effectiveGstRate = benefit.isGstExempt ? 0 : (benefit.gstRate !== null && benefit.gstRate !== undefined ? benefit.gstRate / 100 : GST_RATE);
+  const tax = parseFloat((basePrice * effectiveGstRate).toFixed(2));
   const total = parseFloat((basePrice + tax).toFixed(2));
   const includedUnits = singleUnits * q;
 
@@ -633,6 +642,10 @@ async function calculateAddonPricing(benefitId: string, subscriptionId: string, 
     basePrice,
     originalPrice,
     hasDiscount: !!(benefit.addonDiscountPrice && benefit.addonDiscountPrice < benefit.addonPrice),
+    taxRate: benefit.isGstExempt ? 0 : (benefit.gstRate ?? 18),
+    taxCategory: benefit.taxCategory,
+    hsnSacCode: benefit.hsnSacCode,
+    isGstExempt: benefit.isGstExempt || false,
     tax,
     total,
     includedUnits

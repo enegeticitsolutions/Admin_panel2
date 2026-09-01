@@ -11,12 +11,23 @@ import { Label } from '../components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Checkbox } from '../components/ui/checkbox';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { packageApi, benefitApi, regionApi } from '../../services/api';
 import type { SubscriptionPackage, Benefit, PackageBenefit } from '../../types';
-import { Plus, Check, ArrowRight, ArrowLeft, Package, Edit, Trash2 } from 'lucide-react';
+import { Plus, Check, ArrowRight, ArrowLeft, Package, Edit, Trash2, Calendar, Clock, ShieldCheck, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { StatusChip } from '../components/common/StatusChip';
 import { RegionSelector } from '../components/common/RegionSelector';
+
+export interface BenefitSetting {
+  quantity: number;
+  frequency: 'monthly' | 'yearly' | 'one_time' | 'unlimited';
+  allocationBasis: 'per_billing_cycle' | 'per_subscription_term' | 'min_tenure_required';
+  minSubscriptionMonths: number;
+  allowRollover: boolean;
+  maxRolloverUnits?: number;
+  isUnlimited: boolean;
+}
 
 type WizardStep = 'define' | 'benefits' | 'units' | 'review';
 
@@ -72,6 +83,7 @@ export default function SubscriptionsPage() {
   const [activeTo, setActiveTo] = useState('2026-12-31');
   const [selectedBenefits, setSelectedBenefits] = useState<Set<string>>(new Set());
   const [benefitUnits, setBenefitUnits] = useState<Record<string, number>>({});
+  const [benefitConfigs, setBenefitConfigs] = useState<Record<string, BenefitSetting>>({});
   const [totalCost, setTotalCost] = useState('0');
   const [editingPackageId, setEditingPackageId] = useState<string | null>(null);
   const [isGlobal, setIsGlobal] = useState(true);
@@ -111,20 +123,41 @@ export default function SubscriptionsPage() {
     loadData();
   }, []);
 
-  // Automatic cost calculation (only if not manually edited or on benefit change)
+  // Automatic cost calculation (frequency-aware: monthly vs yearly vs one-time vs unlimited)
   useEffect(() => {
     if (!showWizard) return;
     
     let monthlySubtotal = 0;
     Array.from(selectedBenefits).forEach(id => {
       const benefit = benefits.find(b => b.id === id);
-      if (benefit && benefit.unitCost) {
-        const units = benefitUnits[id] || 0;
-        monthlySubtotal += benefit.unitCost * units;
+      if (!benefit) return;
+      const cfg = benefitConfigs[id] || {
+        quantity: benefitUnits[id] || 1,
+        frequency: 'monthly',
+        allocationBasis: 'per_billing_cycle',
+        minSubscriptionMonths: 1,
+        allowRollover: false,
+        maxRolloverUnits: 0,
+        isUnlimited: false,
+      };
+
+      const unitCost = benefit.unitCost || 0;
+      if (cfg.isUnlimited) {
+        // Unlimited services have no variable linear cost in monthly subtotal
+        return;
+      }
+
+      if (cfg.frequency === 'monthly') {
+        monthlySubtotal += unitCost * (cfg.quantity || 0);
+      } else if (cfg.frequency === 'yearly') {
+        // Annual benefit amortized across 12 months for baseline monthly calculation
+        monthlySubtotal += (unitCost * (cfg.quantity || 0)) / 12;
+      } else if (cfg.frequency === 'one_time') {
+        monthlySubtotal += (unitCost * (cfg.quantity || 0)) / 12;
       }
     });
 
-    const subtotal = monthlySubtotal;
+    const subtotal = Math.round(monthlySubtotal);
     setBenefitSubtotal(subtotal);
 
     // Discount applies ONLY to benefit subtotal
@@ -133,16 +166,16 @@ export default function SubscriptionsPage() {
     
     // Final Price = Discounted Benefit Subtotal + Miscellaneous Cost
     const misc = parseFloat(miscellaneousCost) || 0;
-    const finalCalculated = discountedSubtotal + misc;
+    const finalCalculated = Math.round(discountedSubtotal + misc);
     
     if (!isManualPrice) {
-      setTotalCost(String(Math.round(finalCalculated)));
+      setTotalCost(String(finalCalculated));
     }
 
     // MRP = Subtotal + Miscellaneous Cost (Original full price)
     setMrp(String(Math.round(subtotal + misc)));
 
-  }, [selectedBenefits, benefitUnits, discountPercentage, miscellaneousCost, benefits, showWizard, isManualPrice]);
+  }, [selectedBenefits, benefitConfigs, benefitUnits, discountPercentage, miscellaneousCost, benefits, showWizard, isManualPrice]);
 
   const loadData = async () => {
     const [pkgs, bnfs, regionsData] = await Promise.all([
@@ -159,29 +192,94 @@ export default function SubscriptionsPage() {
     const newSelected = new Set(selectedBenefits);
     if (newSelected.has(benefitId)) {
       newSelected.delete(benefitId);
+      const newConfigs = { ...benefitConfigs };
+      delete newConfigs[benefitId];
+      setBenefitConfigs(newConfigs);
       const newUnits = { ...benefitUnits };
       delete newUnits[benefitId];
       setBenefitUnits(newUnits);
     } else {
       newSelected.add(benefitId);
       const benefit = benefits.find(b => b.id === benefitId);
-      if (benefit) {
-        setBenefitUnits({ ...benefitUnits, [benefitId]: benefit.defaultUnits });
-      }
+      const name = (benefit?.name || '').toLowerCase();
+      const isYearlyDefault = name.includes('emergency') || name.includes('ambulance') || name.includes('annual');
+      const isAmbulance = name.includes('ambulance');
+      const isUnlimitedDefault = name.includes('24/7') || name.includes('coordination');
+
+      const initialSetting: BenefitSetting = {
+        quantity: isUnlimitedDefault ? 1 : (benefit?.defaultUnits || 1),
+        frequency: isUnlimitedDefault ? 'unlimited' : isYearlyDefault ? 'yearly' : 'monthly',
+        allocationBasis: isUnlimitedDefault ? 'per_subscription_term' : isAmbulance ? 'min_tenure_required' : isYearlyDefault ? 'per_subscription_term' : 'per_billing_cycle',
+        minSubscriptionMonths: isAmbulance ? 12 : 1,
+        allowRollover: false,
+        maxRolloverUnits: 0,
+        isUnlimited: isUnlimitedDefault,
+      };
+
+      setBenefitConfigs(prev => ({ ...prev, [benefitId]: initialSetting }));
+      setBenefitUnits(prev => ({ ...prev, [benefitId]: initialSetting.quantity }));
     }
     setSelectedBenefits(newSelected);
   };
 
   const updateUnits = (benefitId: string, units: number) => {
-    setBenefitUnits({ ...benefitUnits, [benefitId]: units });
+    setBenefitUnits(u => ({ ...u, [benefitId]: units }));
+    setBenefitConfigs(c => {
+      const existing = c[benefitId] || {
+        quantity: units,
+        frequency: 'monthly',
+        allocationBasis: 'per_billing_cycle',
+        minSubscriptionMonths: 1,
+        allowRollover: false,
+        maxRolloverUnits: 0,
+        isUnlimited: false,
+      };
+      return { ...c, [benefitId]: { ...existing, quantity: units } };
+    });
+  };
+
+  const updateBenefitSetting = (benefitId: string, partial: Partial<BenefitSetting>) => {
+    setBenefitConfigs(prev => {
+      const current = prev[benefitId] || {
+        quantity: benefitUnits[benefitId] || 1,
+        frequency: 'monthly',
+        allocationBasis: 'per_billing_cycle',
+        minSubscriptionMonths: 1,
+        allowRollover: false,
+        maxRolloverUnits: 0,
+        isUnlimited: false,
+      };
+      const updated = { ...current, ...partial };
+      if (partial.quantity !== undefined) {
+        setBenefitUnits(u => ({ ...u, [benefitId]: partial.quantity! }));
+      }
+      return { ...prev, [benefitId]: updated };
+    });
   };
 
   const handlePublish = async () => {
-    const packageBenefits: any[] = Array.from(selectedBenefits).map(benefitId => ({
-      benefitId,
-      monthlyUnits: benefitUnits[benefitId] || 0,
-      unitsIncluded: benefitUnits[benefitId] || 0,
-    }));
+    const packageBenefits: any[] = Array.from(selectedBenefits).map(benefitId => {
+      const cfg = benefitConfigs[benefitId] || {
+        quantity: benefitUnits[benefitId] || 1,
+        frequency: 'monthly',
+        allocationBasis: 'per_billing_cycle',
+        minSubscriptionMonths: 1,
+        allowRollover: false,
+        maxRolloverUnits: 0,
+        isUnlimited: false,
+      };
+      return {
+        benefitId,
+        monthlyUnits: cfg.frequency === 'monthly' ? cfg.quantity : Math.round(cfg.quantity / 12),
+        unitsIncluded: cfg.quantity,
+        unitsPeriod: cfg.frequency,
+        allocationBasis: cfg.allocationBasis,
+        minSubscriptionMonths: cfg.minSubscriptionMonths,
+        allowRollover: cfg.allowRollover,
+        maxRolloverUnits: cfg.maxRolloverUnits || null,
+        isUnlimited: cfg.isUnlimited,
+      };
+    });
 
     const payload = {
       name: packageName,
@@ -257,14 +355,29 @@ export default function SubscriptionsPage() {
     
     const selected = new Set<string>();
     const units: Record<string, number> = {};
+    const configs: Record<string, BenefitSetting> = {};
     
-    (pkg.benefits || []).forEach((b: any) => {
-      selected.add(b.benefitId);
-      units[b.benefitId] = b.monthlyUnits;
+    const rawBenefits = pkg.packageBenefits || pkg.benefits || [];
+    rawBenefits.forEach((b: any) => {
+      const bId = b.benefitId || b.benefit?.id;
+      if (!bId) return;
+      selected.add(bId);
+      const qty = b.unitsIncluded ?? b.monthlyUnits ?? 1;
+      units[bId] = qty;
+      configs[bId] = {
+        quantity: qty,
+        frequency: (b.unitsPeriod as any) || 'monthly',
+        allocationBasis: (b.allocationBasis as any) || 'per_billing_cycle',
+        minSubscriptionMonths: b.minSubscriptionMonths || 1,
+        allowRollover: !!b.allowRollover,
+        maxRolloverUnits: b.maxRolloverUnits || undefined,
+        isUnlimited: !!b.isUnlimited,
+      };
     });
     
     setSelectedBenefits(selected);
     setBenefitUnits(units);
+    setBenefitConfigs(configs);
     setShowWizard(true);
   };
 
@@ -315,6 +428,7 @@ export default function SubscriptionsPage() {
     setMiscellaneousCost('0');
     setSelectedBenefits(new Set());
     setBenefitUnits({});
+    setBenefitConfigs({});
     setTotalCost('0');
     setIsManualPrice(false);
     setEditingPackageId(null);
@@ -604,34 +718,166 @@ export default function SubscriptionsPage() {
               {currentStep === 'units' && (
                 <div className="space-y-6">
                   <div>
-                    <h2 className="text-xl font-semibold mb-1">Set Units</h2>
+                    <h2 className="text-xl font-semibold mb-1">Set Allowances &amp; Frequencies</h2>
                     <p className="text-sm text-muted-foreground">
-                      Define monthly units for each selected benefit
+                      Configure quantity, recurrence frequency (Monthly, Yearly, One-time), allocation rules, and rollover for each benefit.
                     </p>
                   </div>
                   <div className="space-y-4">
                     {Array.from(selectedBenefits).map(benefitId => {
                       const benefit = benefits.find(b => b.id === benefitId);
                       if (!benefit) return null;
+                      const cfg = benefitConfigs[benefitId] || {
+                        quantity: benefitUnits[benefitId] || 1,
+                        frequency: 'monthly',
+                        allocationBasis: 'per_billing_cycle',
+                        minSubscriptionMonths: 1,
+                        allowRollover: false,
+                        maxRolloverUnits: 0,
+                        isUnlimited: false,
+                      };
+
+                      const unitCost = benefit.unitCost || 0;
+                      let monthlyImpact = 0;
+                      if (!cfg.isUnlimited) {
+                        if (cfg.frequency === 'monthly') monthlyImpact = unitCost * cfg.quantity;
+                        else if (cfg.frequency === 'yearly' || cfg.frequency === 'one_time') monthlyImpact = Math.round((unitCost * cfg.quantity) / 12);
+                      }
+
                       return (
-                        <div key={benefitId} className="flex items-center gap-4 p-4 border border-border rounded-lg">
-                          <div className="flex-1">
-                            <h3 className="font-medium">{benefit.name}</h3>
-                            <p className="text-xs text-muted-foreground">{benefit.unitLabel}</p>
-                          </div>
-                          <div className="w-48 flex items-center gap-3">
-                            {benefit.unitCost && (
-                              <span className="text-xs font-bold text-muted-foreground whitespace-nowrap">
-                                ₹{benefit.unitCost * (benefitUnits[benefitId] || 0)}
+                        <div key={benefitId} className="p-4 border border-border rounded-xl bg-card space-y-3 shadow-sm">
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <h3 className="font-semibold text-base text-foreground">{benefit.name}</h3>
+                                {benefit.code && (
+                                  <span className="text-[10px] font-mono bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded border">
+                                    {benefit.code}
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-xs text-muted-foreground mt-0.5">
+                                Unit: <strong className="text-foreground">{benefit.unitLabel || 'visits'}</strong>
+                                {unitCost ? ` • Standalone Unit Cost: ₹${unitCost}` : ''}
+                                {benefit.isGstExempt || benefit.gstRate === 0
+                                  ? ' • 0% GST (Exempt)'
+                                  : benefit.gstRate !== undefined && benefit.gstRate !== null
+                                  ? ` • ${benefit.gstRate}% GST`
+                                  : benefit.taxCategory
+                                  ? ` • ${benefit.taxCategory.replace(/_/g, ' ')}`
+                                  : ''}
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <span className="text-xs text-muted-foreground block">Monthly Base Cost:</span>
+                              <span className="text-sm font-bold text-primary">
+                                {cfg.isUnlimited ? 'Unlimited (₹0)' : `₹${monthlyImpact}/mo`}
                               </span>
-                            )}
-                            <Input
-                              type="number"
-                              value={benefitUnits[benefitId] || 0}
-                              onChange={(e) => updateUnits(benefitId, parseInt(e.target.value) || 0)}
-                              className="bg-input-background"
-                            />
+                              {cfg.frequency === 'yearly' && !cfg.isUnlimited && (
+                                <span className="text-[10px] text-muted-foreground block">
+                                  (₹{unitCost * cfg.quantity} amortized over 12m)
+                                </span>
+                              )}
+                            </div>
                           </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-2 border-t border-dashed">
+                            {/* Quantity */}
+                            <div className="space-y-1">
+                              <Label className="text-xs">Quantity / Allowance</Label>
+                              <div className="flex items-center gap-2">
+                                <Input
+                                  type="number"
+                                  disabled={cfg.isUnlimited}
+                                  value={cfg.isUnlimited ? '' : cfg.quantity}
+                                  onChange={(e) => updateBenefitSetting(benefitId, { quantity: parseInt(e.target.value) || 0 })}
+                                  className="h-9 bg-input-background text-sm"
+                                  placeholder={cfg.isUnlimited ? 'Unlimited' : 'e.g. 10'}
+                                />
+                                <span className="text-xs text-muted-foreground whitespace-nowrap">
+                                  {(benefit.unitLabel || '').replace(/^per\s+/i, '')}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Frequency */}
+                            <div className="space-y-1">
+                              <Label className="text-xs">Frequency / Cadence</Label>
+                              <Select
+                                value={cfg.frequency}
+                                onValueChange={(val: any) => {
+                                  const isUnl = val === 'unlimited';
+                                  updateBenefitSetting(benefitId, {
+                                    frequency: val,
+                                    isUnlimited: isUnl,
+                                    allocationBasis: isUnl ? 'per_subscription_term' : (val === 'yearly' ? 'per_subscription_term' : 'per_billing_cycle'),
+                                    allowRollover: isUnl || val === 'yearly' ? false : cfg.allowRollover,
+                                  });
+                                }}
+                              >
+                                <SelectTrigger className="h-9 bg-input-background text-xs">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="monthly">Every Month (/month)</SelectItem>
+                                  <SelectItem value="yearly">Every Year (/year)</SelectItem>
+                                  <SelectItem value="one_time">One-Time / Onboarding</SelectItem>
+                                  <SelectItem value="unlimited">24/7 Unlimited</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+
+                            {/* Allocation Basis */}
+                            <div className="space-y-1">
+                              <Label className="text-xs">Allocation Rule</Label>
+                              <Select
+                                value={cfg.allocationBasis}
+                                onValueChange={(val: any) => {
+                                  updateBenefitSetting(benefitId, {
+                                    allocationBasis: val,
+                                    minSubscriptionMonths: val === 'min_tenure_required' ? 12 : 1,
+                                  });
+                                }}
+                              >
+                                <SelectTrigger className="h-9 bg-input-background text-xs">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="per_billing_cycle">Per Billing Cycle (Refreshes monthly)</SelectItem>
+                                  <SelectItem value="per_subscription_term">Per Subscription Term (Fixed pool)</SelectItem>
+                                  <SelectItem value="min_tenure_required">Annual Only (Requires 12M Tenure)</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+
+                          {/* Rollover Settings (Monthly only) */}
+                          {cfg.frequency === 'monthly' && !cfg.isUnlimited && (
+                            <div className="flex items-center justify-between pt-2 border-t text-xs bg-slate-50 p-2.5 rounded-lg">
+                              <div className="flex items-center space-x-2">
+                                <Checkbox
+                                  id={`rollover-${benefitId}`}
+                                  checked={cfg.allowRollover}
+                                  onCheckedChange={(checked) => updateBenefitSetting(benefitId, { allowRollover: !!checked })}
+                                />
+                                <Label htmlFor={`rollover-${benefitId}`} className="text-xs cursor-pointer font-medium">
+                                  Allow unused units to rollover to next month
+                                </Label>
+                              </div>
+                              {cfg.allowRollover && (
+                                <div className="flex items-center gap-2">
+                                  <span className="text-muted-foreground text-[11px]">Max Rollover:</span>
+                                  <Input
+                                    type="number"
+                                    value={cfg.maxRolloverUnits || ''}
+                                    onChange={(e) => updateBenefitSetting(benefitId, { maxRolloverUnits: parseInt(e.target.value) || 0 })}
+                                    className="h-7 w-20 bg-white text-xs"
+                                    placeholder="Cap (e.g. 5)"
+                                  />
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
                       );
                     })}
@@ -755,6 +1001,10 @@ export default function SubscriptionsPage() {
                                 className={`h-9 font-bold text-sm ${isManualPrice ? 'bg-orange-50 text-orange-700 border-orange-300' : 'bg-white text-primary'}`}
                               />
                             </div>
+                            <div className="text-[10px] text-gray-500 pt-1 border-t flex justify-between">
+                              <span>Monthly Rate:</span>
+                              <span className="font-bold text-gray-800">₹{totalCost}/mo</span>
+                            </div>
                           </div>
 
                           {/* 3 Months Option */}
@@ -797,6 +1047,12 @@ export default function SubscriptionsPage() {
                                 }}
                                 className={`h-9 font-bold text-sm ${isManualPriceThree ? 'bg-orange-100 text-orange-800 border-orange-400' : 'bg-white text-orange-950'}`}
                               />
+                            </div>
+                            <div className="text-[10px] text-orange-900 pt-1 border-t border-orange-200/60 flex justify-between">
+                              <span>Monthly Eq: <strong>₹{Math.round((parseFloat(priceThreeMonths) || calculatedPriceThree) / 3)}/mo</strong></span>
+                              {Math.max(0, (parseFloat(totalCost) || 0) * 3 - (parseFloat(priceThreeMonths) || calculatedPriceThree)) > 0 && (
+                                <span className="text-emerald-700 font-semibold">Save ₹{Math.max(0, (parseFloat(totalCost) || 0) * 3 - (parseFloat(priceThreeMonths) || calculatedPriceThree))}</span>
+                              )}
                             </div>
                           </div>
 
@@ -841,6 +1097,12 @@ export default function SubscriptionsPage() {
                                 className={`h-9 font-bold text-sm ${isManualPriceSix ? 'bg-orange-100 text-orange-800 border-orange-400' : 'bg-white text-orange-950'}`}
                               />
                             </div>
+                            <div className="text-[10px] text-orange-900 pt-1 border-t border-orange-200/60 flex justify-between">
+                              <span>Monthly Eq: <strong>₹{Math.round((parseFloat(priceSixMonths) || calculatedPriceSix) / 6)}/mo</strong></span>
+                              {Math.max(0, (parseFloat(totalCost) || 0) * 6 - (parseFloat(priceSixMonths) || calculatedPriceSix)) > 0 && (
+                                <span className="text-emerald-700 font-semibold">Save ₹{Math.max(0, (parseFloat(totalCost) || 0) * 6 - (parseFloat(priceSixMonths) || calculatedPriceSix))}</span>
+                              )}
+                            </div>
                           </div>
 
                           {/* 12 Months (Annual) Option */}
@@ -884,26 +1146,72 @@ export default function SubscriptionsPage() {
                                 className={`h-9 font-bold text-sm ${isManualPriceTwelve ? 'bg-orange-100 text-orange-800 border-orange-400' : 'bg-white text-orange-950'}`}
                               />
                             </div>
+                            <div className="text-[10px] text-orange-900 pt-1 border-t border-orange-200/60 flex justify-between">
+                              <span>Monthly Eq: <strong>₹{Math.round((parseFloat(priceTwelveMonths) || calculatedPriceTwelve) / 12)}/mo</strong></span>
+                              {Math.max(0, (parseFloat(totalCost) || 0) * 12 - (parseFloat(priceTwelveMonths) || calculatedPriceTwelve)) > 0 && (
+                                <span className="text-emerald-700 font-semibold">Save ₹{Math.max(0, (parseFloat(totalCost) || 0) * 12 - (parseFloat(priceTwelveMonths) || calculatedPriceTwelve))}</span>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </div>
                     </div>
 
                     <div>
-                      <h4 className="font-medium mb-3">Included Benefits:</h4>
+                      <h4 className="font-medium mb-3">Included Benefits & Allowances:</h4>
                       <div className="space-y-2">
                         {Array.from(selectedBenefits).map(benefitId => {
                           const benefit = benefits.find(b => b.id === benefitId);
                           if (!benefit) return null;
+                          const cfg = benefitConfigs[benefitId] || {
+                            quantity: benefitUnits[benefitId] || 1,
+                            frequency: 'monthly',
+                            allocationBasis: 'per_billing_cycle',
+                            minSubscriptionMonths: 1,
+                            allowRollover: false,
+                            maxRolloverUnits: 0,
+                            isUnlimited: false,
+                          };
+                          const unitLabelClean = (benefit.unitLabel || '').replace(/^per\s+/i, '');
+                          
+                          let freqBadge = 'Every Month';
+                          if (cfg.frequency === 'yearly') freqBadge = cfg.allocationBasis === 'min_tenure_required' ? 'Annual Plan Only (12M)' : 'Every Year';
+                          else if (cfg.frequency === 'one_time') freqBadge = 'One-Time Onboarding';
+                          else if (cfg.frequency === 'unlimited') freqBadge = '24/7 Unlimited';
+
                           return (
-                            <div key={benefitId} className="flex items-center justify-between p-3 border border-border rounded">
-                              <span className="font-medium">{benefit.name}</span>
-                              <span className="text-sm">
+                            <div key={benefitId} className="flex items-center justify-between p-3 border border-border rounded-lg bg-card text-sm">
+                              <div className="space-y-0.5">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-medium">{benefit.name}</span>
+                                  {benefit.code && (
+                                    <span className="text-[10px] font-mono bg-slate-100 text-slate-700 px-1 py-0.2 rounded border">
+                                      {benefit.code}
+                                    </span>
+                                  )}
+                                  <span className="text-[11px] px-2 py-0.5 rounded-full font-semibold bg-orange-100 text-orange-800 border border-orange-200">
+                                    {freqBadge}
+                                  </span>
+                                  {cfg.allowRollover && (
+                                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                      Rollover allowed {cfg.maxRolloverUnits ? `(max ${cfg.maxRolloverUnits})` : ''}
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-xs text-muted-foreground">
+                                  {benefit.isGstExempt || benefit.gstRate === 0
+                                    ? 'GST Exempt (0%)'
+                                    : `${benefit.gstRate ?? 18}% GST${benefit.taxCategory ? ` • ${benefit.taxCategory.replace(/_/g, ' ')}` : ''}`}
+                                </p>
+                              </div>
+                              <div className="text-right">
                                 <span className="font-bold text-foreground">
-                                  {benefitUnits[benefitId]} 
-                                  {(benefit.unitLabel || '').replace(/^per\s+/i, '')}
+                                  {cfg.isUnlimited ? 'Unlimited' : `${cfg.quantity} ${unitLabelClean}`}
                                 </span>
-                              </span>
+                                <span className="text-xs text-muted-foreground block">
+                                  {cfg.frequency === 'monthly' ? '/month' : cfg.frequency === 'yearly' ? '/year' : ''}
+                                </span>
+                              </div>
                             </div>
                           );
                         })}
@@ -941,10 +1249,6 @@ export default function SubscriptionsPage() {
                       const nextIndex = Math.min(steps.length - 1, currentStepIndex + 1);
                       setCurrentStep(steps[nextIndex].id as WizardStep);
                     }}
-                    disabled={
-                      (currentStep === 'define' && !packageName) ||
-                      (currentStep === 'benefits' && selectedBenefits.size === 0)
-                    }
                     className="bg-primary"
                   >
                     Next
@@ -957,35 +1261,40 @@ export default function SubscriptionsPage() {
         </div>
       ) : (
         <Tabs defaultValue="packages" className="space-y-6">
-          <TabsList>
+          <TabsList className="bg-secondary">
             <TabsTrigger value="packages">Packages</TabsTrigger>
-            <TabsTrigger value="benefits">Benefits Library</TabsTrigger>
+            <TabsTrigger value="benefits">Benefits Catalog</TabsTrigger>
           </TabsList>
 
           <TabsContent value="packages" className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {packages.map((pkg) => (
-                <Card key={pkg.id}>
+              {packages.map((pkg: any) => (
+                <Card key={pkg.id} className="relative overflow-hidden flex flex-col justify-between">
+                  <div className="absolute top-0 right-0 p-4">
+                    <StatusChip status={pkg.isActive ? 'active' : 'inactive'} />
+                  </div>
                   <CardHeader>
-                    <div className="flex items-start justify-between">
-                      <CardTitle className="text-lg flex items-center gap-2">
-                        {pkg.name}
-                        {pkg.isGlobal ? (
-                          <span className="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-semibold uppercase">Global</span>
-                        ) : pkg.regions && pkg.regions.length > 0 ? (
-                          <span className="text-[10px] bg-[#FFE6D5] text-[#FF7A00] px-2 py-0.5 rounded-full font-semibold uppercase font-bold">Region Based</span>
-                        ) : (
-                          <span className="text-[10px] bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full font-semibold uppercase">Private</span>
-                        )}
-                      </CardTitle>
-                      <div onClick={() => handleToggleStatus(pkg)} className="cursor-pointer hover:opacity-80 transition-opacity" title={`Click to set ${pkg.isActive ? 'Inactive' : 'Active'}`}>
-                        <StatusChip status={pkg.isActive ? 'Active' : 'Inactive'} />
-                      </div>
+                    <div className="flex items-center gap-2">
+                      <CardTitle className="text-xl">{pkg.name}</CardTitle>
+                      {pkg.isGlobal ? (
+                        <span className="text-[10px] bg-blue-50 text-blue-700 px-2 py-0.5 rounded border border-blue-200 font-medium">Global</span>
+                      ) : (
+                        <span className="text-[10px] bg-purple-50 text-purple-700 px-2 py-0.5 rounded border border-purple-200 font-medium">Regional</span>
+                      )}
+                      {pkg.isPopular && (
+                        <span className="text-[10px] bg-orange-100 text-orange-800 px-2 py-0.5 rounded-full font-bold border border-orange-200">★ Popular</span>
+                      )}
+                      {pkg.isCompared && (
+                        <span className="text-[10px] bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded border border-emerald-200 font-medium">Comparison</span>
+                      )}
                     </div>
-                    {pkg.discountPercentage > 0 && (
-                      <CardDescription>
-                        <span className="line-through mr-2 text-xs">₹{pkg.mrp}</span>
-                        <span className="text-success-foreground text-xs font-bold">{pkg.discountPercentage}% OFF on Benefits</span>
+                    <CardDescription>{pkg.description}</CardDescription>
+                    {pkg.mrp && pkg.mrp > (pkg.basePrice || pkg.totalCost) && (
+                      <CardDescription className="text-xs">
+                        <span className="line-through text-muted-foreground">MRP ₹{pkg.mrp}</span>
+                        <span className="ml-2 text-green-600 font-medium">
+                          Save {pkg.discountPercentage}%
+                        </span>
                         {pkg.miscellaneousCost > 0 && (
                           <span className="text-[10px] ml-2 text-muted-foreground">(+ ₹{pkg.miscellaneousCost} misc)</span>
                         )}
@@ -1000,11 +1309,20 @@ export default function SubscriptionsPage() {
                       <p>Active: {pkg.activeFrom ? pkg.activeFrom.split('T')[0] : 'N/A'} to {pkg.activeTo ? pkg.activeTo.split('T')[0] : 'N/A'}</p>
                     </div>
                     <div className="pt-2 border-t border-dashed border-gray-200 text-xs space-y-1">
-                      <p className="text-[11px] font-semibold text-gray-700">Duration Pricing Breakdown:</p>
+                      <p className="text-[11px] font-semibold text-gray-700">Duration Pricing Breakdown & /mo:</p>
                       <div className="grid grid-cols-3 gap-1 text-[10px] bg-orange-50/50 p-2 rounded border border-orange-100 text-orange-950">
-                        <div><span className="text-gray-500">3 Mo:</span> <span className="font-bold">₹{Math.round(((pkg.basePrice || pkg.totalCost) * 3 * (1 - (pkg.discountThreeMonths ?? 5) / 100)))}</span> ({pkg.discountThreeMonths ?? 5}% off)</div>
-                        <div><span className="text-gray-500">6 Mo:</span> <span className="font-bold">₹{Math.round(((pkg.basePrice || pkg.totalCost) * 6 * (1 - (pkg.discountSixMonths ?? 10) / 100)))}</span> ({pkg.discountSixMonths ?? 10}% off)</div>
-                        <div><span className="text-gray-500">12 Mo:</span> <span className="font-bold">₹{Math.round(((pkg.basePrice || pkg.totalCost) * 12 * (1 - (pkg.discountAnnual ?? 20) / 100)))}</span> ({pkg.discountAnnual ?? 20}% off)</div>
+                        <div>
+                          <span className="text-gray-500">3 Mo:</span> <span className="font-bold">₹{pkg.priceThreeMonths || Math.round(((pkg.basePrice || pkg.totalCost) * 3 * (1 - (pkg.discountThreeMonths ?? 5) / 100)))}</span>
+                          <span className="text-[9px] text-gray-500 block">₹{Math.round((pkg.priceThreeMonths || ((pkg.basePrice || pkg.totalCost) * 3 * (1 - (pkg.discountThreeMonths ?? 5) / 100))) / 3)}/mo</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-500">6 Mo:</span> <span className="font-bold">₹{pkg.priceSixMonths || Math.round(((pkg.basePrice || pkg.totalCost) * 6 * (1 - (pkg.discountSixMonths ?? 10) / 100)))}</span>
+                          <span className="text-[9px] text-gray-500 block">₹{Math.round((pkg.priceSixMonths || ((pkg.basePrice || pkg.totalCost) * 6 * (1 - (pkg.discountSixMonths ?? 10) / 100))) / 6)}/mo</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-500">12 Mo:</span> <span className="font-bold">₹{pkg.priceTwelveMonths || Math.round(((pkg.basePrice || pkg.totalCost) * 12 * (1 - (pkg.discountAnnual ?? 20) / 100)))}</span>
+                          <span className="text-[9px] text-gray-500 block">₹{Math.round((pkg.priceTwelveMonths || ((pkg.basePrice || pkg.totalCost) * 12 * (1 - (pkg.discountAnnual ?? 20) / 100))) / 12)}/mo</span>
+                        </div>
                       </div>
                     </div>
                     {!pkg.isGlobal && pkg.regions && pkg.regions.length > 0 && (

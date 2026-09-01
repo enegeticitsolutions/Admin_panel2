@@ -95,6 +95,7 @@ app.use('/api/emergency', staffOnly, require('./routes/emergency'));
 // ─── Subscription & Benefits ──────────────────────────────────────────────────
 app.use('/api/benefit-types', adminsOnly, require('./routes/benefitTypes'));
 app.use('/api/benefits', adminsOnly, require('./routes/benefits'));
+app.use('/api/tax-categories', staffOnly, require('./routes/taxCategories'));
 app.use('/api/packages', adminsOnly, require('./routes/packages'));
 app.use('/api/subscriptions', staffOnly, require('./routes/subscriptions'));
 app.use('/api/visits', staffOnly, require('./routes/visits'));

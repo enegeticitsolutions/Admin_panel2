@@ -219,11 +219,19 @@ export default function AddonsPage() {
                             <p className="text-xs text-slate-500 line-clamp-1">{b.description}</p>
                           )}
                           
-                          {/* Base Benefit Config Banner */}
-                          <div className="mt-1.5">
+                          {/* Base Benefit Config Banner & Tax Bracket Badge */}
+                          <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
                             <span className="text-[11px] font-medium bg-amber-50 text-amber-900 border border-amber-200/80 px-2 py-0.5 rounded-full inline-flex items-center gap-1 shadow-2xs">
                               <Info className="w-3 h-3 text-amber-600" />
                               Base: {baseDefaultUnits} {b.unitLabel || 'unit'} @ ₹{baseUnitPrice}/unit
+                            </span>
+                            <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full inline-flex items-center gap-1 border shadow-2xs ${
+                              b.isGstExempt || b.gstRate === 0
+                                ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                                : 'bg-blue-50 text-blue-800 border-blue-200'
+                            }`}>
+                              {b.isGstExempt || b.gstRate === 0 ? '0% GST (Exempt)' : `${b.gstRate ?? 18}% GST`}
+                              {b.hsnSacCode ? ` • SAC ${b.hsnSacCode}` : ''}
                             </span>
                           </div>
                         </div>
@@ -284,6 +292,32 @@ export default function AddonsPage() {
                                 onChange={(e) => handleEditChange(b.id, 'addonDiscountPrice', Number(e.target.value) || 0)}
                                 placeholder="0"
                               />
+                            </div>
+                          </div>
+
+                          {/* Tax Calculation Preview */}
+                          <div className="bg-slate-50 border border-slate-200/80 rounded-lg p-2.5 flex items-center justify-between text-xs">
+                            <div className="space-y-0.5">
+                              <span className="text-slate-500 block text-[10px] uppercase font-bold tracking-wider">Applicable Tax Bracket</span>
+                              <span className="font-semibold text-slate-800">
+                                {b.isGstExempt || b.gstRate === 0 ? 'GST Exempt (0%)' : `${b.gstRate ?? 18}% GST`}
+                                {b.hsnSacCode ? ` • SAC ${b.hsnSacCode}` : ''}
+                              </span>
+                            </div>
+                            <div className="text-right space-y-0.5">
+                              <span className="text-slate-500 block text-[10px] uppercase font-bold tracking-wider">Estimated Total with Tax</span>
+                              <span className="font-bold text-primary text-sm">
+                                ₹{b.isGstExempt || b.gstRate === 0 
+                                  ? Math.max(0, addonPrice - addonDiscountPrice)
+                                  : Math.round(Math.max(0, addonPrice - addonDiscountPrice) * (1 + (b.gstRate ?? 18) / 100))
+                                }
+                                <span className="text-[10px] font-normal text-muted-foreground ml-1">
+                                  (+₹{b.isGstExempt || b.gstRate === 0 
+                                    ? 0 
+                                    : Math.round(Math.max(0, addonPrice - addonDiscountPrice) * (b.gstRate ?? 18) / 100)
+                                  } GST)
+                                </span>
+                              </span>
                             </div>
                           </div>
 

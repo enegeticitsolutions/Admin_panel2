@@ -897,6 +897,14 @@ export const benefitApi = {
   async remove(id: string): Promise<void> { return apiJson(`/benefits/${id}`, { method: 'DELETE' }); },
 };
 
+export const taxCategoryApi = {
+  async getAll(): Promise<any[]> { return apiJson('/tax-categories'); },
+  async create(data: { name: string; gstRate: number; hsnSacCode?: string; isExempt?: boolean; description?: string }): Promise<any> {
+    return apiJson('/tax-categories', { method: 'POST', body: JSON.stringify(data) });
+  },
+  async remove(id: string): Promise<void> { return apiJson(`/tax-categories/${id}`, { method: 'DELETE' }); },
+};
+
 export const packageApi = {
   async getAll(params?: { all?: boolean }): Promise<any[]> { 
     return apiJson(params?.all ? '/packages?all=true' : '/packages'); 

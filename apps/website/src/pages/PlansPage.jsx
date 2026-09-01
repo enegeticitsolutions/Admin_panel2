@@ -328,12 +328,26 @@ export default function PlansPage({
                         )
                       : null;
                     const isIncluded = !!matchedPb;
+                    let displayVal = "-";
+                    if (isIncluded) {
+                      if (matchedPb.isUnlimited) {
+                        displayVal = "Unlimited";
+                      } else if (matchedPb.unitsPeriod === "yearly") {
+                        displayVal = `${matchedPb.unitsIncluded}/yr`;
+                      } else if (matchedPb.unitsPeriod === "one_time") {
+                        displayVal = `${matchedPb.unitsIncluded} (Once)`;
+                      } else {
+                        displayVal = `${matchedPb.unitsIncluded}/mo`;
+                      }
+                    }
+
                     return (
                       <strong
                         className={isIncluded ? "included" : "not-included"}
                         key={`${benefit.id}-${pkg.id || pkg.name}`}
+                        style={isIncluded ? { fontSize: "0.85rem", fontWeight: 700 } : {}}
                       >
-                        {isIncluded ? "✓" : "-"}
+                        {displayVal}
                       </strong>
                     );
                   })}

@@ -9,8 +9,8 @@ export default function PackageCard({ plan, selectedCycle = "1", onSelectPackage
   // Compute price based on selected billing cycle
   const durNum = parseInt(selectedCycle, 10);
   let displayPrice = base;
-  let cycleLabel = "/ month";
-  let cycleSubtext = null;
+  let cycleLabel = "billed monthly";
+  let cycleSubtext = `₹${base.toLocaleString("en-IN")}/mo`;
 
   if (durNum === 3) {
     const disc = plan.discountThreeMonths ?? 5;
@@ -37,6 +37,9 @@ export default function PackageCard({ plan, selectedCycle = "1", onSelectPackage
     cycleLabel = "billed annually";
     cycleSubtext = `₹${monthly.toLocaleString("en-IN")}/mo`;
   }
+
+  const fullTermCost = base * durNum;
+  const savings = durNum > 1 ? Math.max(0, fullTermCost - displayPrice) : 0;
 
   // Highlight top units (hours or visits)
   let topHighlightNum = plan.hoursPerMonth || plan.totalHours || plan.hours;
@@ -68,14 +71,16 @@ export default function PackageCard({ plan, selectedCycle = "1", onSelectPackage
   // The enriched plan object to pass to checkout
   const planForCheckout = {
     ...plan,
-    selectedCycle: selectedCycle,
-    selectedPrice: displayPrice,
+    selectedDurationMonths: durNum,
+    calculatedPrice: displayPrice,
   };
 
   return (
-    <article className={`plan-card ${isFeatured ? "plan-card--featured" : "plan-card--light"}`}>
-      {(plan.isPopular || plan.badge) && (
-        <div className="plan-badge">{plan.badge || "Most Popular"}</div>
+    <article className={`plan-card ${isFeatured ? "featured" : ""}`}>
+      {isFeatured && (
+        <span className="badge">
+          ★ {plan.badgeText || "Most Popular"}
+        </span>
       )}
       <h2>{planName}</h2>
       <p>{planDesc}</p>
@@ -92,12 +97,19 @@ export default function PackageCard({ plan, selectedCycle = "1", onSelectPackage
             ₹{displayPrice.toLocaleString("en-IN")}
           </strong>
           {cycleSubtext && (
-            <span style={{ fontSize: "0.85rem", color: "#6b7280", marginLeft: "6px" }}>
-              {cycleSubtext}
+            <span style={{ fontSize: "0.85rem", color: "#ea580c", fontWeight: 700, marginLeft: "6px" }}>
+              ({cycleSubtext})
             </span>
           )}
         </div>
         <small style={{ color: "#9ca3af", fontSize: "0.78rem" }}>{cycleLabel}</small>
+        {savings > 0 && (
+          <div style={{ marginTop: "4px" }}>
+            <span style={{ fontSize: "0.75rem", color: "#15803d", fontWeight: 700, backgroundColor: "#dcfce7", padding: "2px 6px", borderRadius: "4px" }}>
+              Save ₹{savings.toLocaleString("en-IN")}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Render Real Package Benefits from API or Features array */}
@@ -106,10 +118,30 @@ export default function PackageCard({ plan, selectedCycle = "1", onSelectPackage
           {plan.packageBenefits.map((pb, idx) => {
             const benefitName = pb.benefit?.name || "Included Benefit";
             const rawLabel = (pb.benefit?.unitLabel || "").replace(/^per\s+/i, "").trim();
-            const unitText = pb.unitsIncluded
-              ? ` (${pb.unitsIncluded}${rawLabel ? " " + rawLabel : ""})`
-              : "";
-            return <li key={pb.id || idx}>✓ {benefitName}{unitText}</li>;
+            const period = pb.unitsPeriod || "monthly";
+
+            let displayText = "";
+            if (pb.isUnlimited) {
+              displayText = `24/7 Unlimited ${benefitName}`;
+            } else if (period === "yearly") {
+              const restriction = pb.allocationBasis === "min_tenure_required" || (pb.minSubscriptionMonths && pb.minSubscriptionMonths >= 12) ? " (Annual Only)" : "";
+              displayText = `${pb.unitsIncluded} ${rawLabel || "uses"}/year ${benefitName}${restriction}`;
+            } else if (period === "one_time") {
+              displayText = `${pb.unitsIncluded} ${rawLabel || "session"} ${benefitName} (One-Time)`;
+            } else {
+              displayText = `${pb.unitsIncluded} ${rawLabel || "hrs"}/month ${benefitName}`;
+            }
+
+            return (
+              <li key={pb.id || idx}>
+                ✓ {displayText}
+                {pb.allowRollover && (
+                  <span style={{ fontSize: "0.72rem", color: "#10b981", fontWeight: 600, marginLeft: "6px" }}>
+                    • Rollover
+                  </span>
+                )}
+              </li>
+            );
           })}
         </ul>
       ) : Array.isArray(plan.features) && plan.features.length > 0 ? (

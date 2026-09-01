@@ -392,7 +392,7 @@ export const AddonBenefitModal: React.FC<AddonBenefitModalProps> = ({
                                 <Activity className="w-5 h-5" />
                               </div>
                               <div>
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-1.5 flex-wrap">
                                   <span className="font-bold text-gray-800 text-sm">{addon.name}</span>
                                   <Badge
                                     variant="secondary"
@@ -404,6 +404,13 @@ export const AddonBenefitModal: React.FC<AddonBenefitModalProps> = ({
                                   >
                                     {addon.isGlobal ? 'Global' : 'Region Based'}
                                   </Badge>
+                                  <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded border ${
+                                    addon.isGstExempt || addon.gstRate === 0
+                                      ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                                      : 'bg-blue-50 text-blue-800 border-blue-200'
+                                  }`}>
+                                    {addon.isGstExempt || addon.gstRate === 0 ? '0% GST (Exempt)' : `${addon.gstRate ?? 18}% GST`}
+                                  </span>
                                 </div>
                                 <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
                                   {addon.description || `${baseUnits} ${addon.unitLabel || 'Units'} included`}
@@ -424,7 +431,7 @@ export const AddonBenefitModal: React.FC<AddonBenefitModalProps> = ({
                                 ₹{hasDiscount ? addon.addonDiscountPrice : price}
                               </span>
                               <span className="text-[10px] text-muted-foreground">
-                                per {baseUnits} {addon.unitLabel || 'unit'}
+                                {addon.isGstExempt || addon.gstRate === 0 ? 'GST Exempt' : `+ ${addon.gstRate ?? 18}% GST`}
                               </span>
                             </div>
 

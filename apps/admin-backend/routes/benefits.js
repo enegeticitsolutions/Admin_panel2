@@ -78,6 +78,10 @@ router.post('/', async (req, res) => {
     addonIncludedUnits,
     isGlobal = true,
     regionIds = [],
+    taxCategory,
+    gstRate,
+    hsnSacCode,
+    isGstExempt,
   } = req.body;
   if (!benefitTypeId || !name) {
     return res
@@ -103,6 +107,10 @@ router.post('/', async (req, res) => {
           addonDiscountPrice: addonDiscountPrice ?? null,
           addonIncludedUnits: addonIncludedUnits ?? 1,
           isGlobal: isGlobal ?? true,
+          taxCategory: taxCategory ?? 'GST_18',
+          gstRate: gstRate !== undefined && gstRate !== null ? parseFloat(gstRate) : 18,
+          hsnSacCode: hsnSacCode ?? null,
+          isGstExempt: isGstExempt ?? false,
         },
       });
 
@@ -158,6 +166,10 @@ router.patch('/:id', async (req, res) => {
     addonIncludedUnits,
     isGlobal,
     regionIds,
+    taxCategory,
+    gstRate,
+    hsnSacCode,
+    isGstExempt,
   } = req.body;
   try {
     const dataToUpdate = {};
@@ -177,6 +189,10 @@ router.patch('/:id', async (req, res) => {
     if (addonDiscountPrice !== undefined) dataToUpdate.addonDiscountPrice = addonDiscountPrice;
     if (addonIncludedUnits !== undefined) dataToUpdate.addonIncludedUnits = addonIncludedUnits;
     if (isGlobal !== undefined) dataToUpdate.isGlobal = isGlobal;
+    if (taxCategory !== undefined) dataToUpdate.taxCategory = taxCategory;
+    if (gstRate !== undefined) dataToUpdate.gstRate = gstRate !== null ? parseFloat(gstRate) : null;
+    if (hsnSacCode !== undefined) dataToUpdate.hsnSacCode = hsnSacCode;
+    if (isGstExempt !== undefined) dataToUpdate.isGstExempt = isGstExempt;
 
     const benefit = await prisma.$transaction(async (tx) => {
       const updated = await tx.benefit.update({

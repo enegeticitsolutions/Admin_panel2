@@ -12,6 +12,10 @@ export interface AddonItem {
   addonDiscountPrice?: number;
   addonIncludedUnits?: number;
   benefitType?: { name: string; iconCode?: string };
+  taxCategory?: string;
+  gstRate?: number;
+  hsnSacCode?: string;
+  isGstExempt?: boolean;
 }
 
 interface AddonCardProps {
@@ -58,8 +62,15 @@ export const AddonCard: React.FC<AddonCardProps> = ({
             </Text>
           ) : null}
 
-          <View style={styles.unitPill}>
-            <Text style={styles.unitText}>{formattedUnits}</Text>
+          <View style={styles.pillRow}>
+            <View style={styles.unitPill}>
+              <Text style={styles.unitText}>{formattedUnits}</Text>
+            </View>
+            <View style={[styles.taxPill, (addon.isGstExempt || addon.gstRate === 0) ? styles.taxPillExempt : styles.taxPillTaxable]}>
+              <Text style={[styles.taxText, (addon.isGstExempt || addon.gstRate === 0) ? styles.taxTextExempt : styles.taxTextTaxable]}>
+                {addon.isGstExempt || addon.gstRate === 0 ? '0% GST' : `${addon.gstRate ?? 18}% GST`}
+              </Text>
+            </View>
           </View>
         </View>
 
@@ -70,6 +81,9 @@ export const AddonCard: React.FC<AddonCardProps> = ({
             )}
             <Text style={styles.price}>₹{finalPrice.toLocaleString('en-IN')}</Text>
           </View>
+          <Text style={styles.taxSubtext}>
+            {addon.isGstExempt || addon.gstRate === 0 ? 'GST Exempt' : `+${addon.gstRate ?? 18}% GST`}
+          </Text>
 
           {isStepperMode ? (
             qty === 0 ? (
@@ -168,6 +182,43 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#475569',
   },
+  pillRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 2,
+    flexWrap: 'wrap',
+  },
+  taxPill: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    borderWidth: 1,
+  },
+  taxPillExempt: {
+    backgroundColor: '#ECFDF5',
+    borderColor: '#A7F3D0',
+  },
+  taxPillTaxable: {
+    backgroundColor: '#EFF6FF',
+    borderColor: '#BFDBFE',
+  },
+  taxText: {
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  taxTextExempt: {
+    color: '#065F46',
+  },
+  taxTextTaxable: {
+    color: '#1E40AF',
+  },
+  taxSubtext: {
+    fontSize: 9,
+    fontWeight: '600',
+    color: '#64748B',
+    marginBottom: 6,
+  },
   actionCol: {
     alignItems: 'flex-end',
     justifyContent: 'center',
@@ -176,7 +227,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'baseline',
     gap: 4,
-    marginBottom: 10,
+    marginBottom: 2,
   },
   strikePrice: {
     fontSize: 12,

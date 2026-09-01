@@ -66,6 +66,10 @@ async function publishPackageVersion(tx, packageId, options = {}) {
           c.benefitId !== p.benefitId ||
           c.unitsIncluded !== p.unitsIncluded ||
           c.unitsPeriod !== p.unitsPeriod ||
+          c.allocationBasis !== p.allocationBasis ||
+          c.minSubscriptionMonths !== p.minSubscriptionMonths ||
+          c.allowRollover !== p.allowRollover ||
+          c.maxRolloverUnits !== p.maxRolloverUnits ||
           c.isUnlimited !== p.isUnlimited
         ) {
           benefitsChanged = true;
@@ -175,6 +179,10 @@ async function publishPackageVersion(tx, packageId, options = {}) {
         snapshotUnitLabel: pb.benefit?.unitLabel || 'visits',
         unitsIncluded: pb.unitsIncluded,
         unitsPeriod: pb.unitsPeriod,
+        allocationBasis: pb.allocationBasis || 'per_billing_cycle',
+        minSubscriptionMonths: pb.minSubscriptionMonths || 1,
+        allowRollover: pb.allowRollover || false,
+        maxRolloverUnits: pb.maxRolloverUnits || null,
         isUnlimited: pb.isUnlimited,
         displayOrder: pb.displayOrder,
         notes: pb.notes,

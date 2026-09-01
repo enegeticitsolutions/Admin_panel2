@@ -338,17 +338,31 @@ export interface Benefit {
   isGlobal?: boolean;
   regionIds?: string[];
   regions?: any[];
+  taxCategory?: string;
+  gstRate?: number;
+  hsnSacCode?: string;
+  isGstExempt?: boolean;
 }
 
 export interface PackageBenefit {
   benefitId: string;
-  monthlyUnits: number;
+  monthlyUnits?: number;
+  unitsIncluded?: number;
+  unitsPeriod?: 'monthly' | 'yearly' | 'one_time' | 'unlimited' | string;
+  allocationBasis?: 'per_billing_cycle' | 'per_subscription_term' | 'min_tenure_required' | string;
+  minSubscriptionMonths?: number;
+  allowRollover?: boolean;
+  maxRolloverUnits?: number;
+  isUnlimited?: boolean;
+  benefit?: Benefit;
 }
 
 export interface SubscriptionPackage {
   id: string;
   name: string;
+  description?: string;
   benefits: PackageBenefit[];
+  packageBenefits?: PackageBenefit[];
   duration?: number;
   totalCost: number;
   basePrice?: number;
@@ -365,6 +379,8 @@ export interface SubscriptionPackage {
   activeFrom: string;
   activeTo: string;
   isGlobal?: boolean;
+  isPopular?: boolean;
+  isCompared?: boolean;
   createdBy: string;
   createdAt: string;
   regionIds?: string[];

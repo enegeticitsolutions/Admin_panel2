@@ -126,6 +126,10 @@ async function publishPackageVersion(tx: any, packageId: string): Promise<any> {
         snapshotUnitLabel: pb.benefit?.unitLabel || 'visits',
         unitsIncluded: pb.unitsIncluded,
         unitsPeriod: pb.unitsPeriod,
+        allocationBasis: pb.allocationBasis || 'per_billing_cycle',
+        minSubscriptionMonths: pb.minSubscriptionMonths || 1,
+        allowRollover: pb.allowRollover || false,
+        maxRolloverUnits: pb.maxRolloverUnits || null,
         isUnlimited: pb.isUnlimited,
         displayOrder: pb.displayOrder,
         notes: pb.notes,
@@ -519,20 +523,40 @@ export const purchaseSubscription = async (
       data: { role: 'subscriber' },
     });
 
-    // 2c. Initialize snapshot benefit balances scaled by durationMonths
+    // 2c. Initialize snapshot benefit balances with frequency & tenure awareness
     if (versionObj.versionBenefits && versionObj.versionBenefits.length > 0) {
       await tx.subscriptionBenefitBalance.createMany({
-        data: versionObj.versionBenefits.map((vb: any) => ({
-          id: generateUUID(),
-          subscriptionId: subscription.id,
-          benefitId: vb.benefitId,
-          snapshotBenefitName: vb.snapshotName,
-          snapshotUnitLabel: vb.snapshotUnitLabel,
-          totalUnits: vb.unitsIncluded * months,
-          availableUnits: vb.unitsIncluded * months,
-          usedUnits: 0,
-          unit: vb.snapshotUnitLabel ? normalizeUnit(vb.snapshotUnitLabel) : 'visits',
-        })),
+        data: versionObj.versionBenefits.map((vb: any) => {
+          let unitsToGrant = 0;
+          if (vb.isUnlimited) {
+            unitsToGrant = 999999;
+          } else if (vb.unitsPeriod === 'yearly') {
+            const minReq = vb.minSubscriptionMonths || 1;
+            if (months >= minReq) {
+              const years = Math.max(1, Math.floor(months / 12));
+              unitsToGrant = vb.unitsIncluded * years;
+            } else {
+              unitsToGrant = 0;
+            }
+          } else if (vb.unitsPeriod === 'one_time') {
+            unitsToGrant = vb.unitsIncluded;
+          } else {
+            // Default monthly benefit: scales by months purchased
+            unitsToGrant = vb.unitsIncluded * months;
+          }
+
+          return {
+            id: generateUUID(),
+            subscriptionId: subscription.id,
+            benefitId: vb.benefitId,
+            snapshotBenefitName: vb.snapshotName,
+            snapshotUnitLabel: vb.snapshotUnitLabel,
+            totalUnits: unitsToGrant,
+            availableUnits: unitsToGrant,
+            usedUnits: 0,
+            unit: vb.snapshotUnitLabel ? normalizeUnit(vb.snapshotUnitLabel) : 'visits',
+          };
+        }),
         skipDuplicates: true,
       });
     }

@@ -596,6 +596,7 @@ model Benefit {
   hsnSacCode         String?
   gstRate            Float?
   isGstExempt        Boolean @default(false)
+  taxCategory        String? @default("GST_18")
 
   createdAt              DateTime                     @default(now())
   updatedAt              DateTime                     @updatedAt
@@ -613,21 +614,23 @@ model Benefit {
 }
 
 model PackageBenefit {
-  id               String              @id @default(uuid())
-  packageId        String
-  benefitId        String
-  unitsIncluded    Int                 @default(1)
-  unitsPeriod      String              @default("monthly")
-  unit             String?
-  isUnlimited      Boolean             @default(false)
-  allowRollover    Boolean             @default(false)
-  maxRolloverUnits Int?
-  displayOrder     Int                 @default(0)
-  notes            String?
-  createdAt        DateTime            @default(now())
-  updatedAt        DateTime            @updatedAt
-  benefit          Benefit             @relation(fields: [benefitId], references: [id])
-  package          SubscriptionPackage @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  id                    String              @id @default(uuid())
+  packageId             String
+  benefitId             String
+  unitsIncluded         Int                 @default(1)
+  unitsPeriod           String              @default("monthly")
+  allocationBasis       String?             @default("per_billing_cycle") // "per_billing_cycle" | "per_subscription_term" | "min_tenure_required"
+  minSubscriptionMonths Int?                @default(1) // Required subscription duration (e.g. 12 for annual perks)
+  unit                  String?
+  isUnlimited           Boolean             @default(false)
+  allowRollover         Boolean             @default(false)
+  maxRolloverUnits      Int?
+  displayOrder          Int                 @default(0)
+  notes                 String?
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+  benefit               Benefit             @relation(fields: [benefitId], references: [id])
+  package               SubscriptionPackage @relation(fields: [packageId], references: [id], onDelete: Cascade)
 
   @@unique([packageId, benefitId])
   @@map("package_benefits")
@@ -698,20 +701,24 @@ model PackageVersion {
 }
 
 model PackageVersionBenefit {
-  id                String                       @id @default(uuid())
-  packageVersionId  String
-  benefitId         String // FK to live Benefit (for deduction lookup)
-  snapshotName      String // Snapshot of Benefit.name at version creation
-  snapshotUnitLabel String? // Snapshot of Benefit.unitLabel at version creation
-  unitsIncluded     Int                          @default(1)
-  unitsPeriod       String                       @default("monthly")
-  isUnlimited       Boolean                      @default(false)
-  displayOrder      Int                          @default(0)
-  notes             String?
-  createdAt         DateTime                     @default(now())
-  packageVersion    PackageVersion               @relation(fields: [packageVersionId], references: [id], onDelete: Cascade)
-  benefit           Benefit                      @relation(fields: [benefitId], references: [id])
-  benefitBalances   SubscriptionBenefitBalance[]
+  id                    String                       @id @default(uuid())
+  packageVersionId      String
+  benefitId             String // FK to live Benefit (for deduction lookup)
+  snapshotName          String // Snapshot of Benefit.name at version creation
+  snapshotUnitLabel     String? // Snapshot of Benefit.unitLabel at version creation
+  unitsIncluded         Int                          @default(1)
+  unitsPeriod           String                       @default("monthly")
+  allocationBasis       String?                      @default("per_billing_cycle")
+  minSubscriptionMonths Int?                         @default(1)
+  isUnlimited           Boolean                      @default(false)
+  allowRollover         Boolean                      @default(false)
+  maxRolloverUnits      Int?
+  displayOrder          Int                          @default(0)
+  notes                 String?
+  createdAt             DateTime                     @default(now())
+  packageVersion        PackageVersion               @relation(fields: [packageVersionId], references: [id], onDelete: Cascade)
+  benefit               Benefit                      @relation(fields: [benefitId], references: [id])
+  benefitBalances       SubscriptionBenefitBalance[]
 
   @@unique([packageVersionId, benefitId])
   @@map("package_version_benefits")
@@ -2357,3 +2364,19 @@ model InvoiceCounter {
 
   @@map("invoice_counters")
 }
+
+model TaxCategory {
+  id          String   @id @default(uuid())
+  code        String   @unique
+  name        String
+  gstRate     Float    @default(18.0)
+  hsnSacCode  String?
+  isExempt    Boolean  @default(false)
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("tax_categories")
+}
+
