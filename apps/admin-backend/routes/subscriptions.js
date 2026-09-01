@@ -16,6 +16,19 @@ function normalizeUnit(unitLabel) {
   return clean + 's';
 }
 
+function formatUnitType(unitLabel, units = 1) {
+  if (!unitLabel) return units === 1 ? 'Unit' : 'Units';
+  const clean = String(unitLabel).replace(/^per\s+/i, '').trim().toLowerCase();
+  if (clean === 'hour') return units === 1 ? 'Hour' : 'Hours';
+  if (clean === 'visit') return units === 1 ? 'Visit' : 'Visits';
+  if (clean === 'session') return units === 1 ? 'Session' : 'Sessions';
+  if (clean === 'test') return units === 1 ? 'Test' : 'Tests';
+  if (clean === 'day') return units === 1 ? 'Day' : 'Days';
+  if (clean === 'month') return units === 1 ? 'Month' : 'Months';
+  const cap = clean.charAt(0).toUpperCase() + clean.slice(1);
+  return (units > 1 && !cap.endsWith('s')) ? `${cap}s` : cap;
+}
+
 // ── GET /api/subscriptions/check-phone ────────────────────────────────────────
 // Pre-check if a phone already has a user record + their beneficiaries
 router.get('/check-phone', async (req, res) => {
@@ -68,6 +81,239 @@ router.get('/check-phone', async (req, res) => {
       },
     });
   } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ── POST /api/subscriptions/calculate-price ──────────────────────────────────
+// Authoritative benefit-level pricing & GST calculation engine
+// Takes each benefit's exact GST % from the database and computes itemized GST
+// matching Excel spreadsheet model:
+//   Benefit Price + (Benefit Price * GST%) = Benefit Final Price
+//   Package Gross Price = Sum of Benefit Final Prices
+//   Final Payable = Package Gross Price - Duration Discount
+// ─────────────────────────────────────────────────────────────────────────────
+router.post('/calculate-price', async (req, res) => {
+  try {
+    const { packageId, duration = 'monthly', addons = [], customerState = 'Haryana' } = req.body;
+
+    if (!packageId) {
+      return res.status(400).json({ success: false, message: 'packageId is required' });
+    }
+
+    const pkg = await prisma.subscriptionPackage.findUnique({
+      where: { id: packageId },
+      include: {
+        packageBenefits: {
+          orderBy: { displayOrder: 'asc' },
+          include: {
+            benefit: true,
+          },
+        },
+      },
+    });
+
+    if (!pkg) {
+      return res.status(404).json({ success: false, message: 'Package not found' });
+    }
+
+    const DURATION_MONTHS_MAP = {
+      monthly: 1,
+      three_months: 3,
+      six_months: 6,
+      annual: 12,
+    };
+    const DURATION_DISCOUNT_PERCENT_MAP = {
+      monthly: 0,
+      three_months: Number(pkg.discountThreeMonths ?? 5),
+      six_months: Number(pkg.discountSixMonths ?? 10),
+      annual: Number(pkg.discountAnnual ?? 20),
+    };
+
+    const months = DURATION_MONTHS_MAP[duration] || 1;
+    const discountPercent = DURATION_DISCOUNT_PERCENT_MAP[duration] || 0;
+    const baseMonthlyRate = Number(pkg.basePrice) || 0;
+
+    // 1. Calculate each benefit's base price and GST using its database GST %
+    const packageBenefits = pkg.packageBenefits || [];
+    let catalogTotal = 0;
+    packageBenefits.forEach((pb) => {
+      const uCost = Number(pb.benefit?.unitCost) || 0;
+      const uCount = pb.unitsIncluded || 1;
+      catalogTotal += uCost * uCount;
+    });
+
+    const benefitsBreakdown = [];
+    let totalPackageBase = 0;
+    let totalPackageTax = 0;
+
+    if (packageBenefits.length > 0) {
+      packageBenefits.forEach((pb) => {
+        const b = pb.benefit;
+        if (!b) return;
+
+        const uCost = Number(b.unitCost) || 0;
+        const uCount = pb.unitsIncluded || 1;
+        const lineCatalog = uCost * uCount;
+
+        // Proportional share of the package monthly base rate
+        let benefitMonthlyBase = 0;
+        if (catalogTotal > 0) {
+          benefitMonthlyBase = (baseMonthlyRate * lineCatalog) / catalogTotal;
+        } else {
+          benefitMonthlyBase = baseMonthlyRate / packageBenefits.length;
+        }
+
+        const benefitTermBase = Math.round(benefitMonthlyBase * months * 100) / 100;
+        const gstRate = b.isGstExempt ? 0 : Number(b.gstRate !== null && b.gstRate !== undefined ? b.gstRate : 18);
+        const gstAmount = Math.round((benefitTermBase * gstRate) / 100 * 100) / 100;
+        const finalPrice = Math.round((benefitTermBase + gstAmount) * 100) / 100;
+
+        totalPackageBase += benefitTermBase;
+        totalPackageTax += gstAmount;
+
+        const count = uCount * months;
+        const unitType = formatUnitType(b.unitLabel, count);
+
+        benefitsBreakdown.push({
+          benefitId: b.id,
+          name: b.name,
+          units: count,
+          unitLabel: b.unitLabel || 'units',
+          unitType,
+          unitDisplay: `Units: ${count} ${unitType}`,
+          price: benefitTermBase,
+          gstRate,
+          gstAmount,
+          finalPrice,
+          isGstExempt: b.isGstExempt || false,
+          hsnSacCode: b.hsnSacCode || '',
+        });
+      });
+    } else {
+      const gstRate = Number(pkg.gstRate ?? 18);
+      const benefitTermBase = Math.round(baseMonthlyRate * months * 100) / 100;
+      const gstAmount = Math.round((benefitTermBase * gstRate) / 100 * 100) / 100;
+      const finalPrice = benefitTermBase + gstAmount;
+
+      totalPackageBase = benefitTermBase;
+      totalPackageTax = gstAmount;
+
+      benefitsBreakdown.push({
+        name: pkg.name,
+        units: 1,
+        unitLabel: 'package',
+        unitType: 'Package',
+        unitDisplay: 'Units: 1 Package',
+        price: benefitTermBase,
+        gstRate,
+        gstAmount,
+        finalPrice,
+        isGstExempt: false,
+        hsnSacCode: '998399',
+      });
+    }
+
+    totalPackageBase = Math.round(totalPackageBase * 100) / 100;
+    totalPackageTax = Math.round(totalPackageTax * 100) / 100;
+    const packageGrossPrice = Math.round((totalPackageBase + totalPackageTax) * 100) / 100;
+
+    // Multi-month duration discount applied on package gross price
+    const packageDiscount = Math.round((packageGrossPrice * discountPercent) / 100 * 100) / 100;
+    const packageFinalPayable = Math.round((packageGrossPrice - packageDiscount) * 100) / 100;
+
+    // 2. Add-ons breakdown with their own database-configured GST rates
+    let addonsBasePrice = 0;
+    let addonsTax = 0;
+    const addonsBreakdown = [];
+
+    if (Array.isArray(addons) && addons.length > 0) {
+      for (const item of addons) {
+        const bId = item.benefitId || item.benefit?.id;
+        if (!bId) continue;
+        const benefit = await prisma.benefit.findUnique({
+          where: { id: bId },
+          select: { id: true, name: true, unitLabel: true, addonPrice: true, addonDiscountPrice: true, gstRate: true, isGstExempt: true, hsnSacCode: true }
+        });
+        if (benefit) {
+          const q = Math.max(1, Number(item.units) || 1);
+          const unitPrice = benefit.addonDiscountPrice ?? benefit.addonPrice ?? 0;
+          const lineTotal = Number(item.totalAmount) || (unitPrice * q);
+          const rate = benefit.isGstExempt ? 0 : Number(benefit.gstRate !== null && benefit.gstRate !== undefined ? benefit.gstRate : 18);
+          const lineTax = Math.round((lineTotal * rate) / 100 * 100) / 100;
+          const finalPrice = Math.round((lineTotal + lineTax) * 100) / 100;
+
+          addonsBasePrice += lineTotal;
+          addonsTax += lineTax;
+
+          const unitType = formatUnitType(benefit.unitLabel, q);
+
+          addonsBreakdown.push({
+            benefitId: benefit.id,
+            name: benefit.name,
+            units: q,
+            unitLabel: benefit.unitLabel || 'units',
+            unitType,
+            unitDisplay: `Units: ${q} ${unitType}`,
+            price: lineTotal,
+            gstRate: rate,
+            gstAmount: lineTax,
+            finalPrice,
+            isGstExempt: benefit.isGstExempt || false,
+            hsnSacCode: benefit.hsnSacCode || '',
+          });
+        }
+      }
+    }
+
+    addonsBasePrice = Math.round(addonsBasePrice * 100) / 100;
+    addonsTax = Math.round(addonsTax * 100) / 100;
+    const addonsFinalTotal = Math.round((addonsBasePrice + addonsTax) * 100) / 100;
+
+    // 3. Overall Totals
+    const totalBaseAmount = Math.round((totalPackageBase + addonsBasePrice) * 100) / 100;
+    const totalTaxAmount = Math.round((totalPackageTax + addonsTax) * 100) / 100;
+    const finalTotalAmount = Math.round((packageFinalPayable + addonsFinalTotal) * 100) / 100;
+
+    // POS Split (Haryana vs Inter-state)
+    const companyState = 'Haryana';
+    const isInterState = (customerState || '').trim().toLowerCase() !== companyState.toLowerCase();
+    const cgstAmount = isInterState ? 0 : Math.round((totalTaxAmount / 2) * 100) / 100;
+    const sgstAmount = isInterState ? 0 : Math.round((totalTaxAmount / 2) * 100) / 100;
+    const igstAmount = isInterState ? totalTaxAmount : 0;
+
+    return res.json({
+      success: true,
+      data: {
+        packageId: pkg.id,
+        packageName: pkg.name,
+        duration,
+        months,
+        baseMonthlyRate,
+        benefitsBreakdown,
+        addonsBreakdown,
+        totalPackageBase,
+        totalPackageTax,
+        packageGrossPrice,
+        discountPercent,
+        packageDiscount,
+        packageFinalPayable,
+        addonsBasePrice,
+        addonsTax,
+        addonsFinalTotal,
+        totalBaseAmount,
+        totalTaxAmount,
+        isInterState,
+        customerState,
+        taxLabel: isInterState ? 'IGST' : 'CGST + SGST',
+        cgstAmount,
+        sgstAmount,
+        igstAmount,
+        finalTotalAmount,
+      }
+    });
+  } catch (err) {
+    console.error('POST /subscriptions/calculate-price error:', err);
     res.status(500).json({ success: false, message: err.message });
   }
 });

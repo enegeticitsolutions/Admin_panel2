@@ -54,11 +54,7 @@ const STEPS: { id: Step; label: string; icon: React.ElementType }[] = [
   { id: 'confirm', label: 'Confirm', icon: Check },
 ];
 
-const DURATION_OPTIONS = [
-  { value: 'monthly', label: 'Monthly', months: 1 },
-  { value: 'six_months', label: '6 Months', months: 6 },
-  { value: 'annual', label: 'Annual (12 Months)', months: 12 },
-];
+import { DURATION_OPTIONS, calculateWizardPricing } from '../utils/pricing';
 
 const PAYMENT_METHODS = ['Cash', 'Bank Transfer', 'Cheque', 'UPI', 'NEFT/RTGS', 'Other'];
 
@@ -177,6 +173,10 @@ export default function EnrollmentWizardPage() {
   // ── Add-on Benefits State
   const [selectedAddons, setSelectedAddons] = useState<any[]>([]);
   const [isAddonModalOpen, setIsAddonModalOpen] = useState(false);
+
+  // ── Authoritative Server Pricing
+  const [serverPricing, setServerPricing] = useState<any>(null);
+  const [calculatingPrice, setCalculatingPrice] = useState(false);
 
   // ── Add Medicine Dialog State
   const [isMedDialogOpen, setIsMedDialogOpen] = useState(false);
@@ -355,13 +355,45 @@ export default function EnrollmentWizardPage() {
       .catch(() => console.error('Failed to load hobbies from backend, using fallback list'));
   }, []);
 
-  // Auto-set amount to package price + addons when package or addons change
+  // Authoritative server-side price & tax calculation
   useEffect(() => {
-    if (selectedPackage) {
-      const addonsSum = selectedAddons.reduce((sum, a) => sum + (a.totalAmount || 0), 0);
-      setAmountPaid(String((selectedPackage.basePrice || 0) + addonsSum));
+    if (!selectedPackage) {
+      setServerPricing(null);
+      return;
     }
-  }, [selectedPackage, selectedAddons]);
+    let isMounted = true;
+    setCalculatingPrice(true);
+    const customerState = sameAsSubscriber ? subscriberState : (beneficiaryState || subscriberState || 'Haryana');
+    subscriptionApi.calculatePrice({
+      packageId: selectedPackage.id,
+      duration,
+      addons: selectedAddons.map(a => ({
+        benefitId: a.benefit.id,
+        units: a.units,
+        totalAmount: a.totalAmount,
+      })),
+      customerState: customerState || 'Haryana',
+    })
+      .then(p => {
+        if (isMounted) {
+          setServerPricing(p);
+          setAmountPaid(String(p.finalTotalAmount));
+        }
+      })
+      .catch(err => {
+        console.error('Server pricing error:', err);
+        const local = calculateWizardPricing(selectedPackage, duration, selectedAddons, customerState);
+        if (isMounted) {
+          setServerPricing(local);
+          setAmountPaid(String(local.finalTotalAmount));
+        }
+      })
+      .finally(() => {
+        if (isMounted) setCalculatingPrice(false);
+      });
+
+    return () => { isMounted = false; };
+  }, [selectedPackage, duration, selectedAddons, beneficiaryState, subscriberState, sameAsSubscriber]);
 
   // Phone debounce check
   useEffect(() => {
@@ -513,10 +545,13 @@ export default function EnrollmentWizardPage() {
   const canProceedPackage = !!selectedPackageId;
   const canProceedPayment = !!amountPaid && parseFloat(amountPaid) >= 0;
 
+  const pricing = serverPricing || calculateWizardPricing(selectedPackage, duration, selectedAddons, sameAsSubscriber ? subscriberState : (beneficiaryState || subscriberState));
+
   const endDate = (() => {
     if (!startDate) return '';
     const d = new Date(startDate);
-    if (duration === 'six_months') d.setMonth(d.getMonth() + 6);
+    if (duration === 'three_months') d.setMonth(d.getMonth() + 3);
+    else if (duration === 'six_months') d.setMonth(d.getMonth() + 6);
     else if (duration === 'annual') d.setFullYear(d.getFullYear() + 1);
     else d.setMonth(d.getMonth() + 1);
     return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
@@ -1632,7 +1667,7 @@ export default function EnrollmentWizardPage() {
                 <>
                   <div className="space-y-2">
                     <Label>Duration</Label>
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                       {DURATION_OPTIONS.map(d => (
                         <Button
                           key={d.value}
@@ -1728,38 +1763,126 @@ export default function EnrollmentWizardPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               {selectedPackage && (
-                <div className="bg-secondary/60 rounded-xl p-4 space-y-2 mb-2">
-                  <div className="flex justify-between items-center">
+                <div className="bg-secondary/40 rounded-xl p-4 space-y-3 mb-2 border border-slate-200">
+                  <div className="flex justify-between items-start">
                     <div>
-                      <p className="font-semibold">{selectedPackage.name}</p>
-                      <p className="text-xs text-muted-foreground capitalize">{duration.replace('_', ' ')} plan · starts {startDate}</p>
+                      <p className="font-bold text-base text-slate-900">{pricing.packageName || selectedPackage.name}</p>
+                      <p className="text-xs text-muted-foreground capitalize">
+                        {duration.replace('_', ' ')} plan ({pricing.months} mo) · starts {startDate}
+                      </p>
                     </div>
-                    <div className="text-right">
-                      {selectedPackage.mrp > selectedPackage.basePrice && <p className="text-xs line-through text-muted-foreground">₹{selectedPackage.mrp}</p>}
-                      <p className="text-lg font-bold text-primary">₹{selectedPackage.basePrice}</p>
-                    </div>
+                    {calculatingPrice && (
+                      <span className="text-xs text-muted-foreground flex items-center gap-1 bg-amber-50 text-amber-700 px-2 py-1 rounded border border-amber-200 font-medium">
+                        <Loader2 className="w-3 h-3 animate-spin" /> Calculating benefit taxes...
+                      </span>
+                    )}
                   </div>
 
-                  {selectedAddons.length > 0 && (
-                    <div className="border-t border-gray-200/60 pt-2 space-y-1">
-                      {selectedAddons.map((ao, i) => (
-                        <div key={i} className="flex justify-between text-xs text-gray-700">
-                          <span>+ {ao.benefit.name} ({ao.units} units)</span>
-                          <span className="font-bold text-[#FF7A00]">₹{ao.totalAmount}</span>
-                        </div>
-                      ))}
+                  {/* ── Benefit-by-Benefit Price & GST Breakdown (Excel Model) ── */}
+                  {pricing.benefitsBreakdown && pricing.benefitsBreakdown.length > 0 && (
+                    <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+                      <table className="w-full text-left text-xs">
+                        <thead className="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200">
+                          <tr>
+                            <th className="py-2.5 px-3">Benefit Name</th>
+                            <th className="py-2.5 px-3 text-right">Price</th>
+                            <th className="py-2.5 px-3 text-center">GST %</th>
+                            <th className="py-2.5 px-3 text-right">GST Amount</th>
+                            <th className="py-2.5 px-3 text-right font-bold">Final Price</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 text-slate-800">
+                          {pricing.benefitsBreakdown.map((b: any, idx: number) => (
+                            <tr key={idx} className="hover:bg-slate-50/50">
+                              <td className="py-2 px-3">
+                                <span className="font-semibold text-slate-900">{b.name}</span>
+                                {b.units > 0 && (
+                                  <span className="text-[11px] text-muted-foreground ml-1.5 font-normal">
+                                    ({b.unitDisplay || `Units: ${b.units} ${b.unitType || b.unitLabel}`})
+                                  </span>
+                                )}
+                              </td>
+                              <td className="py-2 px-3 text-right font-mono">₹{b.price?.toLocaleString('en-IN')}</td>
+                              <td className="py-2 px-3 text-center">
+                                <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                                  b.isGstExempt || b.gstRate === 0
+                                    ? 'bg-emerald-100 text-emerald-800'
+                                    : 'bg-blue-50 text-blue-700 border border-blue-200'
+                                }`}>
+                                  {b.isGstExempt ? '0% (Exempt)' : `${b.gstRate}%`}
+                                </span>
+                              </td>
+                              <td className="py-2 px-3 text-right font-mono text-blue-900">
+                                ₹{b.gstAmount?.toLocaleString('en-IN')}
+                              </td>
+                              <td className="py-2 px-3 text-right font-mono font-bold text-slate-900">
+                                ₹{b.finalPrice?.toLocaleString('en-IN')}
+                              </td>
+                            </tr>
+                          ))}
+
+                          {/* Addons if any */}
+                          {pricing.addonsBreakdown && pricing.addonsBreakdown.length > 0 && (
+                            <>
+                              <tr className="bg-orange-50/50 font-semibold border-t border-orange-200">
+                                <td colSpan={5} className="py-1 px-3 text-[10px] uppercase tracking-wider text-[#FF7A00]">
+                                  Selected Add-on Benefits
+                                </td>
+                              </tr>
+                              {pricing.addonsBreakdown.map((ao: any, idx: number) => (
+                                <tr key={`addon-${idx}`} className="bg-orange-50/20 hover:bg-orange-50/40">
+                                  <td className="py-2 px-3 font-medium text-orange-900">
+                                    + {ao.name} ({ao.units} {ao.unitLabel})
+                                  </td>
+                                  <td className="py-2 px-3 text-right font-mono">₹{ao.price?.toLocaleString('en-IN')}</td>
+                                  <td className="py-2 px-3 text-center">
+                                    <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold bg-orange-100 text-orange-800 border border-orange-200">
+                                      {ao.isGstExempt ? '0%' : `${ao.gstRate}%`}
+                                    </span>
+                                  </td>
+                                  <td className="py-2 px-3 text-right font-mono text-orange-900">₹{ao.gstAmount?.toLocaleString('en-IN')}</td>
+                                  <td className="py-2 px-3 text-right font-mono font-bold text-orange-950">₹{ao.finalPrice?.toLocaleString('en-IN')}</td>
+                                </tr>
+                              ))}
+                            </>
+                          )}
+                        </tbody>
+                        <tfoot className="bg-slate-50/90 font-medium border-t-2 border-slate-300 text-slate-800">
+                          <tr>
+                            <td colSpan={4} className="py-2 px-3 text-slate-700 font-semibold">
+                              Package Gross Price (Sum of Benefit Final Prices)
+                            </td>
+                            <td className="py-2 px-3 text-right font-mono font-bold text-slate-950">
+                              ₹{(pricing.packageGrossPrice + (pricing.addonsFinalTotal || 0))?.toLocaleString('en-IN')}
+                            </td>
+                          </tr>
+                          {pricing.discountPercent > 0 && (
+                            <tr className="text-emerald-700 bg-emerald-50/30">
+                              <td colSpan={4} className="py-1.5 px-3">
+                                Tenure Discount ({pricing.discountPercent}% off for {pricing.months} months)
+                              </td>
+                              <td className="py-1.5 px-3 text-right font-mono font-bold">
+                                - ₹{pricing.packageDiscount?.toLocaleString('en-IN')}
+                              </td>
+                            </tr>
+                          )}
+                          <tr className="border-t-2 border-slate-300 bg-emerald-50/80 font-bold text-emerald-950 text-sm">
+                            <td colSpan={4} className="py-2.5 px-3">
+                              Final Payable Total (Sum after discount)
+                            </td>
+                            <td className="py-2.5 px-3 text-right font-mono text-lg text-emerald-700">
+                              ₹{pricing.finalTotalAmount?.toLocaleString('en-IN')}
+                            </td>
+                          </tr>
+                        </tfoot>
+                      </table>
                     </div>
                   )}
-
-                  <div className="border-t border-gray-200 pt-2 flex justify-between items-center">
-                    <span className="text-xs font-bold uppercase text-gray-600">Total Order Amount</span>
-                    <span className="text-xl font-black text-green-700">₹{amountPaid}</span>
-                  </div>
                 </div>
               )}
 
               <PaymentMethodSelector
-                amount={parseFloat(amountPaid) || selectedPackage?.basePrice || 4999}
+                amount={parseFloat(amountPaid) || pricing.finalTotalAmount || 4999}
                 subscriberName={subscriberName || 'Subscriber'}
                 subscriberPhone={subscriberPhone || ''}
                 subscriberEmail={subscriberEmail || ''}
@@ -1788,9 +1911,9 @@ export default function EnrollmentWizardPage() {
                       subscriberId: existingSubscriberId || '',
                       beneficiaryId: '',
                       subscriptionId: '',
-                      packageType: selectedPackage?.type || 'silver',
+                      packageType: selectedPackage?.type || selectedPackage?.name || 'gold',
                       packageName: `${selectedPackage?.name || 'Care Package'}${selectedAddons.length > 0 ? ` + ${selectedAddons.length} Add-ons` : ''}`,
-                      amount: parseFloat(amountPaid) || selectedPackage?.basePrice || 4999,
+                      amount: parseFloat(amountPaid) || pricing.finalTotalAmount || 4999,
                       subscriberPhone,
                       subscriberEmail,
                       subscriberName,

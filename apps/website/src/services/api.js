@@ -209,6 +209,32 @@ export const validateCouponCode = async (token, couponCode, packageId, amount) =
 };
 
 /**
+ * 6a. Calculate Authoritative Benefit-level Pricing & GST Breakdown
+ * Endpoint: POST /api/subscriber/subscriptions/checkout/preview
+ */
+export const fetchCheckoutPreview = async (token, { packageId, couponCode, durationMonths = 1, selectedAddons = [] }) => {
+  const headers = {};
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+  const response = await secureFetch(`${API_BASE}/subscriber/subscriptions/checkout/preview`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      packageId,
+      couponCode: couponCode || undefined,
+      durationMonths: Number(durationMonths) || 1,
+      selectedAddons,
+    }),
+  });
+  const data = await response.json();
+  if (!response.ok || !data.success) {
+    throw new Error(data.message || 'Failed to calculate checkout pricing.');
+  }
+  return data.data;
+};
+
+/**
  * 6b. Create Razorpay Order
  * Endpoint: POST /api/subscriber/subscriptions/create-order
  */

@@ -1,6 +1,6 @@
 import { Router, Request, Response, RequestHandler } from 'express';
 import rateLimit from 'express-rate-limit';
-import { authenticate, AuthRequest } from '../shared/deps';
+import { authenticate, optionalAuthenticate, AuthRequest } from '../shared/deps';
 import * as subscriptionService from '../../services/subscriber/subscription_service';
 import { validateCoupon } from '../../services/coupon_service';
 import prisma from '../../core/database';
@@ -22,28 +22,48 @@ const paymentLimiter = rateLimit({
 });
 
 // ─── GST rate used everywhere in checkout (server-side source of truth) ───────
-const GST_RATE = 0.18; // 18%
+const GST_RATE = 0.18; // 18% fallback
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Helper: Calculate multi-month price for a package using its discount tiers
+// Helper to resolve multi-month package price
 // ─────────────────────────────────────────────────────────────────────────────
-function getMultiMonthPackagePrice(pkg: any, monthlyBase: number, durationMonths: number): number {
-  if (durationMonths === 3) {
-    const disc = pkg.discountThreeMonths ?? 5;
-    return pkg.priceThreeMonths ? pkg.priceThreeMonths : Math.round(monthlyBase * 3 * (1 - disc / 100));
-  } else if (durationMonths === 6) {
-    const disc = pkg.discountSixMonths ?? 10;
-    return pkg.priceSixMonths ? pkg.priceSixMonths : Math.round(monthlyBase * 6 * (1 - disc / 100));
-  } else if (durationMonths === 12) {
-    const disc = pkg.discountAnnual ?? 20;
-    return pkg.priceTwelveMonths ? pkg.priceTwelveMonths : Math.round(monthlyBase * 12 * (1 - disc / 100));
+function getMultiMonthPackagePrice(pkg: any, monthlyBase: number, months: number): number {
+  if (months === 3) {
+    if (pkg.priceThreeMonths) return Number(pkg.priceThreeMonths);
+    const disc = Number(pkg.discountThreeMonths ?? 5);
+    return Math.round(monthlyBase * 3 * (1 - disc / 100));
+  }
+  if (months === 6) {
+    if (pkg.priceSixMonths) return Number(pkg.priceSixMonths);
+    const disc = Number(pkg.discountSixMonths ?? 10);
+    return Math.round(monthlyBase * 6 * (1 - disc / 100));
+  }
+  if (months >= 12) {
+    if (pkg.priceTwelveMonths) return Number(pkg.priceTwelveMonths);
+    const disc = Number(pkg.discountAnnual ?? 20);
+    return Math.round(monthlyBase * 12 * (1 - disc / 100));
   }
   // Default: 1 month = monthly base
   return monthlyBase;
 }
 
+function formatUnitType(unitLabel: string | null | undefined, units: number = 1): string {
+  if (!unitLabel) return units === 1 ? 'Unit' : 'Units';
+  const clean = String(unitLabel).replace(/^per\s+/i, '').trim().toLowerCase();
+  if (clean === 'hour') return units === 1 ? 'Hour' : 'Hours';
+  if (clean === 'visit') return units === 1 ? 'Visit' : 'Visits';
+  if (clean === 'session') return units === 1 ? 'Session' : 'Sessions';
+  if (clean === 'test') return units === 1 ? 'Test' : 'Tests';
+  if (clean === 'day') return units === 1 ? 'Day' : 'Days';
+  if (clean === 'month') return units === 1 ? 'Month' : 'Months';
+  const cap = clean.charAt(0).toUpperCase() + clean.slice(1);
+  return (units > 1 && !cap.endsWith('s')) ? `${cap}s` : cap;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
-// Helper to calculate exact pricing (used by both preview and create-order)
+// Helper to calculate exact pricing using benefit-level database GST rates
+// (Excel Spreadsheet model: Benefit Price + Benefit GST = Final Price,
+// Package Gross Total = sum of benefit final prices, Final Payable = Gross - Discount)
 // ─────────────────────────────────────────────────────────────────────────────
 async function calculatePricing(
   packageId: string, 
@@ -57,10 +77,13 @@ async function calculatePricing(
       OR: [{ id: packageId }, { type: packageId }],
       isActive: true,
     },
-    select: {
-      id: true, name: true, type: true, basePrice: true,
-      discountThreeMonths: true, discountSixMonths: true, discountAnnual: true,
-      priceThreeMonths: true, priceSixMonths: true, priceTwelveMonths: true,
+    include: {
+      packageBenefits: {
+        orderBy: { displayOrder: 'asc' },
+        include: {
+          benefit: true,
+        },
+      },
     } as any,
   });
 
@@ -69,14 +92,104 @@ async function calculatePricing(
   }
 
   const months = Math.max(1, Math.floor(Number(durationMonths) || 1));
+  const baseMonthlyRate = Number(pkg.basePrice) || 0;
 
-  // Resolve multi-month package price (with built-in duration discount)
-  const monthlyBase: number = (pkg as any).basePrice;
-  let packageBasePrice = getMultiMonthPackagePrice(pkg as any, monthlyBase, months);
-  // Duration discount embedded in the multi-month price
-  const durationDiscount = Math.round(monthlyBase * months) - packageBasePrice;
+  // Tenure / duration discount percentage
+  let durationDiscountPct = 0;
+  if (months === 3) durationDiscountPct = Number(pkg.discountThreeMonths ?? 5);
+  else if (months === 6) durationDiscountPct = Number(pkg.discountSixMonths ?? 10);
+  else if (months >= 12) durationDiscountPct = Number(pkg.discountAnnual ?? 20);
 
+  // 1. Calculate each benefit's base price and GST using its database GST %
+  const packageBenefits = pkg.packageBenefits || [];
+  let catalogTotal = 0;
+  packageBenefits.forEach((pb: any) => {
+    const uCost = Number(pb.benefit?.unitCost) || 0;
+    const uCount = pb.unitsIncluded || 1;
+    catalogTotal += uCost * uCount;
+  });
+
+  const benefitsBreakdown: any[] = [];
+  let totalPackageBase = 0;
+  let totalPackageTax = 0;
+
+  if (packageBenefits.length > 0) {
+    packageBenefits.forEach((pb: any) => {
+      const b = pb.benefit;
+      if (!b) return;
+
+      const uCost = Number(b.unitCost) || 0;
+      const uCount = pb.unitsIncluded || 1;
+      const lineCatalog = uCost * uCount;
+
+      let benefitMonthlyBase = 0;
+      if (catalogTotal > 0) {
+        benefitMonthlyBase = (baseMonthlyRate * lineCatalog) / catalogTotal;
+      } else {
+        benefitMonthlyBase = baseMonthlyRate / packageBenefits.length;
+      }
+
+      const benefitTermBase = Math.round(benefitMonthlyBase * months * 100) / 100;
+      const gstRate = b.isGstExempt ? 0 : Number(b.gstRate !== null && b.gstRate !== undefined ? b.gstRate : 18);
+      const gstAmount = Math.round((benefitTermBase * gstRate) / 100 * 100) / 100;
+      const finalPrice = Math.round((benefitTermBase + gstAmount) * 100) / 100;
+
+      totalPackageBase += benefitTermBase;
+      totalPackageTax += gstAmount;
+
+      const count = uCount * months;
+      const unitType = formatUnitType(b.unitLabel, count);
+
+      benefitsBreakdown.push({
+        benefitId: b.id,
+        name: b.name,
+        units: count,
+        unitLabel: b.unitLabel || 'units',
+        unitType,
+        unitDisplay: `Units: ${count} ${unitType}`,
+        price: benefitTermBase,
+        gstRate,
+        gstAmount,
+        finalPrice,
+        isGstExempt: b.isGstExempt || false,
+        hsnSacCode: b.hsnSacCode || '',
+      });
+    });
+  } else {
+    const gstRate = Number(pkg.gstRate ?? 18);
+    const benefitTermBase = Math.round(baseMonthlyRate * months * 100) / 100;
+    const gstAmount = Math.round((benefitTermBase * gstRate) / 100 * 100) / 100;
+    const finalPrice = benefitTermBase + gstAmount;
+
+    totalPackageBase = benefitTermBase;
+    totalPackageTax = gstAmount;
+
+    benefitsBreakdown.push({
+      name: pkg.name,
+      units: 1,
+      unitLabel: 'package',
+      unitType: 'Package',
+      unitDisplay: 'Units: 1 Package',
+      price: benefitTermBase,
+      gstRate,
+      gstAmount,
+      finalPrice,
+      isGstExempt: false,
+      hsnSacCode: '998399',
+    });
+  }
+
+  totalPackageBase = Math.round(totalPackageBase * 100) / 100;
+  totalPackageTax = Math.round(totalPackageTax * 100) / 100;
+  const packageGrossPrice = Math.round((totalPackageBase + totalPackageTax) * 100) / 100;
+
+  // Tenure / duration discount on gross price (e.g. 10% on 17400 -> 1740)
+  const durationDiscount = Math.round((packageGrossPrice * durationDiscountPct) / 100 * 100) / 100;
+  const packageFinalPayable = Math.round((packageGrossPrice - durationDiscount) * 100) / 100;
+
+  // 2. Add-ons breakdown
   let addonsTotalPrice = 0;
+  let addonsTax = 0;
   const addonsBreakdown: any[] = [];
 
   if (selectedAddons && Array.isArray(selectedAddons) && selectedAddons.length > 0) {
@@ -91,12 +204,18 @@ async function calculatePricing(
         const unitP = benefit.addonDiscountPrice ?? benefit.addonPrice;
         const itemTotal = unitP * q;
         const effectiveGstRate = benefit.isGstExempt ? 0 : (benefit.gstRate !== null && benefit.gstRate !== undefined ? benefit.gstRate : 18);
-        const itemTax = parseFloat(((itemTotal * effectiveGstRate) / 100).toFixed(2));
+        const itemTax = Math.round((itemTotal * effectiveGstRate) / 100 * 100) / 100;
         addonsTotalPrice += itemTotal;
+        addonsTax += itemTax;
+
+        const unitType = formatUnitType(benefit.unitLabel, q);
+
         addonsBreakdown.push({
           benefitId: benefit.id,
           name: benefit.name,
           unitLabel: benefit.unitLabel,
+          unitType,
+          unitDisplay: `Units: ${q} ${unitType}`,
           quantity: q,
           includedUnits: (benefit.addonIncludedUnits || 1) * q,
           unitPrice: unitP,
@@ -106,32 +225,36 @@ async function calculatePricing(
           hsnSacCode: benefit.hsnSacCode,
           isGstExempt: benefit.isGstExempt || false,
           taxAmount: itemTax,
-          totalWithTax: parseFloat((itemTotal + itemTax).toFixed(2)),
+          totalWithTax: Math.round((itemTotal + itemTax) * 100) / 100,
         });
       }
     }
   }
 
-  const basePrice: number = packageBasePrice + addonsTotalPrice;
-  let discountApplied = durationDiscount; // Start with duration discount baked in
-  let finalBase = basePrice;
+  const addonsFinalTotal = Math.round((addonsTotalPrice + addonsTax) * 100) / 100;
+  let subtotalPayable = Math.round((packageFinalPayable + addonsFinalTotal) * 100) / 100;
+
+  // 3. Coupon validation
+  let couponDiscount = 0;
   let couponValid = false;
   let couponId: string | null = null;
   let couponMessage: string | undefined;
 
   if (couponCode && couponCode.trim()) {
     const code = couponCode.trim().toUpperCase();
+    let isFirstTime = true;
+    if (userId && userId !== 'guest') {
+      const previousSubs = await prisma.subscription.count({
+        where: { subscriberId: userId }
+      });
+      isFirstTime = previousSubs === 0;
+    }
 
-    const previousSubs = await prisma.subscription.count({
-      where: { subscriberId: userId }
-    });
-    const isFirstTime = previousSubs === 0;
-
-    const validation = await validateCoupon(code, userId, (pkg as any).type, basePrice, isFirstTime);
+    const validation = await validateCoupon(code, userId || 'guest', (pkg as any).type, subtotalPayable, isFirstTime);
 
     if (validation.isValid) {
-      discountApplied += validation.discountApplied;
-      finalBase = validation.finalAmount;
+      couponDiscount = validation.discountApplied;
+      subtotalPayable = validation.finalAmount;
       couponValid = true;
       couponId = validation.couponId || null;
     } else {
@@ -139,12 +262,11 @@ async function calculatePricing(
     }
   }
 
-  const tax = parseFloat((finalBase * GST_RATE).toFixed(2));
-  const total = parseFloat((finalBase + tax).toFixed(2));
+  const total = Math.round(subtotalPayable * 100) / 100;
 
-  // Compute projected start / end dates (shown in order summary — actual dates set at activation)
+  // Dates
   const now = new Date();
-  const projectedStartDate = now.toISOString().split('T')[0]; // YYYY-MM-DD
+  const projectedStartDate = now.toISOString().split('T')[0];
   const projectedEnd = new Date(now);
   projectedEnd.setMonth(projectedEnd.getMonth() + months);
   const projectedEndDate = projectedEnd.toISOString().split('T')[0];
@@ -152,17 +274,23 @@ async function calculatePricing(
   return {
     pkg,
     durationMonths: months,
-    packageBasePrice,
+    durationDiscountPct,
+    durationDiscount,
+    packageBasePrice: totalPackageBase,
+    packageGrossPrice,
+    packageFinalPayable,
+    benefitsBreakdown,
     addonsTotalPrice,
+    addonsTax,
+    addonsFinalTotal,
     addonsBreakdown,
-    basePrice,
-    discountApplied,
-    finalBase,
-    tax,
-    total,
+    basePrice: Math.round((totalPackageBase + addonsTotalPrice) * 100) / 100,
+    totalTaxAmount: Math.round((totalPackageTax + addonsTax) * 100) / 100,
+    couponDiscount,
     couponValid,
     couponId,
     couponMessage,
+    total,
     projectedStartDate,
     projectedEndDate,
   };
@@ -170,13 +298,12 @@ async function calculatePricing(
 
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /subscriber/subscriptions/checkout/preview
-// Server-side pricing calculation — no client-side math ever trusted.
+// Server-side benefit-by-benefit pricing & GST calculation
 // Body: { packageId, couponCode?, selectedAddons?, durationMonths? }
-// Returns: { packageName, basePrice, ..., durationMonths, projectedStartDate, projectedEndDate }
 // ─────────────────────────────────────────────────────────────────────────────
-router.post('/checkout/preview', authenticate, async (req: AuthRequest, res: Response) => {
+router.post('/checkout/preview', optionalAuthenticate, async (req: AuthRequest, res: Response) => {
   try {
-    const userId = req.userId!;
+    const userId = req.userId || 'guest';
     const { packageId, couponCode, selectedAddons, durationMonths } = req.body;
 
     if (!packageId) {
@@ -184,38 +311,38 @@ router.post('/checkout/preview', authenticate, async (req: AuthRequest, res: Res
     }
 
     const months = Math.max(1, Math.floor(Number(durationMonths) || 1));
+    const pricing = await calculatePricing(packageId, couponCode, userId, selectedAddons, months);
 
-    try {
-      const pricing = await calculatePricing(packageId, couponCode, userId, selectedAddons, months);
-      
-      return res.json({
-        success: true,
-        data: {
-          packageId: pricing.pkg.id,
-          packageName: pricing.pkg.name,
-          packageBasePrice: pricing.packageBasePrice,
-          addonsTotalPrice: pricing.addonsTotalPrice,
-          addonsBreakdown: pricing.addonsBreakdown,
-          basePrice: pricing.basePrice,
-          gstRate: GST_RATE,
-          discountApplied: pricing.discountApplied,
-          tax: pricing.tax,
-          total: pricing.total,
-          couponValid: pricing.couponValid,
-          couponId: pricing.couponId,
-          couponMessage: pricing.couponMessage,
-          // Duration info for order summary display
-          durationMonths: pricing.durationMonths,
-          projectedStartDate: pricing.projectedStartDate,
-          projectedEndDate: pricing.projectedEndDate,
-        },
-      });
-    } catch (err: any) {
-      return res.status(404).json({ success: false, message: err.message });
-    }
+    return res.json({
+      success: true,
+      data: {
+        packageId: pricing.pkg.id,
+        packageName: pricing.pkg.name,
+        durationMonths: pricing.durationMonths,
+        durationDiscountPct: pricing.durationDiscountPct,
+        durationDiscount: pricing.durationDiscount,
+        packageBasePrice: pricing.packageBasePrice,
+        packageGrossPrice: pricing.packageGrossPrice,
+        packageFinalPayable: pricing.packageFinalPayable,
+        benefitsBreakdown: pricing.benefitsBreakdown,
+        addonsTotalPrice: pricing.addonsTotalPrice,
+        addonsTax: pricing.addonsTax,
+        addonsFinalTotal: pricing.addonsFinalTotal,
+        addonsBreakdown: pricing.addonsBreakdown,
+        basePrice: pricing.basePrice,
+        totalTaxAmount: pricing.totalTaxAmount,
+        couponDiscount: pricing.couponDiscount,
+        couponValid: pricing.couponValid,
+        couponId: pricing.couponId,
+        couponMessage: pricing.couponMessage,
+        total: pricing.total,
+        projectedStartDate: pricing.projectedStartDate,
+        projectedEndDate: pricing.projectedEndDate,
+      },
+    });
   } catch (error: any) {
     console.error('[Checkout Preview Error]:', error);
-    res.status(500).json({ success: false, message: 'Failed to calculate checkout pricing' });
+    res.status(500).json({ success: false, message: error.message || 'Failed to calculate checkout pricing' });
   }
 });
 

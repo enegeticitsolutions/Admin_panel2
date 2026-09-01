@@ -28,6 +28,21 @@ export const authenticate = (req: Request, res: Response, next: NextFunction): v
   next();
 };
 
+export const optionalAuthenticate = (req: Request, res: Response, next: NextFunction): void => {
+  const authReq = req as AuthRequest;
+  const authHeader = authReq.headers.authorization;
+
+  if (authHeader?.startsWith('Bearer ')) {
+    const token = authHeader.split(' ')[1];
+    const payload = decodeToken(token);
+    if (payload) {
+      authReq.userId = payload.sub;
+      authReq.userRole = payload.role;
+    }
+  }
+  next();
+};
+
 export const validate = (schema: { validate: Function }) => {
   return (req: Request, res: Response, next: NextFunction): void => {
     const { error } = schema.validate(req.body, { abortEarly: false });

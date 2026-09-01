@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { validateCouponCode, createRazorpayOrder, purchaseSubscription } from "../services/api";
+import { validateCouponCode, createRazorpayOrder, purchaseSubscription, fetchCheckoutPreview } from "../services/api";
 import logo from "../assets/logo.svg";
 
 const fallbackPackage = {
@@ -12,6 +12,24 @@ const fallbackPackage = {
   discountSixMonths: 10,
   discountAnnual: 20,
 };
+
+function formatUnitDisplay(units, rawUnitLabel) {
+  if (!units) return "";
+  if (!rawUnitLabel) return `Units: ${units}`;
+  const clean = String(rawUnitLabel).replace(/^per\s+/i, "").trim().toLowerCase();
+  let type = clean;
+  if (clean === "hour") type = units === 1 ? "Hour" : "Hours";
+  else if (clean === "visit") type = units === 1 ? "Visit" : "Visits";
+  else if (clean === "session") type = units === 1 ? "Session" : "Sessions";
+  else if (clean === "test") type = units === 1 ? "Test" : "Tests";
+  else if (clean === "day") type = units === 1 ? "Day" : "Days";
+  else if (clean === "month") type = units === 1 ? "Month" : "Months";
+  else {
+    const cap = clean.charAt(0).toUpperCase() + clean.slice(1);
+    type = units > 1 && !cap.endsWith("s") ? `${cap}s` : cap;
+  }
+  return `Units: ${units} ${type}`;
+}
 
 // Dynamically load the Razorpay checkout.js script
 function useRazorpayScript() {
@@ -49,6 +67,10 @@ export default function CheckoutPage({ selectedPackage, token, user, onSuccess, 
   const [couponError, setCouponError] = useState("");
   const [couponLoading, setCouponLoading] = useState(false);
 
+  // Authoritative server-side benefit pricing & GST breakdown
+  const [serverPricing, setServerPricing] = useState(null);
+  const [loadingPricing, setLoadingPricing] = useState(false);
+
   // Payment execution state: 'idle' | 'creating_order' | 'gateway_open' | 'verifying'
   const [paymentStage, setPaymentStage] = useState("idle");
   const isPaymentBusy = paymentStage !== "idle";
@@ -81,12 +103,34 @@ export default function CheckoutPage({ selectedPackage, token, user, onSuccess, 
 
   const pricing = calcDurationPricing();
 
-  // Coupon: backend returns { discountApplied, finalAmount, couponId }
-  // finalAmount is the already-discounted total — use it directly
-  let finalTotal = pricing.total;
-  if (appliedCoupon && appliedCoupon.finalAmount !== undefined) {
-    finalTotal = appliedCoupon.finalAmount;
-  }
+  // Authoritative server-side fetch on duration or coupon change
+  useEffect(() => {
+    let isMounted = true;
+    setLoadingPricing(true);
+    fetchCheckoutPreview(token, {
+      packageId: pkg.id || pkg.type,
+      durationMonths: parseInt(duration, 10) || 1,
+      couponCode: appliedCoupon ? couponCode.trim() : undefined,
+    })
+      .then((res) => {
+        if (isMounted) {
+          setServerPricing(res);
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to load server checkout pricing preview:", err);
+      })
+      .finally(() => {
+        if (isMounted) setLoadingPricing(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [pkg.id, pkg.type, duration, appliedCoupon, token]);
+
+  // Final Total from authoritative server or local fallback
+  const finalTotal = serverPricing ? serverPricing.total : (appliedCoupon?.finalAmount ?? pricing.total);
 
   const handleApplyCoupon = async (e) => {
     e.preventDefault();
@@ -275,7 +319,7 @@ export default function CheckoutPage({ selectedPackage, token, user, onSuccess, 
           </div>
         ) : (
           /* CHECKOUT FORM */
-          <div className="checkout-grid" style={{ display: "grid", gridTemplateColumns: "1.2fr 0.8fr", gap: "32px" }}>
+          <div className="checkout-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1.15fr", gap: "32px" }}>
 
             {/* Left: Duration selector */}
             <div>
@@ -339,16 +383,122 @@ export default function CheckoutPage({ selectedPackage, token, user, onSuccess, 
                 border: "1px solid #e2e8f0", boxShadow: "0 4px 20px rgba(0,0,0,0.04)",
                 position: "sticky", top: "24px",
               }}>
-                <h3 style={{ fontSize: "1.2rem", fontWeight: "800", color: "#0f172a", marginBottom: "16px" }}>Order Summary</h3>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+                  <h3 style={{ fontSize: "1.2rem", fontWeight: "800", color: "#0f172a", margin: 0 }}>Order Summary</h3>
+                  {loadingPricing && (
+                    <span style={{ fontSize: "0.75rem", color: "#d97706", fontWeight: "600" }}>Calculating taxes…</span>
+                  )}
+                </div>
 
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px", fontSize: "0.95rem" }}>
                   <span style={{ color: "#64748b" }}>{pkg.name}</span>
                   <span style={{ fontWeight: "700", color: "#0f172a" }}>₹{baseMonthlyPrice.toLocaleString("en-IN")}/mo</span>
                 </div>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "12px", fontSize: "0.9rem" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "14px", fontSize: "0.9rem" }}>
                   <span style={{ color: "#64748b" }}>Duration</span>
                   <span style={{ fontWeight: "600", color: "#0f172a" }}>{pricing.durationMonths} Month{pricing.durationMonths > 1 ? "s" : ""}</span>
                 </div>
+
+                {/* ── Benefit-by-Benefit Price & GST Breakdown (Excel Spreadsheet Model) ── */}
+                {serverPricing?.benefitsBreakdown && serverPricing.benefitsBreakdown.length > 0 && (
+                  <div style={{
+                    margin: "16px 0",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: "12px",
+                    overflow: "hidden",
+                    background: "#ffffff"
+                  }}>
+                    <div style={{
+                      padding: "8px 12px",
+                      background: "#f8fafc",
+                      borderBottom: "1px solid #e2e8f0",
+                      fontSize: "0.72rem",
+                      fontWeight: "800",
+                      color: "#475569",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.05em"
+                    }}>
+                      Included Benefits &amp; Taxes
+                    </div>
+                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.78rem" }}>
+                      <thead>
+                        <tr style={{ background: "#f8fafc", color: "#64748b", borderBottom: "1px solid #e2e8f0", textAlign: "left" }}>
+                          <th style={{ padding: "8px 10px", fontWeight: "600" }}>Benefit Name</th>
+                          <th style={{ padding: "8px 8px", textAlign: "right", fontWeight: "600" }}>Price</th>
+                          <th style={{ padding: "8px 6px", textAlign: "center", fontWeight: "600" }}>GST %</th>
+                          <th style={{ padding: "8px 8px", textAlign: "right", fontWeight: "600" }}>GST ₹</th>
+                          <th style={{ padding: "8px 10px", textAlign: "right", fontWeight: "700", color: "#0f172a" }}>Final Price</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {serverPricing.benefitsBreakdown.map((b, idx) => (
+                          <tr key={idx} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                            <td style={{ padding: "8px 10px", color: "#0f172a", fontWeight: "600" }}>
+                              {b.name}
+                              {b.units > 0 && (
+                                <span style={{ fontSize: "0.72rem", color: "#64748b", display: "block", marginTop: "2px", fontWeight: "500" }}>
+                                  {b.unitDisplay || formatUnitDisplay(b.units, b.unitType || b.unitLabel)}
+                                </span>
+                              )}
+                            </td>
+                            <td style={{ padding: "8px 8px", textAlign: "right", fontFamily: "monospace", color: "#475569" }}>
+                              ₹{b.price?.toLocaleString("en-IN")}
+                            </td>
+                            <td style={{ padding: "8px 6px", textAlign: "center" }}>
+                              <span style={{
+                                padding: "2px 5px",
+                                borderRadius: "4px",
+                                fontSize: "0.68rem",
+                                fontWeight: "700",
+                                background: b.isGstExempt ? "#ecfdf5" : "#eff6ff",
+                                color: b.isGstExempt ? "#059669" : "#1d4ed8",
+                                border: b.isGstExempt ? "1px solid #a7f3d0" : "1px solid #bfdbfe",
+                              }}>
+                                {b.isGstExempt ? "0%" : `${b.gstRate}%`}
+                              </span>
+                            </td>
+                            <td style={{ padding: "8px 8px", textAlign: "right", fontFamily: "monospace", color: "#1e3a8a" }}>
+                              ₹{b.gstAmount?.toLocaleString("en-IN")}
+                            </td>
+                            <td style={{ padding: "8px 10px", textAlign: "right", fontFamily: "monospace", fontWeight: "700", color: "#0f172a" }}>
+                              ₹{b.finalPrice?.toLocaleString("en-IN")}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                      <tfoot style={{ background: "#f8fafc", borderTop: "1px solid #e2e8f0", fontSize: "0.78rem" }}>
+                        <tr>
+                          <td colSpan={4} style={{ padding: "8px 10px", color: "#475569", fontWeight: "600" }}>
+                            Package Gross Price (Sum of Final Prices):
+                          </td>
+                          <td style={{ padding: "8px 10px", textAlign: "right", fontFamily: "monospace", fontWeight: "800", color: "#0f172a" }}>
+                            ₹{serverPricing.packageGrossPrice?.toLocaleString("en-IN")}
+                          </td>
+                        </tr>
+                        {serverPricing.durationDiscount > 0 && (
+                          <tr style={{ color: "#16a34a" }}>
+                            <td colSpan={4} style={{ padding: "6px 10px", fontWeight: "600" }}>
+                              Tenure Discount ({serverPricing.durationDiscountPct}% off for {serverPricing.durationMonths} mo):
+                            </td>
+                            <td style={{ padding: "6px 10px", textAlign: "right", fontFamily: "monospace", fontWeight: "700" }}>
+                              - ₹{serverPricing.durationDiscount?.toLocaleString("en-IN")}
+                            </td>
+                          </tr>
+                        )}
+                        {serverPricing.couponDiscount > 0 && (
+                          <tr style={{ color: "#16a34a" }}>
+                            <td colSpan={4} style={{ padding: "6px 10px", fontWeight: "600" }}>
+                              Coupon Discount:
+                            </td>
+                            <td style={{ padding: "6px 10px", textAlign: "right", fontFamily: "monospace", fontWeight: "700" }}>
+                              - ₹{serverPricing.couponDiscount?.toLocaleString("en-IN")}
+                            </td>
+                          </tr>
+                        )}
+                      </tfoot>
+                    </table>
+                  </div>
+                )}
 
                 {/* Coupon */}
                 <form onSubmit={handleApplyCoupon} style={{ display: "flex", gap: "8px", margin: "16px 0" }}>
@@ -391,7 +541,10 @@ export default function CheckoutPage({ selectedPackage, token, user, onSuccess, 
 
                 <div style={{ borderTop: "1px solid #e2e8f0", paddingTop: "16px", marginTop: "8px" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-                    <span style={{ fontSize: "1rem", fontWeight: "700", color: "#0f172a" }}>Total Payable</span>
+                    <div>
+                      <span style={{ fontSize: "1rem", fontWeight: "800", color: "#0f172a", display: "block" }}>Total Payable</span>
+                      <span style={{ fontSize: "0.75rem", color: "#16a34a", fontWeight: "600" }}>(Inclusive of All Taxes &amp; GST)</span>
+                    </div>
                     <span style={{ fontSize: "2rem", fontWeight: "800", color: "#fe6700" }}>
                       ₹{finalTotal.toLocaleString("en-IN")}
                     </span>

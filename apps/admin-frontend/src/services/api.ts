@@ -1063,6 +1063,41 @@ export const subscriptionApi = {
       body: JSON.stringify(payload),
     });
   },
+  /** Calculate authoritative pricing & GST from backend */
+  async calculatePrice(payload: {
+    packageId: string;
+    duration: string;
+    addons?: Array<{ benefitId: string; units?: number; totalAmount?: number }>;
+    customerState?: string;
+  }): Promise<{
+    packageId: string;
+    packageName: string;
+    duration: string;
+    months: number;
+    baseMonthlyRate: number;
+    undiscountedPackageTotal: number;
+    packageBasePrice: number;
+    packageDiscount: number;
+    addonsBasePrice: number;
+    addonsTax: number;
+    addonsBreakdown: any[];
+    totalBaseAmount: number;
+    isInterState: boolean;
+    customerState: string;
+    gstRate: number;
+    taxLabel: string;
+    packageTax: number;
+    totalTaxAmount: number;
+    cgstAmount: number;
+    sgstAmount: number;
+    igstAmount: number;
+    finalTotalAmount: number;
+  }> {
+    return apiJson('/subscriptions/calculate-price', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
 };
 
 export const visitApi = {
