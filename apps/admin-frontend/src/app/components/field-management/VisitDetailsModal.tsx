@@ -30,6 +30,17 @@ export default function VisitDetailsModal({ visitId, onClose }: VisitDetailsModa
   const [uploadingImage, setUploadingImage] = useState(false);
   const imageInputRef = useRef<HTMLInputElement>(null);
 
+  const toDateTimeLocal = (dateVal?: string | Date | null) => {
+    if (!dateVal) return '';
+    try {
+      const d = new Date(dateVal);
+      if (isNaN(d.getTime())) return '';
+      return format(d, "yyyy-MM-dd'T'HH:mm");
+    } catch {
+      return '';
+    }
+  };
+
   // Edit form state
   const [editForm, setEditForm] = useState({
     notes: '',
@@ -39,6 +50,8 @@ export default function VisitDetailsModal({ visitId, onClose }: VisitDetailsModa
     followUpDate: '',
     escalateToManager: false,
     escalationReason: '',
+    checkInTime: '',
+    checkOutTime: '',
   });
 
   useEffect(() => {
@@ -59,6 +72,8 @@ export default function VisitDetailsModal({ visitId, onClose }: VisitDetailsModa
             followUpDate: res.followUpDate ? format(new Date(res.followUpDate), 'yyyy-MM-dd') : '',
             escalateToManager: res.escalateToManager || false,
             escalationReason: res.escalationReason || '',
+            checkInTime: toDateTimeLocal(res.checkInTime),
+            checkOutTime: toDateTimeLocal(res.checkOutTime),
           });
         } else {
           toast.error('Invalid visit data received');
@@ -72,6 +87,13 @@ export default function VisitDetailsModal({ visitId, onClose }: VisitDetailsModa
   }, [visitId]);
 
   const handleSave = async () => {
+    if (editForm.checkInTime && editForm.checkOutTime) {
+      if (new Date(editForm.checkInTime) > new Date(editForm.checkOutTime)) {
+        toast.error('Check-in time cannot be after check-out time');
+        return;
+      }
+    }
+
     setSaving(true);
     try {
       const payload = {
@@ -84,6 +106,8 @@ export default function VisitDetailsModal({ visitId, onClose }: VisitDetailsModa
         escalationReason: editForm.escalationReason || null,
         actorName: user?.name || 'Admin',
         imageUrls: editImages, // send updated photos list
+        checkInTime: editForm.checkInTime ? new Date(editForm.checkInTime).toISOString() : null,
+        checkOutTime: editForm.checkOutTime ? new Date(editForm.checkOutTime).toISOString() : null,
       };
 
       const res = await visitApi.editVisit(visitId, payload);
@@ -151,6 +175,8 @@ export default function VisitDetailsModal({ visitId, onClose }: VisitDetailsModa
       followUpDate: visit.followUpDate ? format(new Date(visit.followUpDate), 'yyyy-MM-dd') : '',
       escalateToManager: visit.escalateToManager || false,
       escalationReason: visit.escalationReason || '',
+      checkInTime: toDateTimeLocal(visit.checkInTime),
+      checkOutTime: toDateTimeLocal(visit.checkOutTime),
     });
     setEditMode(false);
   };
@@ -388,26 +414,82 @@ export default function VisitDetailsModal({ visitId, onClose }: VisitDetailsModa
                 <h4 className="text-sm font-black text-gray-800 mb-3 flex items-center gap-2">
                   <Clock size={16} className="text-gray-400" /> Time & Duration
                 </h4>
-                <div className="bg-white border border-[#E7DED6] rounded-2xl p-4 grid grid-cols-2 gap-4">
+                <div className="bg-white border border-[#E7DED6] rounded-2xl p-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Scheduled For</p>
                     <p className="text-sm font-bold text-gray-800 mt-1">{format(new Date(visit.scheduledTime), 'PPp')}</p>
                   </div>
                   <div>
                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Duration</p>
-                    <p className="text-sm font-bold text-gray-800 mt-1">{visit.durationMinutes} minutes</p>
+                    <p className="text-sm font-bold text-gray-800 mt-1">
+                      {editMode && editForm.checkInTime && editForm.checkOutTime
+                        ? `${Math.max(1, Math.round((new Date(editForm.checkOutTime).getTime() - new Date(editForm.checkInTime).getTime()) / 60000))} minutes (calculated)`
+                        : `${visit.durationMinutes || 60} minutes`}
+                    </p>
                   </div>
-                  {visit.checkInTime && (
-                    <div>
-                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Check In</p>
-                      <p className="text-sm font-bold text-gray-800 mt-1">{format(new Date(visit.checkInTime), 'PPp')}</p>
-                    </div>
-                  )}
-                  {visit.checkOutTime && (
-                    <div>
-                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Check Out</p>
-                      <p className="text-sm font-bold text-gray-800 mt-1">{format(new Date(visit.checkOutTime), 'PPp')}</p>
-                    </div>
+
+                  {editMode ? (
+                    <>
+                      <div className="bg-amber-50/60 p-3 rounded-xl border border-amber-200">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <label className="text-[10px] font-black text-[#FF7A00] uppercase tracking-widest">
+                            Check In Time
+                          </label>
+                          {editForm.checkInTime ? (
+                            <button
+                              type="button"
+                              onClick={() => setEditForm(prev => ({ ...prev, checkInTime: '' }))}
+                              className="text-[9px] font-bold text-red-500 hover:text-red-700 hover:underline"
+                            >
+                              Clear
+                            </button>
+                          ) : null}
+                        </div>
+                        <input
+                          type="datetime-local"
+                          value={editForm.checkInTime}
+                          onChange={(e) => setEditForm(prev => ({ ...prev, checkInTime: e.target.value }))}
+                          className="w-full text-xs font-semibold p-2 bg-white border border-amber-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF7A00] text-gray-800"
+                        />
+                      </div>
+                      <div className="bg-amber-50/60 p-3 rounded-xl border border-amber-200">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <label className="text-[10px] font-black text-[#FF7A00] uppercase tracking-widest">
+                            Check Out Time
+                          </label>
+                          {editForm.checkOutTime ? (
+                            <button
+                              type="button"
+                              onClick={() => setEditForm(prev => ({ ...prev, checkOutTime: '' }))}
+                              className="text-[9px] font-bold text-red-500 hover:text-red-700 hover:underline"
+                            >
+                              Clear
+                            </button>
+                          ) : null}
+                        </div>
+                        <input
+                          type="datetime-local"
+                          value={editForm.checkOutTime}
+                          onChange={(e) => setEditForm(prev => ({ ...prev, checkOutTime: e.target.value }))}
+                          className="w-full text-xs font-semibold p-2 bg-white border border-amber-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF7A00] text-gray-800"
+                        />
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div>
+                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Check In</p>
+                        <p className="text-sm font-bold text-gray-800 mt-1">
+                          {visit.checkInTime ? format(new Date(visit.checkInTime), 'PPp') : <span className="text-gray-400 font-medium italic text-xs">Not recorded</span>}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Check Out</p>
+                        <p className="text-sm font-bold text-gray-800 mt-1">
+                          {visit.checkOutTime ? format(new Date(visit.checkOutTime), 'PPp') : <span className="text-gray-400 font-medium italic text-xs">Not recorded</span>}
+                        </p>
+                      </div>
+                    </>
                   )}
                 </div>
               </div>

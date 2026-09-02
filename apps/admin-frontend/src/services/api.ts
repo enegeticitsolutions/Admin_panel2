@@ -1110,7 +1110,7 @@ export const visitApi = {
   async getById(id: string): Promise<any> {
     return apiJson(`/visits/${id}`);
   },
-  async editVisit(id: string, data: { notes?: string; visitSummary?: string; followUpRequired?: boolean; followUpNotes?: string; followUpDate?: string | null; escalateToManager?: boolean; escalationReason?: string; actorName?: string; imageUrls?: string[] }): Promise<any> {
+  async editVisit(id: string, data: { notes?: string; visitSummary?: string; followUpRequired?: boolean; followUpNotes?: string; followUpDate?: string | null; escalateToManager?: boolean; escalationReason?: string; actorName?: string; imageUrls?: string[]; checkInTime?: string | null; checkOutTime?: string | null }): Promise<any> {
     return apiJson(`/visits/${id}/edit`, { method: 'PATCH', body: JSON.stringify(data) });
   },
   async resolveChangeRequest(id: string, status: 'accepted' | 'rejected', reason?: string): Promise<any> {

@@ -641,6 +641,8 @@ router.patch('/:id/edit', async (req, res) => {
     escalationReason,
     actorName,
     imageUrls, // Array<string> — the FULL updated list after admin deletions
+    checkInTime,
+    checkOutTime,
   } = req.body;
 
   try {
@@ -650,6 +652,7 @@ router.patch('/:id/edit', async (req, res) => {
         notes: true, visitSummary: true, followUpRequired: true,
         followUpNotes: true, followUpDate: true, escalateToManager: true,
         escalationReason: true, imageUrls: true, beneficiaryId: true,
+        checkInTime: true, checkOutTime: true, durationMinutes: true,
         beneficiary: { select: { userId: true } }
       }
     });
@@ -688,6 +691,41 @@ router.patch('/:id/edit', async (req, res) => {
       if (newJson !== existing.imageUrls) {
         changes.imageUrls = { from: existing.imageUrls, to: newJson };
         updateData.imageUrls = newJson;
+      }
+    }
+    // checkInTime
+    if (checkInTime !== undefined) {
+      const d = checkInTime ? new Date(checkInTime) : null;
+      const oldD = existing.checkInTime ? new Date(existing.checkInTime).toISOString() : null;
+      const newD = d ? d.toISOString() : null;
+      if (oldD !== newD) {
+        changes.checkInTime = { from: oldD, to: newD };
+        updateData.checkInTime = d;
+      }
+    }
+    // checkOutTime
+    if (checkOutTime !== undefined) {
+      const d = checkOutTime ? new Date(checkOutTime) : null;
+      const oldD = existing.checkOutTime ? new Date(existing.checkOutTime).toISOString() : null;
+      const newD = d ? d.toISOString() : null;
+      if (oldD !== newD) {
+        changes.checkOutTime = { from: oldD, to: newD };
+        updateData.checkOutTime = d;
+      }
+    }
+
+    // Automatically recalculate durationMinutes if check-in & check-out times are available
+    const finalIn = updateData.checkInTime !== undefined ? updateData.checkInTime : existing.checkInTime;
+    const finalOut = updateData.checkOutTime !== undefined ? updateData.checkOutTime : existing.checkOutTime;
+    if (finalIn && finalOut) {
+      const inMs = new Date(finalIn).getTime();
+      const outMs = new Date(finalOut).getTime();
+      if (outMs >= inMs) {
+        const diffMinutes = Math.max(1, Math.round((outMs - inMs) / 60000));
+        if (diffMinutes !== existing.durationMinutes) {
+          changes.durationMinutes = { from: existing.durationMinutes, to: diffMinutes };
+          updateData.durationMinutes = diffMinutes;
+        }
       }
     }
 
