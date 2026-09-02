@@ -611,7 +611,7 @@ export const getBeneficiaryProfile = async (beneficiaryId: string) => {
       const schedDate = new Date(v.scheduledTime);
       const schedDateStr = istDateFormatter.format(schedDate);
       const schedStartTime = istTimeFormatter.format(schedDate);
-      const schedEndTime = istTimeFormatter.format(new Date(schedDate.getTime() + (v.durationMinutes || 60) * 60000));
+      const schedEndTime = istTimeFormatter.format(new Date(schedDate.getTime() + (v.durationMinutes && v.durationMinutes >= 15 ? v.durationMinutes : 60) * 60000));
 
       const checkInTime = v.checkInTime ? new Date(v.checkInTime) : null;
       const checkOutTime = v.checkOutTime ? new Date(v.checkOutTime) : null;
@@ -619,9 +619,20 @@ export const getBeneficiaryProfile = async (beneficiaryId: string) => {
       const checkInTimeFormatted = checkInTime ? istTimeFormatter.format(checkInTime) : null;
       const checkOutTimeFormatted = checkOutTime ? istTimeFormatter.format(checkOutTime) : null;
 
+      const defaultMins = (v.durationMinutes && v.durationMinutes >= 15) ? v.durationMinutes : 60;
+      let scheduledDurationText = '';
+      if (defaultMins < 60) {
+        scheduledDurationText = `${defaultMins} mins`;
+      } else {
+        const durationHours = parseFloat((defaultMins / 60).toFixed(1));
+        scheduledDurationText = `${durationHours} hour${durationHours !== 1 ? 's' : ''}`;
+      }
+
       // Calculate actual duration strictly from check-in and check-out times
       let durationText = '';
+      let actualDurationText: string | null = null;
       let actualDurationMinutes: number | null = null;
+      
       if (checkInTime && checkOutTime) {
         const diffMs = checkOutTime.getTime() - checkInTime.getTime();
         let diffMins = Math.round(diffMs / 60000);
@@ -633,14 +644,9 @@ export const getBeneficiaryProfile = async (beneficiaryId: string) => {
           const durationHours = parseFloat((diffMins / 60).toFixed(1));
           durationText = `${durationHours} hour${durationHours !== 1 ? 's' : ''}`;
         }
+        actualDurationText = durationText;
       } else {
-        const defaultMins = v.durationMinutes || 60;
-        if (defaultMins < 60) {
-          durationText = `${defaultMins} mins`;
-        } else {
-          const durationHours = parseFloat((defaultMins / 60).toFixed(1));
-          durationText = `${durationHours} hour${durationHours !== 1 ? 's' : ''}`;
-        }
+        durationText = scheduledDurationText;
       }
 
       // Extract vital readings
@@ -747,6 +753,8 @@ export const getBeneficiaryProfile = async (beneficiaryId: string) => {
         scheduledTimeRange: `${schedStartTime} – ${schedEndTime}`,
         dateStr: `${schedDateStr} • ${schedStartTime} – ${schedEndTime}`,
         duration: durationText,
+        scheduledDurationText,
+        actualDurationText,
         actualDurationMinutes,
         rated: v.subscriberRating !== null && v.subscriberRating !== undefined,
         rating: v.subscriberRating ?? null,          // subscriber's rating of the CC

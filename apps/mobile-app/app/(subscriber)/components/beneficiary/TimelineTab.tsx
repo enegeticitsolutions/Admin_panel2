@@ -240,8 +240,17 @@ export const TimelineTab = ({ visits: initialVisits }: { visits: VisitProps[] })
                                             {visit.scheduledTimeRange || visit.scheduledStartTime || 'Scheduled'}
                                         </Text>
                                     </View>
-                                    <Text style={styles.visitDuration}>{visit.duration || '60 mins'}</Text>
+                                    <Text style={styles.visitDuration}>{visit.scheduledDurationText || '60 mins'}</Text>
                                 </View>
+                                {visit.actualDurationText && (
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: scale(4) }}>
+                                        <View style={[styles.scheduledPill, { backgroundColor: '#E0F2FE', borderColor: '#BAE6FD', marginRight: scale(6) }]}>
+                                            <Ionicons name="time-outline" size={scale(12)} color="#0284C7" style={{ marginRight: scale(3) }} />
+                                            <Text style={[styles.scheduledPillText, { color: '#0369A1' }]}>Actual</Text>
+                                        </View>
+                                        <Text style={[styles.visitDuration, { color: '#0369A1' }]}>{visit.actualDurationText}</Text>
+                                    </View>
+                                )}
                             </View>
 
                             {/* Subscriber Rating */}
@@ -305,8 +314,17 @@ export const TimelineTab = ({ visits: initialVisits }: { visits: VisitProps[] })
                                             {visit.scheduledTimeRange || visit.scheduledStartTime || 'Scheduled'}
                                         </Text>
                                     </View>
-                                    <Text style={styles.visitDuration}>{visit.duration || '60 mins'}</Text>
+                                    <Text style={styles.visitDuration}>{visit.scheduledDurationText || '60 mins'}</Text>
                                 </View>
+                                {visit.actualDurationText && (
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: scale(4) }}>
+                                        <View style={[styles.scheduledPill, { backgroundColor: '#E0F2FE', borderColor: '#BAE6FD', marginRight: scale(6) }]}>
+                                            <Ionicons name="time-outline" size={scale(12)} color="#0284C7" style={{ marginRight: scale(3) }} />
+                                            <Text style={[styles.scheduledPillText, { color: '#0369A1' }]}>Actual</Text>
+                                        </View>
+                                        <Text style={[styles.visitDuration, { color: '#0369A1' }]}>{visit.actualDurationText}</Text>
+                                    </View>
+                                )}
                             </View>
 
                             {/* Subscriber Rating */}
