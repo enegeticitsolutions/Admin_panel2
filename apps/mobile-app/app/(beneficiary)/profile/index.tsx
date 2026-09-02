@@ -12,6 +12,7 @@ import { useNavigationStack } from '@/contexts/NavigationStackContext';
 import { useAndroidBackHandler } from '@/hooks/useAndroidBackHandler';
 import { AddressInputField } from '@/components/ui/AddressInputField';
 import { EmailVerificationModal } from '@/components/ui/EmailVerificationModal';
+import { ProfilePhotoUploader } from '@/components/ui/ProfilePhotoUploader';
 
 interface ContactInfo {
     phone: string;
@@ -27,6 +28,7 @@ interface ProfileData {
     bloodGroup: string;
     allergiesCount: number;
     conditionsCount: number;
+    profilePhoto?: string | null;
     contact: ContactInfo;
 }
 
@@ -50,6 +52,7 @@ export default function ProfileScreen() {
         bloodGroup: 'A+',
         allergiesCount: 0,
         conditionsCount: 0,
+        profilePhoto: null,
         contact: {
             phone: 'Not provided',
             email: 'Not provided',
@@ -124,6 +127,7 @@ export default function ProfileScreen() {
                     bloodGroup: mapFromEnum(b.bloodGroup),
                     allergiesCount: b.allergies ? b.allergies.length : 0,
                     conditionsCount: b.conditions ? b.conditions.length : 0,
+                    profilePhoto: b.user?.profilePhoto || b.profilePhoto || null,
                     contact: {
                         phone: b.user?.phone || b.phone || 'Not provided',
                         email: isEmailPlaceholder ? 'Not provided' : fetchedEmail,
@@ -226,15 +230,17 @@ export default function ProfileScreen() {
 
                     {/* Avatar Wrap */}
                     <View style={[styles.avatarContainer, responsiveContentStyle]}>
-                        <View style={styles.avatarFrame}>
-                            <Image
-                                source={require('../../../assets/images/group4.png')}
-                                style={styles.largeAvatar}
-                                defaultSource={require('../../../assets/images/group4.png')}
+                        <View style={{ marginBottom: 12 }}>
+                            <ProfilePhotoUploader
+                                config={{
+                                    targetType: 'self',
+                                    currentPhotoUrl: profile.profilePhoto || null,
+                                    size: 90,
+                                    editable: true,
+                                    initials: profile.name ? profile.name.charAt(0).toUpperCase() : 'B',
+                                    onSuccess: (url) => setProfile(prev => ({ ...prev, profilePhoto: url }))
+                                }}
                             />
-                            <TouchableOpacity style={styles.pencilBadge} activeOpacity={0.8} onPress={handleOpenEdit}>
-                                <Feather name="edit-2" size={14} color="#FE6700" />
-                            </TouchableOpacity>
                         </View>
 
                         <Text style={styles.beneficiaryName}>{profile.name}</Text>

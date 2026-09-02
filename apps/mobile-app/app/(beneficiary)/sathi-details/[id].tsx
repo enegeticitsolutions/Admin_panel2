@@ -154,7 +154,10 @@ export default function SathiDetailsScreen() {
               </TouchableOpacity>
             </View>
           ) : (
-            <TouchableOpacity style={styles.headerActionBtnWhite}>
+            <TouchableOpacity 
+              style={styles.headerActionBtnWhite}
+              onPress={() => router.push({ pathname: '/(beneficiary)/sathi-request', params: { sathiId: id } })}
+            >
               <Feather name="calendar" size={18} color="#FF6A00" />
               <Text style={styles.headerActionBtnWhiteText}>Book Visit</Text>
             </TouchableOpacity>

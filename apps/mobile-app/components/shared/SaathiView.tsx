@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -37,6 +37,7 @@ const safeFormat = (value: any, fmt: string, fallback = '—'): string => {
 
 interface SaathiViewProps {
   beneficiaryId: string;
+  initialVolunteerId?: string;
   beneficiaryName?: string;
   accentColor?: string;
   showBackButton?: boolean;
@@ -45,6 +46,7 @@ interface SaathiViewProps {
 
 export function SaathiView({
   beneficiaryId,
+  initialVolunteerId,
   beneficiaryName,
   accentColor = '#FF6A00',
   showBackButton = true,
@@ -105,6 +107,19 @@ export function SaathiView({
       checkEligibility();
     }
   }, [beneficiaryId]);
+
+  const hasAutoSelected = useRef(false);
+
+  // Auto-select initial volunteer if provided
+  useEffect(() => {
+    if (initialVolunteerId && connectedVolunteers.length > 0 && !hasAutoSelected.current) {
+      const vol = connectedVolunteers.find((v: any) => v.id === initialVolunteerId);
+      if (vol) {
+        setSelectedVolunteer(vol);
+        hasAutoSelected.current = true;
+      }
+    }
+  }, [initialVolunteerId, connectedVolunteers]);
 
   const checkEligibility = async () => {
     try {

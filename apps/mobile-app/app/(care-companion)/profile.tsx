@@ -145,15 +145,15 @@ export default function ProfileScreen() {
                     console.log("Backend offline or error. Loading Profile UI...", error);
                     if (isActive) {
                         setProfileData({
-                            name: "Priya Sharma",
-                            initials: "PS",
-                            role: "Care Companion",
-                            verified: true,
-                            email: "priya.p@example.com",
-                            phone: "9999999904",
-                            location: "Noida Sector 62",
-                            memberSince: "May 2026",
-                            impact: { visits: 20, hours: 2, clients: 13 }
+                            name: "",
+                            initials: "",
+                            role: "Care Mitra",
+                            verified: false,
+                            email: "",
+                            phone: "",
+                            location: "",
+                            memberSince: "",
+                            impact: { visits: 0, hours: 0, clients: 0 }
                         });
                     }
                 } finally {
