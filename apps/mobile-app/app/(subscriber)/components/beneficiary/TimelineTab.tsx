@@ -6,6 +6,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { sanitizeImageUri } from '@/utils/sanitizeImageUri';
 import { ConnectContactButton } from '@/components/shared/ConnectContactModal';
+import { PartnerServiceBadge } from '@/components/shared/PartnerServiceBadge';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_URL } from '@/constants/api';
 import { VisitDetailsModal, VisitDetailData } from './VisitDetailsModal';
@@ -203,75 +204,148 @@ export const TimelineTab = ({ visits: initialVisits }: { visits: VisitProps[] })
             {visits.map((visit, i) => (
                 <TouchableOpacity
                     key={visit.id || i}
-                    style={styles.visitCard}
+                    style={[styles.visitCard, visit.is3rdParty && styles.thirdPartyVisitCard]}
                     activeOpacity={0.88}
                     onPress={() => setSelectedDetailVisit(visit)}
                 >
                     {/* Header: Avatar, Info, Status/Rate */}
-                    <View style={styles.visitHeader}>
-                        <Image
-                            source={{ uri: sanitizeImageUri(visit.companionPhoto, 'https://randomuser.me/api/portraits/women/1.jpg') }}
-                            style={styles.visitCompanionPhoto}
-                        />
+                    {visit.is3rdParty ? (
+                        <View style={styles.thirdPartyHeader}>
+                            <PartnerServiceBadge
+                                size={scale(50)}
+                                serviceName={visit.benefitName || visit.companionName}
+                                category={visit.benefitCategory || ''}
+                            />
 
-                        <View style={{ flex: 1 }}>
-                            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: scale(3) }}>
-                                <Text style={styles.visitCompanionName}>{visit.companionName || 'Care Companion'}</Text>
-                                <ConnectContactButton
-                                    name={visit.companionName || 'Care Companion'}
-                                    role="Care Companion"
-                                    phone={visit.companionPhone || null}
-                                    photo={visit.companionPhoto}
-                                />
-                            </View>
-                            <Text style={styles.visitDate}>{formatDisplayDate(visit.dateStr)}</Text>
-                            <View style={styles.timingBadgeRow}>
-                                <View style={styles.scheduledPill}>
-                                    <Ionicons name="time-outline" size={scale(12)} color="#D97706" style={{ marginRight: scale(3) }} />
-                                    <Text style={styles.scheduledPillText}>
-                                        {visit.scheduledTimeRange || visit.scheduledStartTime || 'Scheduled'}
+                            <View style={{ flex: 1, marginLeft: scale(12) }}>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: scale(2) }}>
+                                    <Text style={styles.thirdPartyServiceName} numberOfLines={1}>
+                                        {visit.benefitName || visit.companionName || 'External Partner Service'}
                                     </Text>
                                 </View>
-                                <Text style={styles.visitDuration}>{visit.duration || '60 mins'}</Text>
-                            </View>
-                        </View>
 
-                        {/* Subscriber Rating */}
-                        {visit.rated && visit.rating ? (
-                            <TouchableOpacity
-                                onPress={(e) => {
-                                    e.stopPropagation?.();
-                                    setRatingModalVisit(visit);
-                                }}
-                                style={styles.ratedBox}
-                                hitSlop={{ top: scale(6), bottom: scale(6), left: scale(6), right: scale(6) }}
-                            >
-                                <View style={styles.starsRow}>
-                                    {[1, 2, 3, 4, 5].map((s) => (
-                                        <Ionicons
-                                            key={s}
-                                            name={s <= (visit.rating || 5) ? 'star' : 'star-outline'}
-                                            size={scale(16)}
-                                            color="#F97316"
-                                            style={{ marginRight: 1 }}
-                                        />
-                                    ))}
+                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: scale(6), marginBottom: scale(4) }}>
+                                    <View style={styles.thirdPartyBadge}>
+                                        <Ionicons name="business-outline" size={scale(10)} color="#4F46E5" />
+                                        <Text style={styles.thirdPartyBadgeText}>3rd Party Service</Text>
+                                    </View>
+                                    <Text style={styles.partnerSubtitle}>Partner Fulfilled</Text>
                                 </View>
-                                <Text style={styles.yourRatingLabel}>Your rating</Text>
-                            </TouchableOpacity>
-                        ) : (
-                            <TouchableOpacity
-                                style={styles.rateButton}
-                                onPress={(e) => {
-                                    e.stopPropagation?.();
-                                    setRatingModalVisit(visit);
-                                }}
-                            >
-                                <Ionicons name="star-outline" size={scale(13)} color="#FFF" style={{ marginRight: scale(4) }} />
-                                <Text style={styles.rateButtonText}>Rate</Text>
-                            </TouchableOpacity>
-                        )}
-                    </View>
+
+                                <Text style={styles.visitDate}>{formatDisplayDate(visit.dateStr)}</Text>
+                                <View style={styles.timingBadgeRow}>
+                                    <View style={[styles.scheduledPill, { backgroundColor: '#F5F3FF', borderColor: '#DDD6FE' }]}>
+                                        <Ionicons name="time-outline" size={scale(12)} color="#7C3AED" style={{ marginRight: scale(3) }} />
+                                        <Text style={[styles.scheduledPillText, { color: '#6D28D9' }]}>
+                                            {visit.scheduledTimeRange || visit.scheduledStartTime || 'Scheduled'}
+                                        </Text>
+                                    </View>
+                                    <Text style={styles.visitDuration}>{visit.duration || '60 mins'}</Text>
+                                </View>
+                            </View>
+
+                            {/* Subscriber Rating */}
+                            {visit.rated && visit.rating ? (
+                                <TouchableOpacity
+                                    onPress={(e) => {
+                                        e.stopPropagation?.();
+                                        setRatingModalVisit(visit);
+                                    }}
+                                    style={styles.ratedBox}
+                                    hitSlop={{ top: scale(6), bottom: scale(6), left: scale(6), right: scale(6) }}
+                                >
+                                    <View style={styles.starsRow}>
+                                        {[1, 2, 3, 4, 5].map((s) => (
+                                            <Ionicons
+                                                key={s}
+                                                name={s <= (visit.rating || 5) ? 'star' : 'star-outline'}
+                                                size={scale(16)}
+                                                color="#F97316"
+                                                style={{ marginRight: 1 }}
+                                            />
+                                        ))}
+                                    </View>
+                                    <Text style={styles.yourRatingLabel}>Your rating</Text>
+                                </TouchableOpacity>
+                            ) : (
+                                <TouchableOpacity
+                                    style={[styles.rateButton, { backgroundColor: '#7C3AED' }]}
+                                    onPress={(e) => {
+                                        e.stopPropagation?.();
+                                        setRatingModalVisit(visit);
+                                    }}
+                                >
+                                    <Ionicons name="star-outline" size={scale(13)} color="#FFF" style={{ marginRight: scale(4) }} />
+                                    <Text style={styles.rateButtonText}>Rate</Text>
+                                </TouchableOpacity>
+                            )}
+                        </View>
+                    ) : (
+                        <View style={styles.visitHeader}>
+                            <Image
+                                source={{ uri: sanitizeImageUri(visit.companionPhoto, 'https://randomuser.me/api/portraits/women/1.jpg') }}
+                                style={styles.visitCompanionPhoto}
+                            />
+
+                            <View style={{ flex: 1 }}>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: scale(3) }}>
+                                    <Text style={styles.visitCompanionName}>{visit.companionName || 'Care Companion'}</Text>
+                                    <ConnectContactButton
+                                        name={visit.companionName || 'Care Companion'}
+                                        role="Care Companion"
+                                        phone={visit.companionPhone || null}
+                                        photo={visit.companionPhoto}
+                                    />
+                                </View>
+                                <Text style={styles.visitDate}>{formatDisplayDate(visit.dateStr)}</Text>
+                                <View style={styles.timingBadgeRow}>
+                                    <View style={styles.scheduledPill}>
+                                        <Ionicons name="time-outline" size={scale(12)} color="#D97706" style={{ marginRight: scale(3) }} />
+                                        <Text style={styles.scheduledPillText}>
+                                            {visit.scheduledTimeRange || visit.scheduledStartTime || 'Scheduled'}
+                                        </Text>
+                                    </View>
+                                    <Text style={styles.visitDuration}>{visit.duration || '60 mins'}</Text>
+                                </View>
+                            </View>
+
+                            {/* Subscriber Rating */}
+                            {visit.rated && visit.rating ? (
+                                <TouchableOpacity
+                                    onPress={(e) => {
+                                        e.stopPropagation?.();
+                                        setRatingModalVisit(visit);
+                                    }}
+                                    style={styles.ratedBox}
+                                    hitSlop={{ top: scale(6), bottom: scale(6), left: scale(6), right: scale(6) }}
+                                >
+                                    <View style={styles.starsRow}>
+                                        {[1, 2, 3, 4, 5].map((s) => (
+                                            <Ionicons
+                                                key={s}
+                                                name={s <= (visit.rating || 5) ? 'star' : 'star-outline'}
+                                                size={scale(16)}
+                                                color="#F97316"
+                                                style={{ marginRight: 1 }}
+                                            />
+                                        ))}
+                                    </View>
+                                    <Text style={styles.yourRatingLabel}>Your rating</Text>
+                                </TouchableOpacity>
+                            ) : (
+                                <TouchableOpacity
+                                    style={styles.rateButton}
+                                    onPress={(e) => {
+                                        e.stopPropagation?.();
+                                        setRatingModalVisit(visit);
+                                    }}
+                                >
+                                    <Ionicons name="star-outline" size={scale(13)} color="#FFF" style={{ marginRight: scale(4) }} />
+                                    <Text style={styles.rateButtonText}>Rate</Text>
+                                </TouchableOpacity>
+                            )}
+                        </View>
+                    )}
 
                     {/* Actual Check-In & Check-Out Timing Strip (if checked in) */}
                     {(visit.checkInTime || visit.checkOutTime) && (
@@ -358,20 +432,36 @@ export const TimelineTab = ({ visits: initialVisits }: { visits: VisitProps[] })
                     ) : null}
 
                     {/* Notes Section */}
-                    {!!visit.notes ? (
-                        <View style={{ marginTop: scale(4), marginBottom: scale(12) }}>
-                            <Text style={styles.visitSectionLabel}>Notes:</Text>
-                            <Text style={styles.visitNotes} numberOfLines={2}>{visit.notes}</Text>
-                        </View>
-                    ) : null}
+                    {visit.is3rdParty ? (
+                        (visit.thirdPartyNotes || visit.notes) ? (
+                            <View style={styles.thirdPartyNotesContainer}>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: scale(3) }}>
+                                    <Ionicons name="information-circle-outline" size={scale(13)} color="#4F46E5" style={{ marginRight: scale(4) }} />
+                                    <Text style={styles.thirdPartyNotesLabel}>Partner Remarks:</Text>
+                                </View>
+                                <Text style={styles.visitNotes} numberOfLines={3}>
+                                    {visit.thirdPartyNotes ? `${visit.thirdPartyNotes}${visit.notes ? ` • ${visit.notes}` : ''}` : visit.notes}
+                                </Text>
+                            </View>
+                        ) : null
+                    ) : (
+                        !!visit.notes ? (
+                            <View style={{ marginTop: scale(4), marginBottom: scale(12) }}>
+                                <Text style={styles.visitSectionLabel}>Notes:</Text>
+                                <Text style={styles.visitNotes} numberOfLines={2}>{visit.notes}</Text>
+                            </View>
+                        ) : null
+                    )}
 
                     {/* Tap for Encounter Report CTA */}
-                    <View style={styles.cardCtaRow}>
-                        <View style={styles.cardCtaBadge}>
-                            <Ionicons name="document-text-outline" size={scale(13)} color="#0369A1" style={{ marginRight: scale(4) }} />
-                            <Text style={styles.cardCtaText}>View Full Visit Encounter Details</Text>
+                    <View style={[styles.cardCtaRow, visit.is3rdParty && styles.thirdPartyCtaRow]}>
+                        <View style={[styles.cardCtaBadge, visit.is3rdParty && styles.thirdPartyCtaBadge]}>
+                            <Ionicons name="document-text-outline" size={scale(13)} color={visit.is3rdParty ? '#4F46E5' : '#0369A1'} style={{ marginRight: scale(4) }} />
+                            <Text style={[styles.cardCtaText, visit.is3rdParty && { color: '#4F46E5' }]}>
+                                {visit.is3rdParty ? 'View Full Service Encounter Details' : 'View Full Visit Encounter Details'}
+                            </Text>
                         </View>
-                        <Ionicons name="chevron-forward" size={scale(16)} color="#0369A1" />
+                        <Ionicons name="chevron-forward" size={scale(16)} color={visit.is3rdParty ? '#4F46E5' : '#0369A1'} />
                     </View>
                 </TouchableOpacity>
             ))}
@@ -521,6 +611,68 @@ const styles = StyleSheet.create({
         fontSize: scale(12),
         fontWeight: '700',
         color: '#0369A1',
+    },
+
+    // ── 3rd Party Visit Specific Styles ──
+    thirdPartyVisitCard: {
+        backgroundColor: '#FAF9FF',
+        borderColor: '#E0E7FF',
+        borderLeftWidth: 4,
+        borderLeftColor: '#6366F1',
+    },
+    thirdPartyHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: scale(12),
+    },
+    thirdPartyServiceName: {
+        fontSize: scale(17),
+        fontWeight: '700',
+        color: '#1E1B4B',
+        marginBottom: scale(2),
+    },
+    thirdPartyBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: scale(3),
+        backgroundColor: '#EEF2FF',
+        paddingHorizontal: scale(6),
+        paddingVertical: scale(2),
+        borderRadius: scale(6),
+        borderWidth: 1,
+        borderColor: '#C7D2FE',
+    },
+    thirdPartyBadgeText: {
+        fontSize: scale(10),
+        fontWeight: '700',
+        color: '#4F46E5',
+    },
+    partnerSubtitle: {
+        fontSize: scale(11),
+        fontWeight: '600',
+        color: '#6366F1',
+    },
+    thirdPartyNotesContainer: {
+        backgroundColor: '#EEF2FF',
+        borderRadius: scale(8),
+        padding: scale(10),
+        marginTop: scale(4),
+        marginBottom: scale(12),
+        borderWidth: 1,
+        borderColor: '#E0E7FF',
+    },
+    thirdPartyNotesLabel: {
+        fontSize: scale(12),
+        fontWeight: '700',
+        color: '#4338CA',
+    },
+    thirdPartyCtaRow: {
+        backgroundColor: '#F5F3FF',
+        borderColor: '#DDD6FE',
+    },
+    thirdPartyCtaBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
     },
 
     // ── Rating Modal ──────────────────────────────────────────

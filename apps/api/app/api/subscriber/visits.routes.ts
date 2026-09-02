@@ -74,6 +74,11 @@ router.get('/:visitId/details', authenticate, async (req: AuthRequest, res: Resp
                         user: true
                     }
                 },
+                benefit: {
+                    include: {
+                        benefitType: true
+                    }
+                },
                 vitalReadings: {
                     include: {
                         vitalDefinition: true
@@ -189,15 +194,26 @@ router.get('/:visitId/details', authenticate, async (req: AuthRequest, res: Resp
             return [];
         })();
 
+        const is3rdParty = Boolean(visit.is3rdParty || (!visit.careCompanionId && !visit.careCompanion));
+        const benefitName = visit.benefit?.name || null;
+        const benefitCode = visit.benefit?.code || null;
+        const benefitCategory = visit.benefit?.benefitType?.name || null;
+
         res.json({
             success: true,
             data: {
                 id: visit.id,
                 encounterId: visit.encounterId || visit.visitCode || `ENC-${visit.id.slice(0, 8).toUpperCase()}`,
                 status: visit.status,
-                companionName: visit.careCompanion?.name,
-                companionPhoto: visit.careCompanion?.photo,
-                companionPhone: visit.careCompanion?.user?.phone || null,
+                is3rdParty,
+                benefitId: visit.benefitId || null,
+                benefitName,
+                benefitCode,
+                benefitCategory,
+                thirdPartyNotes: visit.thirdPartyNotes || null,
+                companionName: is3rdParty ? (benefitName || 'Third-Party Partner Service') : (visit.careCompanion?.name || 'Care Companion'),
+                companionPhoto: is3rdParty ? null : (visit.careCompanion?.photo || null),
+                companionPhone: is3rdParty ? null : (visit.careCompanion?.user?.phone || null),
                 scheduledDate: schedDateStr,
                 scheduledTime: visit.scheduledTime,
                 scheduledStartTime: schedStartTime,

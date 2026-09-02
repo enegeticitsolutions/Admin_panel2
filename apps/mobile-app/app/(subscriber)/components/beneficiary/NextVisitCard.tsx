@@ -2,9 +2,15 @@ import React from 'react';
 import { View, Text, StyleSheet, Image, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { sanitizeImageUri } from '@/utils/sanitizeImageUri';
+import { PartnerServiceBadge } from '@/components/shared/PartnerServiceBadge';
 
 interface NextVisitProps {
     nextVisit: {
+        id?: string;
+        is3rdParty?: boolean;
+        benefitId?: string | null;
+        benefitName?: string | null;
+        benefitCategory?: string | null;
         companionName: string;
         companionPhoto?: string;
         dateStr: string;
@@ -15,28 +21,48 @@ interface NextVisitProps {
 export const NextVisitCard = ({ nextVisit }: NextVisitProps) => {
     if (!nextVisit) return null;
 
+    const is3rdParty = Boolean(nextVisit.is3rdParty);
+
     return (
-        <View style={styles.container}>
+        <View style={[styles.container, is3rdParty && styles.thirdPartyContainer]}>
             <View style={styles.header}>
-                <Ionicons name="calendar" size={18} color="#F97316" />
-                <Text style={styles.headerTitle}>Next Scheduled Visit</Text>
+                <Ionicons name="calendar" size={18} color={is3rdParty ? '#4F46E5' : '#F97316'} />
+                <Text style={[styles.headerTitle, is3rdParty && { color: '#4F46E5' }]}>
+                    {is3rdParty ? 'Next Scheduled Partner Service' : 'Next Scheduled Visit'}
+                </Text>
             </View>
             <View style={styles.content}>
-                <Image
-                    source={{ uri: sanitizeImageUri(nextVisit.companionPhoto, 'https://randomuser.me/api/portraits/women/2.jpg') }}
-                    style={styles.photo}
-                />
+                {is3rdParty ? (
+                    <View style={{ marginRight: 15 }}>
+                        <PartnerServiceBadge
+                            size={50}
+                            serviceName={nextVisit.benefitName || nextVisit.companionName}
+                            category={nextVisit.benefitCategory || ''}
+                        />
+                    </View>
+                ) : (
+                    <Image
+                        source={{ uri: sanitizeImageUri(nextVisit.companionPhoto, 'https://randomuser.me/api/portraits/women/2.jpg') }}
+                        style={styles.photo}
+                    />
+                )}
 
                 <View style={styles.info}>
-                    <Text style={styles.name}>{nextVisit.companionName}</Text>
-                    <Text style={styles.meta}>assigned by Field Manager</Text>
+                    <Text style={styles.name}>
+                        {is3rdParty ? (nextVisit.benefitName || nextVisit.companionName || '3rd Party Service') : nextVisit.companionName}
+                    </Text>
+                    <Text style={styles.meta}>
+                        {is3rdParty ? 'Fulfilled via External Partner' : 'assigned by Field Manager'}
+                    </Text>
                     <View style={styles.dateTime}>
                         <Ionicons name="time-outline" size={14} color="#6B7280" />
                         <Text style={styles.dateText}>{nextVisit.dateStr} • {nextVisit.timeStr}</Text>
                     </View>
                 </View>
-                <View style={styles.statusBadge}>
-                    <Text style={styles.statusText}>Upcoming</Text>
+                <View style={[styles.statusBadge, is3rdParty && styles.thirdPartyStatusBadge]}>
+                    <Text style={[styles.statusText, is3rdParty && styles.thirdPartyStatusText]}>
+                        {is3rdParty ? '3rd Party' : 'Upcoming'}
+                    </Text>
                 </View>
             </View>
         </View>
@@ -57,6 +83,10 @@ const styles = StyleSheet.create({
             android: { elevation: 2 },
         }),
     },
+    thirdPartyContainer: {
+        borderColor: '#E0E7FF',
+        backgroundColor: '#FAF9FF',
+    },
     header: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
     headerTitle: { fontSize: 13, fontWeight: '600', color: '#F97316', marginLeft: 6, textTransform: 'uppercase', letterSpacing: 0.5 },
     content: { flexDirection: 'row', alignItems: 'center' },
@@ -68,6 +98,8 @@ const styles = StyleSheet.create({
     dateText: { fontSize: 13, color: '#4B5563', marginLeft: 4, fontWeight: '500' },
     statusBadge: { backgroundColor: '#F0FDF4', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
     statusText: { color: '#16A34A', fontSize: 11, fontWeight: '600' },
+    thirdPartyStatusBadge: { backgroundColor: '#EEF2FF' },
+    thirdPartyStatusText: { color: '#4F46E5' },
 });
 
 export default NextVisitCard;

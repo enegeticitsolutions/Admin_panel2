@@ -14,6 +14,7 @@ import {
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { sanitizeImageUri } from '@/utils/sanitizeImageUri';
 import { ConnectContactButton } from '@/components/shared/ConnectContactModal';
+import { PartnerServiceBadge } from '@/components/shared/PartnerServiceBadge';
 import { scale } from '@/utils/responsive';
 
 const DEEP_ORANGE = '#FE6700';
@@ -22,6 +23,12 @@ export interface VisitDetailData {
   id: string;
   encounterId?: string;
   status?: string;
+  is3rdParty?: boolean;
+  benefitId?: string | null;
+  benefitName?: string | null;
+  benefitCode?: string | null;
+  benefitCategory?: string | null;
+  thirdPartyNotes?: string | null;
   companionName?: string;
   companionPhoto?: string;
   companionPhone?: string | null;
@@ -260,36 +267,64 @@ export function VisitDetailsModal({
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
           >
-            {/* ── 1. Care Companion Profile Card (Clean Mockup Style) ── */}
-            <View style={styles.companionCard}>
-              <Image
-                source={{
-                  uri: sanitizeImageUri(
-                    visit.companionPhoto,
-                    'https://randomuser.me/api/portraits/women/1.jpg'
-                  ),
-                }}
-                style={styles.companionAvatar}
-              />
-              <View style={{ flex: 1, justifyContent: 'center' }}>
-                <Text style={styles.companionName}>
-                  {visit.companionName || 'Aarav Sharma'}
-                </Text>
-                <Text style={styles.companionRole}>Dedicated Care Companion</Text>
-                {visit.duration ? (
-                  <View style={styles.durationChip}>
-                    <Ionicons name="time-outline" size={scale(12)} color="#0284C7" style={{ marginRight: scale(4) }} />
-                    <Text style={styles.durationChipText}>{visit.duration}</Text>
+            {/* ── 1. Care Companion / 3rd Party Service Profile Card ── */}
+            {visit.is3rdParty ? (
+              <View style={[styles.companionCard, styles.thirdPartyHeroCard]}>
+                <PartnerServiceBadge
+                  size={scale(56)}
+                  serviceName={visit.benefitName || visit.companionName}
+                  category={visit.benefitCategory || ''}
+                />
+                <View style={{ flex: 1, justifyContent: 'center', marginLeft: scale(14) }}>
+                  <Text style={styles.companionName}>
+                    {visit.benefitName || visit.companionName || 'External Partner Service'}
+                  </Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: scale(6), marginBottom: scale(4) }}>
+                    <View style={styles.thirdPartyTag}>
+                      <Ionicons name="business-outline" size={scale(11)} color="#4F46E5" />
+                      <Text style={styles.thirdPartyTagText}>3rd Party Service</Text>
+                    </View>
+                    <Text style={styles.companionRoleSubtitle}>Partner Fulfilled</Text>
                   </View>
-                ) : null}
+                  {visit.duration ? (
+                    <View style={styles.durationChip}>
+                      <Ionicons name="time-outline" size={scale(12)} color="#0284C7" style={{ marginRight: scale(4) }} />
+                      <Text style={styles.durationChipText}>{visit.duration}</Text>
+                    </View>
+                  ) : null}
+                </View>
               </View>
-              <ConnectContactButton
-                name={visit.companionName || 'Care Companion'}
-                role="Care Companion"
-                phone={visit.companionPhone || null}
-                photo={visit.companionPhoto}
-              />
-            </View>
+            ) : (
+              <View style={styles.companionCard}>
+                <Image
+                  source={{
+                    uri: sanitizeImageUri(
+                      visit.companionPhoto,
+                      'https://randomuser.me/api/portraits/women/1.jpg'
+                    ),
+                  }}
+                  style={styles.companionAvatar}
+                />
+                <View style={{ flex: 1, justifyContent: 'center' }}>
+                  <Text style={styles.companionName}>
+                    {visit.companionName || 'Care Companion'}
+                  </Text>
+                  <Text style={styles.companionRole}>Dedicated Care Companion</Text>
+                  {visit.duration ? (
+                    <View style={styles.durationChip}>
+                      <Ionicons name="time-outline" size={scale(12)} color="#0284C7" style={{ marginRight: scale(4) }} />
+                      <Text style={styles.durationChipText}>{visit.duration}</Text>
+                    </View>
+                  ) : null}
+                </View>
+                <ConnectContactButton
+                  name={visit.companionName || 'Care Companion'}
+                  role="Care Companion"
+                  phone={visit.companionPhone || null}
+                  photo={visit.companionPhoto}
+                />
+              </View>
+            )}
 
             {/* ── 2. Arrival & Departure Verification ── */}
             <View style={styles.sectionCard}>
@@ -511,15 +546,19 @@ export function VisitDetailsModal({
               )}
             </View>
 
-            {/* ── 6. Clinical & Care Notes ── */}
+            {/* ── 6. Clinical / Partner & Care Notes ── */}
             <View style={styles.sectionCard}>
               <View style={styles.sectionHeader}>
                 <Ionicons name="document-text" size={scale(18)} color="#4F46E5" />
-                <Text style={styles.sectionTitle}>Observations & Notes</Text>
+                <Text style={styles.sectionTitle}>
+                  {visit.is3rdParty ? 'Partner Service & Completion Notes' : 'Observations & Notes'}
+                </Text>
               </View>
               <View style={styles.notesBox}>
                 <Text style={styles.notesText}>
-                  {visit.notes || 'No special clinical remarks were recorded by the Care Companion for this visit.'}
+                  {visit.thirdPartyNotes
+                    ? `${visit.thirdPartyNotes}${visit.notes ? `\n\n${visit.notes}` : ''}`
+                    : (visit.notes || (visit.is3rdParty ? 'Service completed and verified by admin.' : 'No special clinical remarks were recorded by the Care Companion for this visit.'))}
                 </Text>
               </View>
             </View>
@@ -862,6 +901,31 @@ const styles = StyleSheet.create({
     fontSize: scale(13),
     color: '#64748B',
     marginBottom: scale(5),
+  },
+  companionRoleSubtitle: {
+    fontSize: scale(12),
+    fontWeight: '600',
+    color: '#4F46E5',
+  },
+  thirdPartyHeroCard: {
+    backgroundColor: '#FAF5FF',
+    borderColor: '#E9D5FF',
+  },
+  thirdPartyTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: scale(3),
+    backgroundColor: '#EEF2FF',
+    paddingHorizontal: scale(7),
+    paddingVertical: scale(2),
+    borderRadius: scale(8),
+    borderWidth: 1,
+    borderColor: '#C7D2FE',
+  },
+  thirdPartyTagText: {
+    fontSize: scale(10),
+    fontWeight: '700',
+    color: '#4F46E5',
   },
   durationChip: {
     flexDirection: 'row',

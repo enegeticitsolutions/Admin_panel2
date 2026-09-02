@@ -11,6 +11,7 @@ import { useSafeBack } from '@/hooks/useSafeBack';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { VisitDetailsModal, VisitDetailData } from '@/app/(subscriber)/components/beneficiary/VisitDetailsModal';
 import { sanitizeImageUri } from '@/utils/sanitizeImageUri';
+import { PartnerServiceBadge } from '@/components/shared/PartnerServiceBadge';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -424,10 +425,12 @@ export default function InteractionsScreen() {
                                     {/* ── Card Header: companion avatar + name ── */}
                                     <View style={styles.cardHeader}>
                                         <View style={styles.companionAvatarWrap}>
-                                            {isExternal ? (
-                                                <View style={styles.externalAvatar}>
-                                                    <Ionicons name="business-outline" size={22} color="#6B7280" />
-                                                </View>
+                                            {(isExternal || v.is3rdParty) ? (
+                                                <PartnerServiceBadge
+                                                    size={44}
+                                                    serviceName={v.benefitName || v.title}
+                                                    category={v.benefitCategory || ''}
+                                                />
                                             ) : (
                                                 <Image
                                                     source={{ uri: sanitizeImageUri(v.companionPhoto, 'https://randomuser.me/api/portraits/women/1.jpg') }}

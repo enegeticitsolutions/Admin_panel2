@@ -75,6 +75,9 @@ router.get('/me', authenticate, async (req: AuthRequest, res: Response) => {
       where: { beneficiaryId: beneficiary.id, status: 'completed' },
       include: {
         careCompanion: true,
+        benefit: {
+          include: { benefitType: true }
+        },
         vitalReadings: {
           include: { vitalDefinition: true },
           orderBy: { capturedAt: 'asc' },
@@ -129,7 +132,10 @@ router.get('/me', authenticate, async (req: AuthRequest, res: Response) => {
 
       const dateObj = checkOutTime || scheduledTime || new Date();
       const dateStr = formatDateIST(dateObj);
-      const isExternalService = !v.careCompanionId && !v.careCompanion;
+      const isExternalService = Boolean(v.is3rdParty || (!v.careCompanionId && !v.careCompanion));
+      const benefitName = v.benefit?.name || null;
+      const benefitCode = v.benefit?.code || null;
+      const benefitCategory = v.benefit?.benefitType?.name || null;
 
       let checkInType = 'Standard Check-in';
       if (v.checkInTime) {
@@ -168,8 +174,14 @@ router.get('/me', authenticate, async (req: AuthRequest, res: Response) => {
         id: v.id,
         encounterId: v.visitCode || v.encounterId,
         status: 'completed',
-        title: v.visitSummary || defaultTitles[index % defaultTitles.length],
-        companionName: isExternalService ? '3rd Party / External Service' : (v.careCompanion?.name || 'Care Companion'),
+        is3rdParty: isExternalService,
+        benefitId: v.benefitId || null,
+        benefitName,
+        benefitCode,
+        benefitCategory,
+        thirdPartyNotes: v.thirdPartyNotes || null,
+        title: benefitName || v.visitSummary || defaultTitles[index % defaultTitles.length],
+        companionName: isExternalService ? (benefitName || '3rd Party Partner Service') : (v.careCompanion?.name || 'Care Companion'),
         companionPhone: isExternalService ? null : (v.careCompanion?.phone || null),
         companionPhoto: isExternalService ? null : (v.careCompanion?.photoUrl || null),
         isExternalService,

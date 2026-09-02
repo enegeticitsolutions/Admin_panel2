@@ -377,6 +377,11 @@ export const getBeneficiaryProfile = async (beneficiaryId: string) => {
         include: {
           user: true
         }
+      },
+      benefit: {
+        include: {
+          benefitType: true
+        }
       }
     },
     orderBy: { scheduledTime: 'asc' }
@@ -397,6 +402,11 @@ export const getBeneficiaryProfile = async (beneficiaryId: string) => {
       careCompanion: {
         include: {
           user: true
+        }
+      },
+      benefit: {
+        include: {
+          benefitType: true
         }
       },
       vitalReadings: {
@@ -574,16 +584,26 @@ export const getBeneficiaryProfile = async (beneficiaryId: string) => {
     vitalsData,
     vitalsTrends,
     // vitalConfigs is already included via the ...beneficiary spread above (from Prisma include)
-    nextVisit: nextVisit ? {
-      id: nextVisit.id,
-      companionName: nextVisit.careCompanion?.name,
-      companionPhoto: nextVisit.careCompanion?.photo,
-      companionPhone: nextVisit.careCompanion?.user?.phone || null,
-      dateStr: new Intl.DateTimeFormat('en-IN', { timeZone: 'Asia/Kolkata', weekday: 'short', month: 'short', day: 'numeric' }).format(nextVisit.scheduledTime),
-      timeStr: new Intl.DateTimeFormat('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: true }).format(nextVisit.scheduledTime),
-      scheduledTime: nextVisit.scheduledTime.toISOString(),
-      durationMinutes: nextVisit.durationMinutes,
-    } : null,
+    nextVisit: nextVisit ? (() => {
+      const is3rdPartyNext = Boolean(nextVisit.is3rdParty || (!nextVisit.careCompanionId && !nextVisit.careCompanion));
+      const benefitName = nextVisit.benefit?.name || null;
+      return {
+        id: nextVisit.id,
+        is3rdParty: is3rdPartyNext,
+        benefitId: nextVisit.benefitId || null,
+        benefitName,
+        benefitCode: nextVisit.benefit?.code || null,
+        benefitCategory: nextVisit.benefit?.benefitType?.name || null,
+        thirdPartyNotes: nextVisit.thirdPartyNotes || null,
+        companionName: is3rdPartyNext ? (benefitName || 'Third-Party Partner Service') : (nextVisit.careCompanion?.name || 'Care Companion'),
+        companionPhoto: is3rdPartyNext ? null : (nextVisit.careCompanion?.photo || null),
+        companionPhone: is3rdPartyNext ? null : (nextVisit.careCompanion?.user?.phone || null),
+        dateStr: new Intl.DateTimeFormat('en-IN', { timeZone: 'Asia/Kolkata', weekday: 'short', month: 'short', day: 'numeric' }).format(nextVisit.scheduledTime),
+        timeStr: new Intl.DateTimeFormat('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: true }).format(nextVisit.scheduledTime),
+        scheduledTime: nextVisit.scheduledTime.toISOString(),
+        durationMinutes: nextVisit.durationMinutes,
+      };
+    })() : null,
     timeline: pastVisits.map((v: any) => {
       const istDateFormatter = new Intl.DateTimeFormat('en-IN', { timeZone: 'Asia/Kolkata', day: 'numeric', month: 'short', year: 'numeric' });
       const istTimeFormatter = new Intl.DateTimeFormat('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: true });
@@ -702,13 +722,24 @@ export const getBeneficiaryProfile = async (beneficiaryId: string) => {
         return [];
       })();
 
+      const is3rdParty = Boolean(v.is3rdParty || (!v.careCompanionId && !v.careCompanion));
+      const benefitName = v.benefit?.name || null;
+      const benefitCode = v.benefit?.code || null;
+      const benefitCategory = v.benefit?.benefitType?.name || null;
+
       return {
         id: v.id,
         encounterId: v.encounterId || v.visitCode || `ENC-${v.id.slice(0, 8).toUpperCase()}`,
         status: v.status,
-        companionName: v.careCompanion?.name,
-        companionPhoto: v.careCompanion?.photo,
-        companionPhone: v.careCompanion?.user?.phone || null,
+        is3rdParty,
+        benefitId: v.benefitId || null,
+        benefitName,
+        benefitCode,
+        benefitCategory,
+        thirdPartyNotes: v.thirdPartyNotes || null,
+        companionName: is3rdParty ? (benefitName || 'Third-Party Partner Service') : (v.careCompanion?.name || 'Care Companion'),
+        companionPhoto: is3rdParty ? null : (v.careCompanion?.photo || null),
+        companionPhone: is3rdParty ? null : (v.careCompanion?.user?.phone || null),
         scheduledDate: schedDateStr,
         scheduledTime: v.scheduledTime ? new Date(v.scheduledTime).toISOString() : null,
         scheduledStartTime: schedStartTime,
