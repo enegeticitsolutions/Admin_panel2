@@ -150,8 +150,8 @@ export default function VisitDetailsScreen() {
             
             // Premium mock fallback
             setVisitDetail({
-                visit: { id: visitId, status: 'scheduled', encounterId: 'ENC-284910' },
-                beneficiary: { name: 'Sameer Tandon', age: 72, flatPlot: 'C-42', streetArea: 'Sector 5', city: 'Noida' },
+                visit: { id: visitId, status: 'scheduled', encounterId: '' },
+                beneficiary: { name: 'Beneficiary', age: null, flatPlot: '', streetArea: '', city: '' },
                 requiredVitals: []
             });
             setRequiredVitals([]);
@@ -1014,7 +1014,7 @@ export default function VisitDetailsScreen() {
                                                             </Text>
                                                             <Text style={{ fontFamily: 'Poppins_400Regular', fontSize: 10, color: '#9CA3AF', marginTop: 1, fontStyle: 'italic' }}>
                                                                 {sr.requestedByRole === 'care_companion'
-                                                                    ? 'Requested by Care Companion'
+                                                                    ? 'Requested by Care Mitra'
                                                                     : sr.requestedByRole === 'subscriber'
                                                                         ? `Requested by Subscriber${sr.requesterName ? ` (${sr.requesterName})` : ''}`
                                                                         : 'Requested by Beneficiary itself'}

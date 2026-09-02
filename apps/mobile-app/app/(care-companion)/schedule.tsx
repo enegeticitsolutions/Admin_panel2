@@ -88,11 +88,7 @@ export default function ScheduleScreen() {
 
   const setFallbackData = () => {
     setScheduleData({
-      visits: [
-        { id: 'v1', visitCode: 'V1A2B3C4', patientName: 'Margaret Thompson', address: '123 Oak Street, Apt 4B', time: '10:00 AM', distance: '2.3 km', type: 'Home Visit', status: 'scheduled', tabType: 'Today' },
-        { id: 'v2', visitCode: 'V9D8E7F6', patientName: 'Robert Chen', address: '456 Maple Avenue', time: '2:00 PM', distance: '3.7 km', type: 'Home Visit', status: 'in_progress', tabType: 'Today' },
-        { id: 'v3', visitCode: 'V5X4Y3Z2', patientName: 'Sameer Tandon', address: '123 Oak Street, Apt 4B', time: '11:00 AM', distance: '2.3 km', type: 'Home Visit', status: 'scheduled', tabType: 'Tomorrow' },
-      ]
+      visits: []
     });
   };
 

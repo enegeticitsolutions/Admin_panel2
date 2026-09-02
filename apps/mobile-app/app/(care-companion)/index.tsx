@@ -90,40 +90,11 @@ export default function DashboardScreen() {
                     // TEMPORARY FALLBACK MOCK DATA FOR SEAMLESS USER EXPERIENCE
                     if (isActive) {
                         setDashboardData({
-                            user: { firstName: "Sarah" },
-                            stats: { todaysVisits: 2, hoursToday: 4.5 },
-                            nextVisit: {
-                                id: "v123",
-                                patientName: "Sameer Tandon",
-                                type: "Home Visit",
-                                address: "123 Oak Street, Apt 4B, Noida",
-                                time: "10:00 AM",
-                                distance: "2.3 km"
-                            },
-                            upcomingVisits: [
-                                {
-                                    id: "v123",
-                                    patientName: "Sameer Tandon",
-                                    type: "Home Visit",
-                                    address: "123 Oak Street, Apt 4B, Noida",
-                                    time: "10:00 AM",
-                                    durationMinutes: 60,
-                                    distance: "2.3 km"
-                                },
-                                {
-                                    id: "v124",
-                                    patientName: "Sourav Kapoor",
-                                    type: "Home Visit",
-                                    address: "Flat No. 502, Tower B, Gaur City, Sector 4, Noida",
-                                    time: "02:30 PM",
-                                    durationMinutes: 45,
-                                    distance: "1.8 km"
-                                }
-                            ],
-                            celebrations: [
-                                { id: "c1", name: "Sameer Tandon", type: "Birthday", date: "Mar 10, 2026" },
-                                { id: "c2", name: "Eleanor Davis", type: "Anniversary", date: "Mar 11, 2026" }
-                            ]
+                            user: { firstName: "", role: "Care Mitra" },
+                            stats: { todaysVisits: 0, pendingTasks: 0, milesDriven: 0 },
+                            nextVisit: null,
+                            upcomingVisits: [],
+                            celebrations: []
                         });
                         setCurrentVisitIndex(0);
                     }
@@ -196,7 +167,7 @@ export default function DashboardScreen() {
                 <View style={styles.deepOrangeHeader}>
                     <View style={[styles.headerTopRow, responsiveContentStyle]}>
                         <View>
-                            <Text style={styles.headerTitle}>Care Companion</Text>
+                            <Text style={styles.headerTitle}>Care Mitra</Text>
                             <Text style={styles.headerSub}>Welcome back, {dashboardData.user.firstName}</Text>
                         </View>
                         <View style={{ flexDirection: 'row', alignItems: 'center' }}>

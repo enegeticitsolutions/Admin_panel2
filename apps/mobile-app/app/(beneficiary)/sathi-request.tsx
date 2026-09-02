@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { View, ActivityIndicator } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useLocalSearchParams } from 'expo-router';
 import { SaathiView } from '@/components/shared/SaathiView';
 
 export default function SathiRequestScreen() {
+  const { sathiId } = useLocalSearchParams();
   const [beneficiaryId, setBeneficiaryId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -25,5 +27,5 @@ export default function SathiRequestScreen() {
     );
   }
 
-  return <SaathiView beneficiaryId={beneficiaryId} />;
+  return <SaathiView beneficiaryId={beneficiaryId} initialVolunteerId={sathiId as string} />;
 }

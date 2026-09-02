@@ -105,40 +105,8 @@ export default function HistoryScreen() {
 
     const setFallbackData = () => {
         setHistoryData({
-            stats: { totalVisits: '2', totalHours: '1.5', avgHours: '1.5' },
-            visits: [
-                {
-                    id: 'v1',
-                    visitCode: 'V1A2B3C4',
-                    rawDate: new Date().toISOString(),
-                    patientName: 'William Jones',
-                    address: '321 Birch Lane',
-                    date: '2/23/2026',
-                    duration: '90 mins',
-                    tags: ['Home Visit', 'Check-in: auto'],
-                    status: 'completed',
-                    isExpanded: false,
-                    details: null,
-                },
-                {
-                    id: 'v2',
-                    visitCode: 'V9D8E7F6',
-                    rawDate: new Date().toISOString(),
-                    patientName: 'Amit Trivedi',
-                    address: '125, Mall Road, Gurgaon',
-                    date: '3/3/2026',
-                    duration: '90 mins',
-                    tags: ['Home Visit', 'Check-in: auto'],
-                    status: 'completed',
-                    isExpanded: true,
-                    details: {
-                        vitals: { bp: '132/84', weight: '78 kg', temp: '36.8°C', o2: '97%' },
-                        meds: ['Metformin 500mg', 'Lisinopril 10mg'],
-                        mood: 'Happy',
-                        notes: 'Patient is doing well. Enjoying daily walks. Blood pressure slightly elevated.',
-                    },
-                },
-            ],
+            stats: { totalVisits: '0', totalHours: '0', avgHours: '0' },
+            visits: [],
         });
     };
 
