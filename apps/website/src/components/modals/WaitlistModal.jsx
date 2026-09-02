@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import waitlistService from "../../services/WaitlistService";
 import PhoneInput, { isValidPhoneNumber } from "react-phone-number-input";
 import "react-phone-number-input/style.css";
@@ -6,7 +6,7 @@ import "react-phone-number-input/style.css";
 /**
  * WaitlistModal Component - Modal registration dialog for joining waitlist
  */
-const WaitlistModal = ({ isOpen, onClose }) => {
+const WaitlistModal = ({ isOpen, onClose, initialEmail = "" }) => {
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
@@ -16,6 +16,12 @@ const WaitlistModal = ({ isOpen, onClose }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [submitError, setSubmitError] = useState("");
+
+  useEffect(() => {
+    if (isOpen) {
+      setFormData(prev => ({ ...prev, email: initialEmail }));
+    }
+  }, [isOpen, initialEmail]);
 
   if (!isOpen) return null;
 

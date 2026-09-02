@@ -51,7 +51,7 @@ const VideoSection = () => {
       <div className="section-heading">
         <span>OUR STORY</span>
         <h2>
-          See Why Families Trust <span style={{ display: "block", color: "var(--orange)" }}>MaiHoonNa</span>
+          See Why Families Trust <span style={{ color: "var(--orange)" }}>MaiHoonNa</span>
         </h2>
         <p>A 2-minute story about what it means to care — and why we built an entire ecosystem around it.</p>
       </div>

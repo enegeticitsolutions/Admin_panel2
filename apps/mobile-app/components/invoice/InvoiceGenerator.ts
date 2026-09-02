@@ -44,6 +44,8 @@ export interface InvoiceData {
   companyUpiId: string;
   subscriberName: string;
   subscriberAddress: string;
+  subscriberPhone?: string;
+  subscriberEmail?: string;
   placeOfSupply: string;
   items: InvoiceItem[];
   baseAmount: number;
@@ -211,7 +213,9 @@ const itemsHtml = data.items.map((item, index) => `
       <div class="billing-section">
         <div class="billed-to">
           <h3>Billed To</h3>
-          <p><strong>${data.subscriberName}</strong></p>
+          <p><strong>Name:</strong> ${data.subscriberName}</p>
+          ${data.subscriberPhone ? `<p><strong>Phone:</strong> ${data.subscriberPhone}</p>` : ''}
+          ${data.subscriberEmail ? `<p><strong>Email:</strong> ${data.subscriberEmail}</p>` : ''}
           <p>${data.subscriberAddress}</p>
         </div>
         <div class="supply-details">
@@ -263,19 +267,6 @@ const itemsHtml = data.items.map((item, index) => `
 
       <div class="footer-details">
         <div class="bank-details">
-          ${data.transactionId ? `
-            <p><strong>Payment Details</strong></p>
-            <p>Mode: ${data.paymentMethod || 'Online'}</p>
-            ${data.gatewayName ? `<p>Gateway: ${data.gatewayName}</p>` : ''}
-            <p>Transaction ID: ${data.transactionId}</p>
-            <p>Status: ${(data.paymentStatus || 'SUCCESS').toUpperCase()}</p>
-          ` : `
-            <p><strong>Bank Details</strong></p>
-            <p>Bank Name: ${data.companyBankName}</p>
-            <p>Account No: ${data.companyBankAccount}</p>
-            <p>IFSC: ${data.companyBankIfsc}</p>
-            <p>UPI ID: ${data.companyUpiId}</p>
-          `}
         </div>
         <div class="auth-sign">
           <p>For ${data.companyName}</p>

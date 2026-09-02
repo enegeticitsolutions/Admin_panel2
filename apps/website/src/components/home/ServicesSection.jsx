@@ -5,22 +5,24 @@ const services = [
     emoji: "🤝",
     title: "Care Mitra Visits",
     text: "Trained, verified companions who visit on schedule and log everything in real time – vitals, mood, medication, and daily tasks.",
+    link: "services",
   },
   {
     emoji: "🌸",
     title: "Saathi Network",
     text: "Community volunteers for companionship between Care Mitra visits. No senior should feel alone between scheduled visits.",
+    link: "saathi",
   },
-  {
-    emoji: "🏆",
-    title: "Legacy Circles",
-    text: "A platform for seniors to share decades of expertise and rediscover purpose. Their wisdom deserves an audience.",
-  },
-  {
-    emoji: "🎨",
-    title: "Hobby Circles",
-    text: "Peer connections built around shared interests – chess, gardening, music, cooking. Joy comes from belonging.",
-  },
+  // {
+  //   emoji: "🏆",
+  //   title: "Legacy Circles",
+  //   text: "A platform for seniors to share decades of expertise and rediscover purpose. Their wisdom deserves an audience.",
+  // },
+  // {
+  //   emoji: "🎨",
+  //   title: "Hobby Circles",
+  //   text: "Peer connections built around shared interests – chess, gardening, music, cooking. Joy comes from belonging.",
+  // },
 ];
 
 const visitFeatures = [
@@ -189,7 +191,7 @@ const ServicesSection = ({ openForm }) => {
               <span className="service-card__emoji">{service.emoji}</span>
               <h3>{service.title}</h3>
               <p>{service.text}</p>
-              <button onClick={openForm}>Learn more →</button>
+              <button onClick={() => window.location.hash = `#${service.link}`}>Learn more →</button>
             </article>
           ))}
         </div>

@@ -607,6 +607,10 @@ a {
   line-height: 50.4px;
 }
 
+.section-heading--dark h2 {
+  color: #ffffff;
+}
+
 .section-heading em,
 .nri-banner em,
 .home-visits__copy em,
@@ -968,7 +972,8 @@ a {
   display: grid;
   width: min(1200px, 100%);
   margin: 0 auto;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(2, minmax(280px, 350px));
+  justify-content: center;
   gap: 28px;
 }
 
@@ -1909,7 +1914,7 @@ a {
   white-space: normal;
   text-align: left;
   box-sizing: border-box;
-  width: 144px;
+  width: 100%;
   margin-top: 20px;
 }
 
@@ -6055,6 +6060,21 @@ a {
     font-size: 13px;
     line-height: 1.4;
   }
+
+  .hm-cm__vital-pill {
+    padding: 10px;
+    min-width: 60px;
+  }
+
+  .hm-cm__vital-pill strong {
+    font-size: 16px;
+    line-height: 16px;
+  }
+
+  .hm-cm__vital-pill label {
+    font-size: 10px;
+  }
+
 }
 
 /* =============================================

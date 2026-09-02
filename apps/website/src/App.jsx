@@ -15,6 +15,7 @@ import { fetchSubscriptionPackages, isTokenExpired } from "./services/api";
 
 import SeoHead from "./components/seo/SeoHead";
 import NotFoundPage from "./pages/NotFoundPage";
+import LegalPage from "./pages/LegalPage";
 
 /**
  * App Component - Root Application Shell & Router
@@ -23,7 +24,7 @@ const App = () => {
   const getPageFromHash = () => {
     const rawHash = (window.location.hash || "").replace("#", "").toLowerCase();
     if (!rawHash) return "home";
-    const validPages = ["home", "services", "saathi", "plans", "auth", "account", "checkout", "story"];
+    const validPages = ["home", "services", "saathi", "plans", "auth", "account", "checkout", "story", "terms", "privacy", "refund-policy", "cookie-policy"];
     return validPages.includes(rawHash) ? rawHash : "not-found";
   };
 
@@ -35,7 +36,7 @@ const App = () => {
       if (window.location.hash !== `#${page}`) {
         window.history.pushState(null, "", `#${page}`);
       }
-    } catch (e) {}
+    } catch (e) { }
   };
 
   useEffect(() => {
@@ -151,7 +152,11 @@ const App = () => {
     }
   };
 
-  const openForm = () => setIsModalOpen(true);
+  const [initialEmail, setInitialEmail] = useState("");
+  const openForm = (email = "") => {
+    setInitialEmail(typeof email === "string" ? email : "");
+    setIsModalOpen(true);
+  };
   const closeForm = () => setIsModalOpen(false);
 
   const renderAppContent = () => {
@@ -206,13 +211,15 @@ const App = () => {
             onSelectPackage={handleSelectPackageForBuy}
             openForm={openForm}
           />
+        ) : ["terms", "privacy", "refund-policy", "cookie-policy"].includes(activePage) ? (
+          <LegalPage initialTab={activePage} setActivePage={setActivePage} />
         ) : (
           <NotFoundPage setActivePage={setActivePage} />
         )}
 
         <Footer setActivePage={setActivePage} />
 
-        <WaitlistModal isOpen={isModalOpen} onClose={closeForm} />
+        <WaitlistModal isOpen={isModalOpen} onClose={closeForm} initialEmail={initialEmail} />
       </div>
     );
   };

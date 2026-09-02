@@ -5,11 +5,11 @@
 export const SITE_LINKS = {
   // Social Media Channels
   social: {
-    instagram: "https://instagram.com/maihoonna",
-    twitter: "https://twitter.com/maihoonna",
-    facebook: "https://facebook.com/maihoonna",
+    instagram: "https://www.instagram.com/maihoonna_eldercare/",
+    twitter: "https://x.com/MaihoonnaElderC",
+    facebook: "https://www.facebook.com/maihoonnaeldercare",
     youtube: "https://youtube.com/@maihoonna",
-    linkedin: "https://linkedin.com/company/maihoonna",
+    linkedin: "https://www.linkedin.com/company/maihoonna-eldercare-private-limited/?viewAsMember=true",
   },
 
   // Mobile App Download Links

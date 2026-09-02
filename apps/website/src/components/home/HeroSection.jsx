@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import healthcareIcon from "../../assets/healthcare1.png";
 import homePageCutOut from "../../assets/homePageCutOut.png";
 import homeBgVideo from "../../assets/Home-Header-Background-Video.mp4";
@@ -7,6 +7,22 @@ import homeBgVideo from "../../assets/Home-Header-Background-Video.mp4";
  * HeroSection Component
  */
 const HeroSection = ({ openForm }) => {
+  const [email, setEmail] = useState("");
+  const [error, setError] = useState("");
+
+  const handleJoinWaitlist = () => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email) {
+      setError("Please enter your email address.");
+      return;
+    }
+    if (!emailRegex.test(email)) {
+      setError("Please enter a valid email address.");
+      return;
+    }
+    setError("");
+    openForm(email);
+  };
   return (
     <section className="hero" id="home">
       {/* Background video */}
@@ -32,15 +48,22 @@ const HeroSection = ({ openForm }) => {
             Compassionate Care Mitras (nurses and care givers), a volunteer Saathi Network, real-time loved one visibility, and a community ecosystem
           </p>
 
-          <div className="hero-form" aria-label="Join the waitlist">
+          <div className="hero-form" aria-label="Join the waitlist" style={{ position: 'relative' }}>
             <input
               type="email"
               name="email"
               placeholder="Your email address"
-              onClick={openForm}
-              readOnly
+              value={email}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                setError("");
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleJoinWaitlist();
+              }}
             />
-            <button onClick={openForm}>Join Waitlist</button>
+            <button onClick={handleJoinWaitlist}>Join Waitlist</button>
+            {error && <div style={{ position: 'absolute', bottom: '-24px', left: '10px', color: '#ff4444', fontSize: '13px', fontWeight: '500' }}>{error}</div>}
           </div>
 
           <p className="hero-location">Launching in Gurugram Sectors 53 to 57</p>

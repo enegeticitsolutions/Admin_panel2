@@ -77,6 +77,8 @@ export default function OrderHistoryScreen() {
         companyBankIfsc: cConfig.COMPANY_BANK_IFSC,
         companyUpiId: cConfig.COMPANY_UPI_ID,
         subscriberName: invoice.subscriber?.name || 'Subscriber',
+        subscriberPhone: invoice.subscriber?.phone || '',
+        subscriberEmail: invoice.subscriber?.email || '',
         subscriberAddress: invoice.subscriber?.address || 'Haryana',
         placeOfSupply: invoice.placeOfSupply || 'Haryana',
         items: invoice.items.map((i: any) => ({

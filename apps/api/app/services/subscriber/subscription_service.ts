@@ -632,25 +632,17 @@ export const purchaseSubscription = async (
     const customerState = beneficiaryData?.state || 'Haryana';
     
     // Prepare items for tax engine
-    const taxItems: BenefitTaxItem[] = versionObj.versionBenefits.map((vb: any) => {
-      const b = vb.benefit;
-      const quantity = vb.isUnlimited ? 1 : vb.unitsIncluded;
-      
-      // Calculate a proportional or fixed unit price. Since packageBasePrice is the total base price,
-      // we can allocate it equally across benefits, or rely on the total discount logic.
-      // If benefit.unitCost exists, use it, else split equally for tax purposes.
-      const unitPrice = b?.unitCost || (packageBasePrice / versionObj.versionBenefits.length);
-      
-      return {
-        benefitId: b?.id,
-        name: `${b?.name || vb.snapshotName} (${quantity} ${vb.snapshotUnitLabel || 'units'} / ${vb.unitsPeriod})`,
+    const taxItems: BenefitTaxItem[] = [
+      {
+        benefitId: undefined,
+        name: `${subPackage.name}${durationMonths > 1 ? ` (${durationMonths} Months)` : ''}`,
         quantity: 1,
-        unitPrice: unitPrice,
-        gstRate: b?.gstRate ?? 18,
-        hsnSacCode: b?.hsnSacCode || '998399',
-        isGstExempt: b?.isGstExempt || false,
-      };
-    });
+        unitPrice: packageBasePrice,
+        gstRate: subPackage.gstRate ?? 18,
+        hsnSacCode: subPackage.hsnSacCode || '998399',
+        isGstExempt: subPackage.isGstExempt || false,
+      }
+    ];
 
     // Add Addons to invoice if any
     if (selectedAddons && Array.isArray(selectedAddons) && selectedAddons.length > 0) {
@@ -665,7 +657,7 @@ export const purchaseSubscription = async (
             benefitId: benefit.id,
             name: `Add-on: ${benefit.name}`,
             quantity: q,
-            unitPrice: benefit.addonPrice,
+            unitPrice: benefit.addonDiscountPrice ?? benefit.addonPrice,
             gstRate: benefit.gstRate ?? 18,
             hsnSacCode: benefit.hsnSacCode || '998399',
             isGstExempt: benefit.isGstExempt || false,

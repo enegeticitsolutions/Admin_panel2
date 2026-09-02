@@ -250,8 +250,8 @@ export default function CheckoutScreen() {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${storedToken}`
                 },
-                body: JSON.stringify({ 
-                    packageId, 
+                body: JSON.stringify({
+                    packageId,
                     couponCode: couponCode || undefined,
                     selectedAddons: selectedAddons.map((a: any) => ({ benefitId: a.benefitId, quantity: a.quantity })),
                     durationMonths,
@@ -263,8 +263,8 @@ export default function CheckoutScreen() {
                 setPricing({
                     packageName: result.data.packageName,
                     basePrice: result.data.basePrice,
-                    discountApplied: result.data.discountApplied,
-                    tax: result.data.tax,
+                    discountApplied: result.data.couponDiscount || result.data.durationDiscount || 0,
+                    tax: result.data.totalTaxAmount || 0,
                     total: result.data.total,
                     couponValid: result.data.couponValid,
                     couponMessage: result.data.couponMessage,
@@ -538,7 +538,7 @@ export default function CheckoutScreen() {
 
             // 1. Check if total is 0 (e.g. 100% discount). If so, skip Razorpay.
             let paymentDetails = {};
-            
+
             if (pricing.total > 0) {
                 // 2. Fetch Razorpay order from backend
                 const orderRes = await fetch(`${API_URL}/subscriber/subscriptions/create-order`, {
@@ -547,8 +547,8 @@ export default function CheckoutScreen() {
                         'Content-Type': 'application/json',
                         'Authorization': storedToken ? `Bearer ${storedToken}` : ''
                     },
-                    body: JSON.stringify({ 
-                        packageId, 
+                    body: JSON.stringify({
+                        packageId,
                         couponCode: appliedCouponCode || undefined,
                         selectedAddons: selectedAddons.map((a: any) => ({ benefitId: a.benefitId, quantity: a.quantity })),
                         durationMonths,
@@ -722,7 +722,7 @@ export default function CheckoutScreen() {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ phone: beneficiaryData.phone, password: beneficiaryData.devPassword }),
-                    }).catch(() => {}); // fire-and-forget, non-blocking
+                    }).catch(() => { }); // fire-and-forget, non-blocking
                 }
                 // end DEV ONLY
 
@@ -790,270 +790,270 @@ export default function CheckoutScreen() {
                         <Text style={{ marginTop: 16, color: '#6B6B6B', fontFamily: 'Poppins_400Regular', fontSize: fs(24) }}>Opening Secure Payment...</Text>
                     </View>
                 ) : (
-                <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+                    <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
-                    <Text style={styles.sectionTitle}>{isVerificationFlow ? 'Verify & Activate Plan' : 'Payment Details'}</Text>
-                    <Text style={styles.sectionSubtitle}>{isVerificationFlow ? 'Review details and agree to terms to activate pre-paid package' : 'Choose your preferred payment method'}</Text>
+                        <Text style={styles.sectionTitle}>{isVerificationFlow ? 'Verify & Activate Plan' : 'Payment Details'}</Text>
+                        <Text style={styles.sectionSubtitle}>{isVerificationFlow ? 'Review details and agree to terms to activate pre-paid package' : 'Choose your preferred payment method'}</Text>
 
 
 
-                    {isVerificationFlow ? (
-                        <View style={styles.paymentCard}>
-                            <Text style={{ fontFamily: 'Poppins_400Regular', fontSize: fs(30), color: '#111827', marginBottom: fs(12), fontWeight: '700' }}>
-                                Consent & Agreement
-                            </Text>
-                            <Text style={{ fontFamily: 'Poppins_400Regular', fontSize: fs(24), color: '#4B5563', lineHeight: fs(32), marginBottom: fs(24) }}>
-                                Please review the pre-filled package details below. By checking the box below, you agree to our Terms of Service and Privacy Policy, and authorize activation of this care package.
-                            </Text>
-
-                            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: fs(32) }}>
-                                <TouchableOpacity 
-                                    onPress={() => setAgreed(!agreed)} 
-                                    style={{ 
-                                        width: fs(40), 
-                                        height: fs(40), 
-                                        borderWidth: 2, 
-                                        borderColor: '#FE6700', 
-                                        borderRadius: 4, 
-                                        alignItems: 'center', 
-                                        justifyContent: 'center',
-                                        marginRight: fs(16),
-                                        backgroundColor: agreed ? '#FE6700' : 'transparent'
-                                    }}
-                                >
-                                    {agreed && <Ionicons name="checkmark" size={16} color="#FFF" />}
-                                </TouchableOpacity>
-                                <Text style={{ fontFamily: 'Poppins_400Regular', fontSize: fs(22), color: '#374151', flex: 1 }}>
-                                    I agree to the Terms of Service & Privacy Policy
-                                </Text>
-                            </View>
-
-                            <TouchableOpacity
-                                style={[styles.payButton, (isProcessing || !agreed || !isLocationReady) && { opacity: 0.6 }]}
-                                onPress={handlePay}
-                                disabled={isProcessing || pricingLoading || !agreed || !isLocationReady}
-                            >
-                                {isProcessing ? (
-                                    <ActivityIndicator color="#FFFFFF" />
-                                ) : (
-                                    <>
-                                        <Feather name="check-circle" size={16} color="#FFF" style={styles.payBtnIcon} />
-                                        <Text style={styles.payButtonText}>
-                                            Activate Package
-                                        </Text>
-                                    </>
-                                )}
-                            </TouchableOpacity>
-                        </View>
-                    ) : (
-                        <>
-                            {/* SECURITY BADGE */}
-                            <View style={styles.securityBadge}>
-                                <Ionicons name="shield-checkmark-outline" size={20} color="#059669" style={styles.securityIcon} />
-                                <View style={styles.securityTextWrap}>
-                                    <Text style={styles.securityTextBold}>100% Secure Payment via Razorpay</Text>
-                                    <Text style={styles.securityText}>Supports UPI, GPay, Cards, NetBanking & Wallets</Text>
-                                </View>
-                            </View>
-
-                            {/* MASTER PAYMENT CARD */}
+                        {isVerificationFlow ? (
                             <View style={styles.paymentCard}>
-                                {/* ─── PROMO / COUPON SECTION ─── */}
-                                <View style={styles.couponCard}>
-                                    <View style={styles.couponHeader}>
-                                        <Ionicons name="pricetag-outline" size={20} color="#FE6700" />
-                                        <Text style={styles.couponHeaderText}>Have a Promo Code?</Text>
-                                    </View>
+                                <Text style={{ fontFamily: 'Poppins_400Regular', fontSize: fs(30), color: '#111827', marginBottom: fs(12), fontWeight: '700' }}>
+                                    Consent & Agreement
+                                </Text>
+                                <Text style={{ fontFamily: 'Poppins_400Regular', fontSize: fs(24), color: '#4B5563', lineHeight: fs(32), marginBottom: fs(24) }}>
+                                    Please review the pre-filled package details below. By checking the box below, you agree to our Terms of Service and Privacy Policy, and authorize activation of this care package.
+                                </Text>
 
-                                    {!pricing.couponValid ? (
-                                        <>
-                                            <View style={styles.promoInputRow}>
-                                                <TextInput
-                                                    style={styles.promoInput}
-                                                    placeholder="Enter coupon code"
-                                                    placeholderTextColor="#9CA3AF"
-                                                    value={promoCode}
-                                                    onChangeText={(text) => { setPromoCode(text.toUpperCase()); setCouponError(''); }}
-                                                    autoCapitalize="characters"
-                                                    autoCorrect={false}
-                                                />
-                                                <TouchableOpacity
-                                                    style={[styles.applyBtnOutline, (!promoCode || isApplyingCoupon) && { opacity: 0.5 }]}
-                                                    onPress={handleApplyCoupon}
-                                                    disabled={!promoCode || isApplyingCoupon}
-                                                >
-                                                    {isApplyingCoupon ? (
-                                                        <ActivityIndicator size="small" color="#FE6700" />
-                                                    ) : (
-                                                        <Text style={styles.applyBtnText}>Apply</Text>
-                                                    )}
-                                                </TouchableOpacity>
-                                            </View>
-
-                                            {couponError ? (
-                                                <View style={styles.couponErrorRow}>
-                                                    <Ionicons name="close-circle" size={16} color="#EF4444" />
-                                                    <Text style={styles.couponErrorText}>{couponError}</Text>
-                                                </View>
-                                            ) : (
-                                                <Text style={styles.couponHint}>Enter a valid coupon code to get a discount on this order.</Text>
-                                            )}
-                                        </>
-                                    ) : (
-                                        <View style={styles.couponAppliedBox}>
-                                            <View style={styles.couponAppliedLeft}>
-                                                <Ionicons name="checkmark-circle" size={24} color="#10B981" />
-                                                <View style={{ marginLeft: 10 }}>
-                                                    <Text style={styles.couponAppliedCode}>{appliedCouponCode}</Text>
-                                                    <Text style={styles.couponAppliedSaving}>You saved ₹{pricing.discountApplied.toFixed(2)}!</Text>
-                                                </View>
-                                            </View>
-                                            <TouchableOpacity onPress={handleRemoveCoupon} style={styles.removeBtn}>
-                                                <Text style={styles.removeBtnText}>Remove</Text>
-                                            </TouchableOpacity>
-                                        </View>
-                                    )}
+                                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: fs(32) }}>
+                                    <TouchableOpacity
+                                        onPress={() => setAgreed(!agreed)}
+                                        style={{
+                                            width: fs(40),
+                                            height: fs(40),
+                                            borderWidth: 2,
+                                            borderColor: '#FE6700',
+                                            borderRadius: 4,
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            marginRight: fs(16),
+                                            backgroundColor: agreed ? '#FE6700' : 'transparent'
+                                        }}
+                                    >
+                                        {agreed && <Ionicons name="checkmark" size={16} color="#FFF" />}
+                                    </TouchableOpacity>
+                                    <Text style={{ fontFamily: 'Poppins_400Regular', fontSize: fs(22), color: '#374151', flex: 1 }}>
+                                        I agree to the Terms of Service & Privacy Policy
+                                    </Text>
                                 </View>
-
-                                <View style={styles.divider} />
 
                                 <TouchableOpacity
-                                    style={[styles.payButton, (isProcessing || !isLocationReady) && { opacity: 0.7 }]}
+                                    style={[styles.payButton, (isProcessing || !agreed || !isLocationReady) && { opacity: 0.6 }]}
                                     onPress={handlePay}
-                                    disabled={isProcessing || pricingLoading || !isLocationReady}
+                                    disabled={isProcessing || pricingLoading || !agreed || !isLocationReady}
                                 >
                                     {isProcessing ? (
                                         <ActivityIndicator color="#FFFFFF" />
                                     ) : (
                                         <>
-                                            <Feather name="lock" size={16} color="#FFF" style={styles.payBtnIcon} />
+                                            <Feather name="check-circle" size={16} color="#FFF" style={styles.payBtnIcon} />
                                             <Text style={styles.payButtonText}>
-                                                Pay ₹{pricingLoading ? '...' : pricing.total.toFixed(2)}
+                                                Activate Package
                                             </Text>
                                         </>
                                     )}
                                 </TouchableOpacity>
-
-                                <Text style={styles.termsText}>
-                                    By completing this purchase, you agree to our{' '}
-                                    <Text
-                                        style={{ color: '#FE6700', textDecorationLine: 'underline', fontFamily: 'Poppins_500Medium' }}
-                                        onPress={() => Linking.openURL(LEGAL_CONFIG.TERMS_OF_SERVICE_URL)}
-                                    >
-                                        Terms of Service
-                                    </Text>
-                                    {' '}and{' '}
-                                    <Text
-                                        style={{ color: '#FE6700', textDecorationLine: 'underline', fontFamily: 'Poppins_500Medium' }}
-                                        onPress={() => Linking.openURL(LEGAL_CONFIG.PRIVACY_POLICY_URL)}
-                                    >
-                                        Privacy Policy
-                                    </Text>
-                                </Text>
-                            </View>
-                        </>
-                    )}
-                    {/* END MASTER PAYMENT CARD */}
-
-                    {/* DYNAMIC ORDER SUMMARY */}
-                    <View style={styles.summaryContainer}>
-                        <Text style={styles.summaryTitle}>Order Summary</Text>
-
-                        {pricingLoading ? (
-                            <View style={{ padding: 20, alignItems: 'center' }}>
-                                <ActivityIndicator size="large" color="#FE6700" />
-                                <Text style={{ marginTop: 10, color: '#6B6B6B' }}>Calculating Pricing...</Text>
                             </View>
                         ) : (
                             <>
-                                <Text style={styles.planName}>{pricing.packageName}</Text>
-                                <Text style={styles.planDuration}>{durationLabel}</Text>
-                                {pricing.projectedStartDate && pricing.projectedEndDate && (
-                                    <Text style={{ fontSize: fs(20), color: '#9CA3AF', fontFamily: 'Poppins_400Regular', marginBottom: fs(10) }}>
-                                        Activates on payment · Valid until {pricing.projectedEndDate}
-                                    </Text>
-                                )}
-
-                                <View style={styles.featuresList}>
-                                    {(packageBenefits.length > 0
-                                        ? packageBenefits
-                                        : ['Weekly health checkups', 'Vitals monitoring', 'Emergency contact support', 'Basic companionship']
-                                    ).map((feature, index) => (
-                                        <View key={index} style={styles.featureRow}>
-                                            <Ionicons name="checkmark-circle" size={18} color="#FE6700" />
-                                            <Text style={styles.featureText}>{feature}</Text>
-                                        </View>
-                                    ))}
+                                {/* SECURITY BADGE */}
+                                <View style={styles.securityBadge}>
+                                    <Ionicons name="shield-checkmark-outline" size={20} color="#059669" style={styles.securityIcon} />
+                                    <View style={styles.securityTextWrap}>
+                                        <Text style={styles.securityTextBold}>100% Secure Payment via Razorpay</Text>
+                                        <Text style={styles.securityText}>Supports UPI, GPay, Cards, NetBanking & Wallets</Text>
+                                    </View>
                                 </View>
 
-                                {selectedAddons && selectedAddons.length > 0 && (
-                                    <View style={{ marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#F3F4F6' }}>
-                                        <Text style={{ fontSize: 13, fontWeight: '700', color: '#FF5B0A', marginBottom: 8 }}>
-                                            + Custom Selected Add-ons ({selectedAddons.length})
-                                        </Text>
-                                        {selectedAddons.map((addon: any, index: number) => (
-                                            <View key={index} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                                                <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 8 }}>
-                                                    <Ionicons name="add-circle" size={16} color="#FF5B0A" style={{ marginRight: 6 }} />
-                                                    <Text style={{ fontSize: 13, color: '#374151', fontWeight: '600' }}>
-                                                        {addon.name} ({addon.quantity} {addon.quantity === 1 ? 'pack' : 'packs'})
-                                                    </Text>
+                                {/* MASTER PAYMENT CARD */}
+                                <View style={styles.paymentCard}>
+                                    {/* ─── PROMO / COUPON SECTION ─── */}
+                                    <View style={styles.couponCard}>
+                                        <View style={styles.couponHeader}>
+                                            <Ionicons name="pricetag-outline" size={20} color="#FE6700" />
+                                            <Text style={styles.couponHeaderText}>Have a Promo Code?</Text>
+                                        </View>
+
+                                        {!pricing.couponValid ? (
+                                            <>
+                                                <View style={styles.promoInputRow}>
+                                                    <TextInput
+                                                        style={styles.promoInput}
+                                                        placeholder="Enter coupon code"
+                                                        placeholderTextColor="#9CA3AF"
+                                                        value={promoCode}
+                                                        onChangeText={(text) => { setPromoCode(text.toUpperCase()); setCouponError(''); }}
+                                                        autoCapitalize="characters"
+                                                        autoCorrect={false}
+                                                    />
+                                                    <TouchableOpacity
+                                                        style={[styles.applyBtnOutline, (!promoCode || isApplyingCoupon) && { opacity: 0.5 }]}
+                                                        onPress={handleApplyCoupon}
+                                                        disabled={!promoCode || isApplyingCoupon}
+                                                    >
+                                                        {isApplyingCoupon ? (
+                                                            <ActivityIndicator size="small" color="#FE6700" />
+                                                        ) : (
+                                                            <Text style={styles.applyBtnText}>Apply</Text>
+                                                        )}
+                                                    </TouchableOpacity>
                                                 </View>
-                                                <Text style={{ fontSize: 13, fontWeight: '700', color: '#111827' }}>
-                                                    ₹{(addon.unitPrice * addon.quantity).toFixed(2)}
+
+                                                {couponError ? (
+                                                    <View style={styles.couponErrorRow}>
+                                                        <Ionicons name="close-circle" size={16} color="#EF4444" />
+                                                        <Text style={styles.couponErrorText}>{couponError}</Text>
+                                                    </View>
+                                                ) : (
+                                                    <Text style={styles.couponHint}>Enter a valid coupon code to get a discount on this order.</Text>
+                                                )}
+                                            </>
+                                        ) : (
+                                            <View style={styles.couponAppliedBox}>
+                                                <View style={styles.couponAppliedLeft}>
+                                                    <Ionicons name="checkmark-circle" size={24} color="#10B981" />
+                                                    <View style={{ marginLeft: 10 }}>
+                                                        <Text style={styles.couponAppliedCode}>{appliedCouponCode}</Text>
+                                                        <Text style={styles.couponAppliedSaving}>You saved ₹{(pricing.discountApplied || 0).toFixed(2)}!</Text>
+                                                    </View>
+                                                </View>
+                                                <TouchableOpacity onPress={handleRemoveCoupon} style={styles.removeBtn}>
+                                                    <Text style={styles.removeBtnText}>Remove</Text>
+                                                </TouchableOpacity>
+                                            </View>
+                                        )}
+                                    </View>
+
+                                    <View style={styles.divider} />
+
+                                    <TouchableOpacity
+                                        style={[styles.payButton, (isProcessing || !isLocationReady) && { opacity: 0.7 }]}
+                                        onPress={handlePay}
+                                        disabled={isProcessing || pricingLoading || !isLocationReady}
+                                    >
+                                        {isProcessing ? (
+                                            <ActivityIndicator color="#FFFFFF" />
+                                        ) : (
+                                            <>
+                                                <Feather name="lock" size={16} color="#FFF" style={styles.payBtnIcon} />
+                                                <Text style={styles.payButtonText}>
+                                                    Pay ₹{pricingLoading ? '...' : (pricing.total || 0).toFixed(2)}
                                                 </Text>
+                                            </>
+                                        )}
+                                    </TouchableOpacity>
+
+                                    <Text style={styles.termsText}>
+                                        By completing this purchase, you agree to our{' '}
+                                        <Text
+                                            style={{ color: '#FE6700', textDecorationLine: 'underline', fontFamily: 'Poppins_500Medium' }}
+                                            onPress={() => Linking.openURL(LEGAL_CONFIG.TERMS_OF_SERVICE_URL)}
+                                        >
+                                            Terms of Service
+                                        </Text>
+                                        {' '}and{' '}
+                                        <Text
+                                            style={{ color: '#FE6700', textDecorationLine: 'underline', fontFamily: 'Poppins_500Medium' }}
+                                            onPress={() => Linking.openURL(LEGAL_CONFIG.PRIVACY_POLICY_URL)}
+                                        >
+                                            Privacy Policy
+                                        </Text>
+                                    </Text>
+                                </View>
+                            </>
+                        )}
+                        {/* END MASTER PAYMENT CARD */}
+
+                        {/* DYNAMIC ORDER SUMMARY */}
+                        <View style={styles.summaryContainer}>
+                            <Text style={styles.summaryTitle}>Order Summary</Text>
+
+                            {pricingLoading ? (
+                                <View style={{ padding: 20, alignItems: 'center' }}>
+                                    <ActivityIndicator size="large" color="#FE6700" />
+                                    <Text style={{ marginTop: 10, color: '#6B6B6B' }}>Calculating Pricing...</Text>
+                                </View>
+                            ) : (
+                                <>
+                                    <Text style={styles.planName}>{pricing.packageName}</Text>
+                                    <Text style={styles.planDuration}>{durationLabel}</Text>
+                                    {pricing.projectedStartDate && pricing.projectedEndDate && (
+                                        <Text style={{ fontSize: fs(20), color: '#9CA3AF', fontFamily: 'Poppins_400Regular', marginBottom: fs(10) }}>
+                                            Activates on payment · Valid until {pricing.projectedEndDate}
+                                        </Text>
+                                    )}
+
+                                    <View style={styles.featuresList}>
+                                        {(packageBenefits.length > 0
+                                            ? packageBenefits
+                                            : ['Weekly health checkups', 'Vitals monitoring', 'Emergency contact support', 'Basic companionship']
+                                        ).map((feature, index) => (
+                                            <View key={index} style={styles.featureRow}>
+                                                <Ionicons name="checkmark-circle" size={18} color="#FE6700" />
+                                                <Text style={styles.featureText}>{feature}</Text>
                                             </View>
                                         ))}
                                     </View>
-                                )}
 
-                                <View style={styles.divider} />
+                                    {selectedAddons && selectedAddons.length > 0 && (
+                                        <View style={{ marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#F3F4F6' }}>
+                                            <Text style={{ fontSize: 13, fontWeight: '700', color: '#FF5B0A', marginBottom: 8 }}>
+                                                + Custom Selected Add-ons ({selectedAddons.length})
+                                            </Text>
+                                            {selectedAddons.map((addon: any, index: number) => (
+                                                <View key={index} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                                                    <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 8 }}>
+                                                        <Ionicons name="add-circle" size={16} color="#FF5B0A" style={{ marginRight: 6 }} />
+                                                        <Text style={{ fontSize: 13, color: '#374151', fontWeight: '600' }}>
+                                                            {addon.name} ({addon.quantity} {addon.quantity === 1 ? 'pack' : 'packs'})
+                                                        </Text>
+                                                    </View>
+                                                    <Text style={{ fontSize: 13, fontWeight: '700', color: '#111827' }}>
+                                                        ₹{(addon.unitPrice * addon.quantity).toFixed(2)}
+                                                    </Text>
+                                                </View>
+                                            ))}
+                                        </View>
+                                    )}
 
-                                {isVerificationFlow ? (
-                                    <>
-                                        <View style={styles.priceRow}>
-                                            <Text style={styles.priceLabel}>Package Price</Text>
-                                            <Text style={styles.priceValue}>₹{pricing.basePrice.toFixed(2)}</Text>
-                                        </View>
-                                        <View style={styles.priceRow}>
-                                            <Text style={styles.priceLabel}>Amount Due Now</Text>
-                                            <Text style={[styles.priceValue, { color: '#059669', fontWeight: '700' }]}>₹0.00 (Pre-paid by CSA)</Text>
-                                        </View>
-                                    </>
-                                ) : (
-                                    <>
-                                        <View style={styles.priceRow}>
-                                            <Text style={styles.priceLabel}>Subtotal</Text>
-                                            <Text style={styles.priceValue}>₹{pricing.basePrice.toFixed(2)}</Text>
-                                        </View>
-                                        {durationMonths > 1 && pricing.discountApplied > 0 && (
+                                    <View style={styles.divider} />
+
+                                    {isVerificationFlow ? (
+                                        <>
                                             <View style={styles.priceRow}>
-                                                <Text style={[styles.priceLabel, { color: '#059669' }]}>{durationLabel} Discount</Text>
-                                                <Text style={[styles.priceValue, { color: '#059669' }]}>-₹{pricing.discountApplied.toFixed(2)}</Text>
+                                                <Text style={styles.priceLabel}>Package Price</Text>
+                                                <Text style={styles.priceValue}>₹{(pricing.basePrice || 0).toFixed(2)}</Text>
                                             </View>
-                                        )}
-                                        {pricing.couponValid && (
                                             <View style={styles.priceRow}>
-                                                <Text style={[styles.priceLabel, { color: '#059669' }]}>Coupon ({appliedCouponCode})</Text>
-                                                <Text style={[styles.priceValue, { color: '#059669' }]}>-₹{pricing.discountApplied.toFixed(2)}</Text>
+                                                <Text style={styles.priceLabel}>Amount Due Now</Text>
+                                                <Text style={[styles.priceValue, { color: '#059669', fontWeight: '700' }]}>₹0.00 (Pre-paid by CSA)</Text>
                                             </View>
-                                        )}
-                                        <View style={styles.priceRow}>
-                                            <Text style={styles.priceLabel}>GST (18%)</Text>
-                                            <Text style={styles.priceValue}>₹{pricing.tax.toFixed(2)}</Text>
-                                        </View>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <View style={styles.priceRow}>
+                                                <Text style={styles.priceLabel}>Subtotal</Text>
+                                                <Text style={styles.priceValue}>₹{(pricing.basePrice || 0).toFixed(2)}</Text>
+                                            </View>
+                                            {durationMonths > 1 && pricing.discountApplied > 0 && (
+                                                <View style={styles.priceRow}>
+                                                    <Text style={[styles.priceLabel, { color: '#059669' }]}>{durationLabel} Discount</Text>
+                                                    <Text style={[styles.priceValue, { color: '#059669' }]}>-₹{(pricing.discountApplied || 0).toFixed(2)}</Text>
+                                                </View>
+                                            )}
+                                            {pricing.couponValid && (
+                                                <View style={styles.priceRow}>
+                                                    <Text style={[styles.priceLabel, { color: '#059669' }]}>Coupon ({appliedCouponCode})</Text>
+                                                    <Text style={[styles.priceValue, { color: '#059669' }]}>-₹{(pricing.discountApplied || 0).toFixed(2)}</Text>
+                                                </View>
+                                            )}
+                                            <View style={styles.priceRow}>
+                                                <Text style={styles.priceLabel}>Tax</Text>
+                                                <Text style={styles.priceValue}>₹{(pricing.tax || 0).toFixed(2)}</Text>
+                                            </View>
 
-                                        <View style={[styles.priceRow, { marginTop: 12 }]}>
-                                            <Text style={styles.totalLabel}>Total</Text>
-                                            <Text style={styles.totalValue}>₹{pricing.total.toFixed(2)}</Text>
-                                        </View>
-                                    </>
-                                )}
-                            </>
-                        )}
-                    </View>
+                                            <View style={[styles.priceRow, { marginTop: 12 }]}>
+                                                <Text style={styles.totalLabel}>Total</Text>
+                                                <Text style={styles.totalValue}>₹{(pricing.total || 0).toFixed(2)}</Text>
+                                            </View>
+                                        </>
+                                    )}
+                                </>
+                            )}
+                        </View>
 
-                </ScrollView>
+                    </ScrollView>
                 )}
             </KeyboardAvoidingView>
         </View>
