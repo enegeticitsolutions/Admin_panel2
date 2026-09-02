@@ -327,16 +327,15 @@ export const checkOut = async (data: {
     const isEdit = existingVisit.status === 'completed';
 
     const checkOutTime = isEdit ? existingVisit.checkOutTime : new Date();
-    let durationMinutes = existingVisit.durationMinutes || 0;
-
+    let actualMinutes = 0;
     if (!isEdit && existingVisit.checkInTime) {
-      durationMinutes = Math.round((checkOutTime!.getTime() - existingVisit.checkInTime.getTime()) / 60000);
+      actualMinutes = Math.round((checkOutTime!.getTime() - existingVisit.checkInTime.getTime()) / 60000);
     }
 
     // 2. Map dynamic vitals to standard fields on the Visit record for backward compatibility
     const visitUpdateData: any = {
       checkOutTime,
-      durationMinutes,
+      // intentionally NOT overwriting durationMinutes to preserve the originally scheduled duration
       status: 'completed',
       medicationAdherence: data.medicationAdherence,
       mood: data.mood as any,
@@ -422,8 +421,7 @@ export const checkOut = async (data: {
     //    Rules:
     //      hour-based benefit    → deduct actual hours (min 1h billing rule)
     //      session/visit benefit → deduct 1 unit
-    if (!isEdit && durationMinutes >= 0) {
-      const actualMinutes   = durationMinutes;
+    if (!isEdit && actualMinutes >= 0) {
       const billableMinutes = Math.max(60, actualMinutes);   // floor at 60 min
       const hoursConsumed   = billableMinutes / 60;          // exact float, min 1.0
 

@@ -40,6 +40,8 @@ export interface VisitDetailData {
   dateStr?: string;
   duration?: string;
   actualDurationMinutes?: number | null;
+  scheduledDurationText?: string;
+  actualDurationText?: string | null;
   durationText?: string;
   rated?: boolean;
   rating?: number | null;
@@ -310,7 +312,12 @@ export function VisitDetailsModal({
                     {visit.companionName || 'Care Companion'}
                   </Text>
                   <Text style={styles.companionRole}>Dedicated Care Companion</Text>
-                  {visit.duration ? (
+                  {visit.actualDurationText ? (
+                    <View style={styles.durationChip}>
+                      <Ionicons name="time-outline" size={scale(12)} color="#0284C7" style={{ marginRight: scale(4) }} />
+                      <Text style={styles.durationChipText}>Actual: {visit.actualDurationText}</Text>
+                    </View>
+                  ) : visit.duration ? (
                     <View style={styles.durationChip}>
                       <Ionicons name="time-outline" size={scale(12)} color="#0284C7" style={{ marginRight: scale(4) }} />
                       <Text style={styles.durationChipText}>{visit.duration}</Text>
@@ -354,7 +361,7 @@ export function VisitDetailsModal({
                     </Text>
                   </View>
                   <Text style={{ fontSize: scale(12), fontWeight: '700', color: '#15803D' }}>
-                    {visit.duration || '60 mins'}
+                    {visit.scheduledDurationText || '60 mins'}
                   </Text>
                 </View>
               ) : null}
