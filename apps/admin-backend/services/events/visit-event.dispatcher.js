@@ -15,7 +15,7 @@
 
 const { prisma } = require('../../lib/prisma');
 const { notifyUser } = require('../notifications');
-const { notificationService } = require('@maihoonna/notifications');
+const { notificationService, notificationProducer } = require('@maihoonna/notifications');
 
 /**
  * Helper to get clean 10-digit phone number
@@ -134,21 +134,64 @@ async function dispatchVisitScheduled(visitOrId, metadata = {}) {
       }).catch(err => console.error('[VisitDispatcher] Subscriber Push Error:', err.message));
     }
 
-    // Send WhatsApp to Subscriber
+    // Send WhatsApp to Care Mitra (NT-010 CC)
+    const ccPhone = getValidPhone(visit.careCompanion?.user?.phone || visit.careCompanion?.phone);
+    if (ccPhone) {
+      if (notificationProducer && typeof notificationProducer.publish === 'function') {
+        notificationProducer.publish({
+          idempotencyKey: `visit-${visit.id}-scheduled-cc`,
+          channel: 'whatsapp',
+          event: 'VISIT_SCHEDULED',
+          recipient: { phone: ccPhone },
+          variables: {
+            ccName,
+            beneficiaryName,
+            date: formattedDate,
+            time: formattedTime,
+            address,
+          },
+        }).catch(err => console.error('[VisitDispatcher] CC WhatsApp Error:', err.message));
+      } else {
+        notificationService.send({
+          channel: 'whatsapp',
+          event: 'VISIT_SCHEDULED',
+          to: ccPhone,
+          variables: { ccName, beneficiaryName, date: formattedDate, time: formattedTime, address }
+        }).catch(err => console.error('[VisitDispatcher] CC WhatsApp Error:', err.message));
+      }
+    }
+
+    // Send WhatsApp to Subscriber (NT-010 Subscriber)
     const subscriberPhone = getValidPhone(visit.beneficiary?.subscriber?.phone);
     if (subscriberPhone) {
-      notificationService.send({
-        channel: 'whatsapp',
-        event: 'VISIT_SCHEDULED',
-        to: subscriberPhone,
-        variables: {
-          ccName,
-          beneficiaryName,
-          date: formattedDate,
-          time: formattedTime,
-          address,
-        }
-      }).catch(err => console.error('[VisitDispatcher] WhatsApp Error:', err.message));
+      if (notificationProducer && typeof notificationProducer.publish === 'function') {
+        notificationProducer.publish({
+          idempotencyKey: `visit-${visit.id}-scheduled-sub`,
+          channel: 'whatsapp',
+          event: 'VISIT_SCHEDULED',
+          recipient: { phone: subscriberPhone },
+          variables: {
+            ccName,
+            beneficiaryName,
+            date: formattedDate,
+            time: formattedTime,
+            address,
+          },
+        }).catch(err => console.error('[VisitDispatcher] Subscriber WhatsApp Error:', err.message));
+      } else {
+        notificationService.send({
+          channel: 'whatsapp',
+          event: 'VISIT_SCHEDULED',
+          to: subscriberPhone,
+          variables: {
+            ccName,
+            beneficiaryName,
+            date: formattedDate,
+            time: formattedTime,
+            address,
+          }
+        }).catch(err => console.error('[VisitDispatcher] WhatsApp Error:', err.message));
+      }
     }
   } catch (err) {
     console.error('[VisitDispatcher] dispatchVisitScheduled Exception:', err.message);

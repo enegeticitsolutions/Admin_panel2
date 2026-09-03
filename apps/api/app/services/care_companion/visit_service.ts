@@ -2,6 +2,7 @@ import prisma from '../../core/database';
 import { generateUUID, generateEncounterId, generateVisitCode } from '../../utils/helpers';
 import { Prisma } from '@prisma/client';
 import { benefitLedgerService } from '../shared/benefit_ledger_service';
+import { notificationProducer } from '@maihoonna/notifications';
 
 
 // â”€â”€â”€ Geo-fencing Helper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -127,7 +128,7 @@ export const checkIn = async (data: {
   // If beneficiary has no GPS stored, isGeoVerified stays false
 
   // 4. Update the visit record with all geo fields
-  return prisma.visit.update({
+  const updatedVisit = await prisma.visit.update({
     where: { id: data.visitId },
     data: {
       checkInTime: new Date(),
@@ -141,6 +142,74 @@ export const checkIn = async (data: {
       manualCheckInReason: data.manualCheckInReason || null,
     },
   });
+
+  // 5. Asynchronous Decoupled Notification Dispatch (Redis Streams)
+  (async () => {
+    try {
+      const fullVisit = await prisma.visit.findUnique({
+        where: { id: data.visitId },
+        include: {
+          beneficiary: {
+            include: {
+              subscriber: { select: { id: true, name: true, phone: true } },
+              user: { select: { id: true, name: true, phone: true } },
+            },
+          },
+          careCompanion: {
+            include: {
+              user: { select: { id: true, name: true, phone: true } },
+            },
+          },
+        },
+      });
+
+      if (!fullVisit) return;
+      const ccName = fullVisit.careCompanion?.name || fullVisit.careCompanion?.user?.name || 'Care Mitra';
+      const beneficiaryName = fullVisit.beneficiary?.name || 'Beneficiary';
+      const checkInTimeStr = new Date().toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: true });
+
+      // NT-012: VISIT_STARTED to Subscriber
+      const subscriberPhone = fullVisit.beneficiary?.subscriber?.phone;
+      if (subscriberPhone) {
+        await notificationProducer.publish({
+          idempotencyKey: `visit-${fullVisit.id}-started`,
+          channel: 'whatsapp',
+          event: 'VISIT_STARTED',
+          recipient: { phone: subscriberPhone },
+          variables: {
+            ccName,
+            beneficiaryName,
+            checkInTime: checkInTimeStr,
+          },
+        });
+      }
+
+      // NT-013: MANUAL_CHECKIN_FLAGGED to Field Manager (if manual check-in)
+      if (isManualCheckIn) {
+        const fmUser = await prisma.user.findFirst({
+          where: { role: 'field_manager' },
+          select: { phone: true, name: true },
+        });
+        if (fmUser?.phone) {
+          await notificationProducer.publish({
+            idempotencyKey: `visit-${fullVisit.id}-manual-checkin`,
+            channel: 'whatsapp',
+            event: 'MANUAL_CHECKIN_FLAGGED',
+            recipient: { phone: fmUser.phone },
+            variables: {
+              ccName,
+              beneficiaryName,
+              remarks: data.manualCheckInReason || 'Outside geo-fence override',
+            },
+          });
+        }
+      }
+    } catch (notifErr: any) {
+      console.error('[VisitService:CheckIn] Notification Dispatch Error:', notifErr.message);
+    }
+  })();
+
+  return updatedVisit;
 };
 
 
@@ -315,11 +384,15 @@ export const checkOut = async (data: {
     valueNumeric2?: number;
     valueText?: string;
   }[];
+  medicationsList?: {
+    medicationId: string;
+    taken: boolean;
+  }[];
   mood?: string;
   medicationAdherence: boolean;
   notes?: string;
 }) => {
-  return prisma.$transaction(async (tx) => {
+  const visit = await prisma.$transaction(async (tx) => {
     // 1. Get the visit to know checkInTime
     const existingVisit = await tx.visit.findUnique({ where: { id: data.visitId } });
     if (!existingVisit) throw new Error('Visit not found');
@@ -603,13 +676,228 @@ export const checkOut = async (data: {
 
     return visit;
   });
+
+  // 8. Asynchronous Decoupled Notification Dispatch (Redis Streams)
+  (async () => {
+    try {
+      const fullVisit = await prisma.visit.findUnique({
+        where: { id: data.visitId },
+        include: {
+          beneficiary: {
+            include: {
+              subscriber: { select: { id: true, name: true, phone: true } },
+              user: { select: { id: true, name: true, phone: true } },
+            },
+          },
+          careCompanion: {
+            include: {
+              user: { select: { id: true, name: true, phone: true } },
+            },
+          },
+        },
+      });
+
+      if (!fullVisit) return;
+      const ccName = fullVisit.careCompanion?.name || fullVisit.careCompanion?.user?.name || 'Care Mitra';
+      const beneficiaryName = fullVisit.beneficiary?.name || 'Beneficiary';
+      const subscriberPhone = fullVisit.beneficiary?.subscriber?.phone;
+      const beneficiaryPhone = fullVisit.beneficiary?.user?.phone;
+
+      // Calculate duration string
+      let durationMinutes = fullVisit.durationMinutes || 60;
+      if (fullVisit.checkInTime && fullVisit.checkOutTime) {
+        durationMinutes = Math.max(1, Math.round((fullVisit.checkOutTime.getTime() - fullVisit.checkInTime.getTime()) / 60000));
+      }
+      const hours = Math.floor(durationMinutes / 60);
+      const mins = durationMinutes % 60;
+      const durationText = hours > 0 ? `${hours} hr ${mins} min` : `${mins} mins`;
+
+      // NT-014: VISIT_COMPLETED to Subscriber & Beneficiary
+      if (subscriberPhone) {
+        await notificationProducer.publish({
+          idempotencyKey: `visit-${fullVisit.id}-completed-sub`,
+          channel: 'whatsapp',
+          event: 'VISIT_COMPLETED',
+          recipient: { phone: subscriberPhone },
+          variables: { ccName, beneficiaryName, duration: durationText },
+        });
+      }
+      if (beneficiaryPhone && beneficiaryPhone !== subscriberPhone) {
+        await notificationProducer.publish({
+          idempotencyKey: `visit-${fullVisit.id}-completed-benef`,
+          channel: 'whatsapp',
+          event: 'VISIT_COMPLETED',
+          recipient: { phone: beneficiaryPhone },
+          variables: { ccName, beneficiaryName, duration: durationText },
+        });
+      }
+
+      // NT-018: RATING_FEEDBACK_PROMPT to Subscriber
+      if (subscriberPhone) {
+        await notificationProducer.publish({
+          idempotencyKey: `visit-${fullVisit.id}-rating-prompt-sub`,
+          channel: 'whatsapp',
+          event: 'RATING_FEEDBACK_PROMPT',
+          recipient: { phone: subscriberPhone },
+          variables: { ccName },
+        });
+      }
+
+      // NT-020: MOOD_ALERT (if low mood)
+      const currentMood = (data.mood || '').toLowerCase();
+      if (['sad', 'anxious', 'depressed'].includes(currentMood)) {
+        if (subscriberPhone) {
+          await notificationProducer.publish({
+            idempotencyKey: `visit-${fullVisit.id}-mood-alert`,
+            channel: 'whatsapp',
+            event: 'MOOD_ALERT',
+            recipient: { phone: subscriberPhone },
+            variables: {
+              beneficiaryName,
+              mood: data.mood || 'Low',
+              ccName,
+            },
+          });
+        }
+
+        // NT-021: Consecutive Low Mood Check (WELLBEING_CHECK_RECOMMENDED)
+        const previousVisit = await prisma.visit.findFirst({
+          where: {
+            beneficiaryId: fullVisit.beneficiaryId,
+            status: 'completed',
+            id: { not: fullVisit.id },
+          },
+          orderBy: { checkOutTime: 'desc' },
+          select: { mood: true },
+        });
+
+        if (previousVisit?.mood && ['sad', 'anxious', 'depressed'].includes(previousVisit.mood.toLowerCase())) {
+          if (subscriberPhone) {
+            await notificationProducer.publish({
+              idempotencyKey: `visit-${fullVisit.id}-wellbeing-recommended`,
+              channel: 'whatsapp',
+              event: 'WELLBEING_CHECK_RECOMMENDED',
+              recipient: { phone: subscriberPhone },
+              variables: { beneficiaryName },
+            });
+          }
+        }
+      }
+
+      // NT-030: VITALS_ALERT (if abnormal vitals recorded)
+      if (data.vitalsList && Array.isArray(data.vitalsList)) {
+        for (const reading of data.vitalsList) {
+          const def = await prisma.vitalDefinition.findUnique({ where: { id: reading.vitalDefinitionId } });
+          if (!def) continue;
+          let isAbnormal = false;
+          let displayReading = '';
+
+          if (def.dataType === 'numeric' && reading.valueNumeric != null) {
+            displayReading = `${reading.valueNumeric} ${def.unit || ''}`.trim();
+            if ((def.normalMin != null && reading.valueNumeric < def.normalMin) || (def.normalMax != null && reading.valueNumeric > def.normalMax)) {
+              isAbnormal = true;
+            }
+          } else if (def.dataType === 'dual_numeric' && reading.valueNumeric != null && reading.valueNumeric2 != null) {
+            displayReading = `${reading.valueNumeric}/${reading.valueNumeric2} ${def.unit || ''}`.trim();
+            if (
+              (def.normalMin != null && reading.valueNumeric < def.normalMin) ||
+              (def.normalMax != null && reading.valueNumeric > def.normalMax) ||
+              (def.normalMin2 != null && reading.valueNumeric2 < def.normalMin2) ||
+              (def.normalMax2 != null && reading.valueNumeric2 > def.normalMax2)
+            ) {
+              isAbnormal = true;
+            }
+          }
+
+          if (isAbnormal && subscriberPhone) {
+            await notificationProducer.publish({
+              idempotencyKey: `vital-${fullVisit.id}-${def.id}-alert`,
+              channel: 'whatsapp',
+              event: 'VITALS_ALERT',
+              recipient: { phone: subscriberPhone },
+              variables: {
+                beneficiaryName,
+                vitalType: def.name,
+                reading: displayReading,
+                ccName,
+              },
+            });
+            break; // send one summary alert per visit checkout
+          }
+        }
+      }
+
+      // NT-032: MEDICATION_MISSED (if medication unconfirmed/missed)
+      if (data.medicationsList && Array.isArray(data.medicationsList)) {
+        const missedMed = data.medicationsList.find((m) => !m.taken);
+        if (missedMed && subscriberPhone) {
+          const medInfo = await prisma.medication.findUnique({
+            where: { id: missedMed.medicationId },
+            select: { name: true },
+          }).catch(() => null);
+
+          const medName = medInfo?.name || 'prescribed medication';
+          const scheduledTimeStr = new Date().toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: true });
+
+          await notificationProducer.publish({
+            idempotencyKey: `visit-${fullVisit.id}-med-missed`,
+            channel: 'whatsapp',
+            event: 'MEDICATION_MISSED',
+            recipient: { phone: subscriberPhone },
+            variables: {
+              beneficiaryName,
+              medicationName: medName,
+              scheduledTime: scheduledTimeStr,
+            },
+          });
+        }
+      }
+    } catch (err: any) {
+      console.error('[VisitService:CheckOut] Notification Dispatch Error:', err.message);
+    }
+  })();
+
+  return visit;
 };
+
 export const rateVisit = async (data: { visitId: string; rating: number; feedback?: string }) => {
   if (data.rating < 1 || data.rating > 5) throw new Error('Rating must be between 1 and 5');
-  return prisma.visit.update({
+  const updatedVisit = await prisma.visit.update({
     where: { id: data.visitId },
     data: { rating: data.rating, feedback: data.feedback },
   });
+
+  // NT-065: CC_PERFORMANCE_RATING to Care Mitra
+  (async () => {
+    try {
+      const fullVisit = await prisma.visit.findUnique({
+        where: { id: data.visitId },
+        include: {
+          beneficiary: { select: { name: true } },
+          careCompanion: { include: { user: { select: { phone: true } } } },
+        },
+      });
+
+      const ccPhone = fullVisit?.careCompanion?.user?.phone;
+      if (ccPhone) {
+        await notificationProducer.publish({
+          idempotencyKey: `rating-${data.visitId}`,
+          channel: 'whatsapp',
+          event: 'CC_PERFORMANCE_RATING',
+          recipient: { phone: ccPhone },
+          variables: {
+            rating: String(data.rating),
+            beneficiaryName: fullVisit?.beneficiary?.name || 'Beneficiary',
+            comment: data.feedback || 'Visit completed successfully',
+          },
+        });
+      }
+    } catch (err: any) {
+      console.error('[VisitService:RateVisit] Notification Error:', err.message);
+    }
+  })();
+
+  return updatedVisit;
 };
 
 export const autoUpdateMissedVisits = async () => {

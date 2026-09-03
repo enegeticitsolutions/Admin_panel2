@@ -2,6 +2,7 @@ import prisma from '../../core/database';
 import { generateUUID, generateRandomPhone } from '../../utils/helpers';
 import { Prisma } from '@prisma/client';
 import { getBeneficiarySathiEligibility } from '../beneficiary/beneficiary_sathi_service';
+import { notificationProducer } from '@maihoonna/notifications';
 
 // Map free-text frequencies from the mobile UI to valid DB enum values
 const frequencyMap: Record<string, string> = {
@@ -116,7 +117,7 @@ export const createBeneficiary = async (data: {
     });
   }
 
-  return prisma.beneficiary.create({
+  const newBeneficiary = await prisma.beneficiary.create({
     data: {
       id: generateUUID(),
       userId: user.id,
@@ -137,6 +138,35 @@ export const createBeneficiary = async (data: {
       },
     },
   });
+
+  // NT-005: Dispatch BENEF_PROFILE_CREATED (Decoupled Redis Streams)
+  (async () => {
+    try {
+      const subscriber = await prisma.user.findUnique({
+        where: { id: data.subscriberId },
+        select: { name: true },
+      });
+      const subscriberName = subscriber?.name || 'Subscriber';
+      const beneficiaryPhone = data.phone?.replace(/\D/g, '').slice(-10);
+
+      if (beneficiaryPhone) {
+        await notificationProducer.publish({
+          idempotencyKey: `benef-${newBeneficiary.id}-created`,
+          channel: 'whatsapp',
+          event: 'BENEF_PROFILE_CREATED',
+          recipient: { phone: beneficiaryPhone },
+          variables: {
+            beneficiaryName: data.name,
+            subscriberName,
+          },
+        });
+      }
+    } catch (err: any) {
+      console.error('[BeneficiaryService:Create] Notification Error:', err.message);
+    }
+  })();
+
+  return newBeneficiary;
 };
 
 export const getBeneficiary = async (beneficiaryId: string) => {

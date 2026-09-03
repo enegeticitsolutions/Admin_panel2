@@ -506,9 +506,11 @@ datasource db {
 
 ## 7. AWS ElastiCache (Redis) Setup
 
+> 📘 **Dedicated Notification Microservice Guide**: For detailed stream topologies, worker containerization (`Dockerfile.worker`), consumer group auto-claim (`XAUTOCLAIM`), and CloudWatch alarms, refer to [REDIS_DEPLOYMENT_AND_DEVOPS_GUIDE.md](./REDIS_DEPLOYMENT_AND_DEVOPS_GUIDE.md).
+
 ### 7.1 Why Redis?
-- Used as the **Pub/Sub event bus driver** (`PUBSUB_DRIVER=redis`) when the `packages/pubsub` package is integrated.
-- Enables cross-process event communication between `apps/api` and `apps/admin-backend` (e.g., live WebSocket updates, notification triggers, SOS alerts).
+- **Decoupled Notification Microservice Broker**: Powers the high-throughput Redis Streams (`stream:notifications:whatsapp`, `stream:notifications:push`, `stream:notifications:email`) for `@maihoonna/notifications` and background worker daemon.
+- **Pub/Sub Event Bus Driver**: Used for cross-process event communication between `apps/api` and `apps/admin-backend` (live WebSocket updates, SOS alerts).
 
 ### 7.2 Staging Redis Setup
 1. Go to **ElastiCache → Redis OSS caches → Create**.

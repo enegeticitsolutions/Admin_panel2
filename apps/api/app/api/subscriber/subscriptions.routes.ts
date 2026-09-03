@@ -9,6 +9,7 @@ import { config } from '../../core/config';
 import { sendAddonPurchaseNotifications } from '../../services/notification_service';
 import { generateUUID } from '../../utils/helpers';
 import { generateInvoiceNumber, calculateItemizedInvoice, BenefitTaxItem } from '../../utils/invoice_utils';
+import { notificationProducer } from '@maihoonna/notifications';
 
 const router = Router();
 
@@ -560,6 +561,47 @@ router.post('/purchase', paymentLimiter as unknown as RequestHandler, authentica
     if (responseData.success) {
       responseData.token = newToken;
       responseData.user = updatedUser;
+
+      // NT-044: PAYMENT_SUCCESS & NT-004: SUBSCRIPTION_ACTIVATED (Decoupled Redis Streams)
+      (async () => {
+        try {
+          const subscriberPhone = updatedUser?.phone;
+          if (subscriberPhone) {
+            const paidAmount = responseData.amount || responseData.total || 'Paid';
+            const benefName = (beneficiaryData as any)?.fullName || (beneficiaryData as any)?.name || 'Beneficiary';
+            const pkgName = responseData.packageName || packageId;
+
+            // NT-044: Payment successful
+            await notificationProducer.publish({
+              idempotencyKey: `payment-${razorpay_payment_id || userId}-success`,
+              channel: 'whatsapp',
+              event: 'PAYMENT_SUCCESS',
+              recipient: { phone: subscriberPhone },
+              variables: {
+                subscriberName: updatedUser?.name || 'Subscriber',
+                amount: String(paidAmount),
+                transactionId: razorpay_payment_id || userId,
+              },
+            });
+
+            // NT-004: Subscription activated
+            await notificationProducer.publish({
+              idempotencyKey: `sub-${userId}-${packageId}-activated`,
+              channel: 'whatsapp',
+              event: 'SUBSCRIPTION_ACTIVATED',
+              recipient: { phone: subscriberPhone },
+              variables: {
+                subscriberName: updatedUser?.name || 'Subscriber',
+                packageName: pkgName,
+                beneficiaryName: benefName,
+                startDate: new Date().toLocaleDateString('en-IN'),
+              },
+            });
+          }
+        } catch (notifErr: any) {
+          console.error('[Purchase Notification Error]:', notifErr.message);
+        }
+      })();
     }
 
     res.json(responseData);

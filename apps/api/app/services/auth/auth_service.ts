@@ -4,6 +4,7 @@ import { createToken } from '../../core/security';
 import { generateUUID } from '../../utils/helpers';
 import { ApiError } from '../../utils/ApiError';
 import { OtpFactory } from '../../core/otp/OtpFactory';
+import { notificationProducer } from '@maihoonna/notifications';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -403,6 +404,17 @@ export class AuthService {
 
     const token = createToken({ sub: user.id, role: user.role });
 
+    // NT-002: Dispatch SUBSCRIBER_ACCOUNT_CREATED (Decoupled Redis Streams)
+    if (user.phone) {
+      notificationProducer.publish({
+        idempotencyKey: `user-${user.id}-created`,
+        channel: 'whatsapp',
+        event: 'SUBSCRIBER_ACCOUNT_CREATED',
+        recipient: { phone: user.phone },
+        variables: { subscriberName: user.name || 'Subscriber' },
+      }).catch((err: any) => console.error('[AuthService:Register] Notification Error:', err.message));
+    }
+
     return {
       success: true,
       message: 'Registration successful',
@@ -488,6 +500,17 @@ export class AuthService {
     });
 
     const token = createToken({ sub: user.id, role: user.role });
+
+    // NT-002: Dispatch SUBSCRIBER_ACCOUNT_CREATED (Decoupled Redis Streams)
+    if (user.phone) {
+      notificationProducer.publish({
+        idempotencyKey: `user-${user.id}-created`,
+        channel: 'whatsapp',
+        event: 'SUBSCRIBER_ACCOUNT_CREATED',
+        recipient: { phone: user.phone },
+        variables: { subscriberName: user.name || 'Subscriber' },
+      }).catch((err: any) => console.error('[AuthService:VerifyOtp] Notification Error:', err.message));
+    }
 
     return {
       success: true,
