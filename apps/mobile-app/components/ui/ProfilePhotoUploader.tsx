@@ -264,8 +264,7 @@ export function ProfilePhotoUploader({ config, style }: ProfilePhotoUploaderProp
         {photoUrl && !imageError ? (
           <Image
             source={{ uri: sanitizeImageUri(photoUrl) }}
-            style={{ width: size, height: size, borderRadius: radius }}
-
+            style={{ width: '100%', height: '100%', borderRadius: radius }}
             resizeMode="cover"
             onError={(e) => {
               console.warn('[ProfilePhotoUploader] Image failed to load:', photoUrl, e.nativeEvent?.error);
@@ -277,8 +276,8 @@ export function ProfilePhotoUploader({ config, style }: ProfilePhotoUploaderProp
             style={[
               styles.initialsCircle,
               {
-                width: size,
-                height: size,
+                width: '100%',
+                height: '100%',
                 borderRadius: radius,
                 backgroundColor: accentColor,
               },

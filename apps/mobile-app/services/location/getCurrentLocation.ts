@@ -35,16 +35,29 @@ export const getCurrentLocation = async (): Promise<{
         throw new Error('Location services are disabled on the device');
       }
 
-      // Use Balanced accuracy; wrap with a 15 second timeout to avoid hanging on real devices
-      const locationPromise = Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced,
-      });
+      // 1. Try to get the last known position first (fastest, prevents hanging on emulators)
+      let location: Location.LocationObject | null = null;
+      try {
+        location = await Location.getLastKnownPositionAsync({
+          maxAge: 1000 * 60 * 5, // 5 minutes
+        });
+      } catch (e) {
+        console.warn('[LocationService] Could not get last known position', e);
+      }
 
-      const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('Location request timed out after 15 seconds')), 15000)
-      );
+      // 2. Fallback to requesting current position if no cached location exists
+      if (!location) {
+        // Use Low accuracy instead of Balanced to prevent hanging while waiting for precise GPS lock
+        const locationPromise = Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Low,
+        });
 
-      const location = await Promise.race([locationPromise, timeoutPromise]) as Location.LocationObject;
+        const timeoutPromise = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('Location request timed out after 15 seconds')), 15000)
+        );
+
+        location = await Promise.race([locationPromise, timeoutPromise]) as Location.LocationObject;
+      }
 
       return {
         latitude: location.coords.latitude,

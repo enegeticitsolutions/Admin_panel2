@@ -250,29 +250,34 @@ export default function BeneficiaryProfileScreen() {
                 {/* ── Next Visit Card (New Feature) ── */}
                 <NextVisitCard nextVisit={beneficiary.nextVisit} />
 
-                {/* ── Tab Bar ── */}
-                <View style={styles.tabBar}>
-                    {(['Timeline', 'Vitals', 'Medical'] as TabType[]).map((tab) => (
-                        <TouchableOpacity
-                            key={tab}
-                            style={[styles.tabItem, activeTab === tab && styles.tabItemActive]}
-                            onPress={() => setActiveTab(tab)}
-                        >
-                            <Ionicons
-                                name={tab === 'Timeline' ? 'time-outline' : tab === 'Vitals' ? 'pulse-outline' : 'document-text-outline'}
-                                size={scale(16)}
-                                color={activeTab === tab ? '#FF5B0A' : '#333333'}
-                                style={{ marginRight: scale(4) }}
-                            />
-                            <Text style={[styles.tabText, activeTab === tab && styles.tabTextActive]}>{tab}</Text>
-                        </TouchableOpacity>
-                    ))}
-                </View>
+                {/* ── Tabs & Content Wrapper ── */}
+                <View style={styles.tabSectionWrapper}>
+                    {/* ── Tab Bar ── */}
+                    <View style={styles.tabBar}>
+                        {(['Timeline', 'Vitals', 'Medical'] as TabType[]).map((tab) => (
+                            <TouchableOpacity
+                                key={tab}
+                                style={[styles.tabItem, activeTab === tab && styles.tabItemActive]}
+                                onPress={() => setActiveTab(tab)}
+                            >
+                                <Ionicons
+                                    name={tab === 'Timeline' ? 'time-outline' : tab === 'Vitals' ? 'pulse-outline' : 'document-text-outline'}
+                                    size={scale(16)}
+                                    color={activeTab === tab ? '#FF5B0A' : '#333333'}
+                                    style={{ marginRight: scale(4) }}
+                                />
+                                <Text style={[styles.tabText, activeTab === tab && styles.tabTextActive]}>{tab}</Text>
+                            </TouchableOpacity>
+                        ))}
+                    </View>
 
-                {/* ── Tab Content ── */}
-                {activeTab === 'Timeline' && <TimelineTab visits={beneficiary.timeline || []} />}
-                {activeTab === 'Vitals' && <VitalsTab beneficiary={beneficiary} />}
-                {activeTab === 'Medical' && <MedicalTab beneficiary={beneficiary} conditions={conditions} onRefresh={refetch} />}
+                    {/* ── Tab Content ── */}
+                    <View style={styles.tabContentContainer}>
+                        {activeTab === 'Timeline' && <TimelineTab visits={beneficiary.timeline || []} />}
+                        {activeTab === 'Vitals' && <VitalsTab beneficiary={beneficiary} />}
+                        {activeTab === 'Medical' && <MedicalTab beneficiary={beneficiary} conditions={conditions} onRefresh={refetch} />}
+                    </View>
+                </View>
 
                 {/* ── Assistance Card ── */}
                 <View style={styles.assistanceCard}>
@@ -339,14 +344,14 @@ const styles = StyleSheet.create({
         width: '100%',
         height: scale(151),
         overflow: 'hidden',
-        borderBottomLeftRadius: 23,
-        borderBottomRightRadius: 23,
+        borderBottomLeftRadius: scale(23),
+        borderBottomRightRadius: scale(23),
     },
     heroImage: {
         width: '100%',
         height: '100%',
-        borderBottomLeftRadius: 23,
-        borderBottomRightRadius: 23,
+        borderBottomLeftRadius: scale(23),
+        borderBottomRightRadius: scale(23),
     },
     heroOverlay: {
         flex: 1,
@@ -363,7 +368,7 @@ const styles = StyleSheet.create({
     profileCard: {
         backgroundColor: '#FFFFFF',
         marginHorizontal: scale(14),
-        marginTop: -48,
+        marginTop: scale(-48),
         borderRadius: scale(15),
         paddingTop: scale(83),
         paddingHorizontal: scale(30),
@@ -385,7 +390,7 @@ const styles = StyleSheet.create({
         flexWrap: 'wrap',
         width: '100%',
         marginTop: scale(34),
-        rowGap: 25,
+        rowGap: scale(25),
     },
     statItem: { width: '50%', alignItems: 'flex-start', paddingLeft: scale(20) },
     statDivider: { width: 0, height: 0 },
@@ -417,23 +422,25 @@ const styles = StyleSheet.create({
     },
     conditionTagText: { fontSize: scale(14), color: '#DC2626', fontWeight: '500' },
 
-    /* Tab Bar */
-    tabBar: {
-        flexDirection: 'row',
+    /* Tab Section */
+    tabSectionWrapper: {
         backgroundColor: '#FFFFFF',
         marginHorizontal: scale(14),
-        borderTopLeftRadius: 15,
-        borderTopRightRadius: 15,
-        paddingHorizontal: 0,
-        paddingTop: 0,
+        borderRadius: scale(15),
         marginTop: scale(20),
-        marginBottom: 0,
-        borderBottomWidth: 1,
-        borderBottomColor: '#E5E7EB',
+        paddingBottom: scale(20),
         ...Platform.select({
             ios: { shadowColor: '#4A2B17', shadowOffset: { width: 0, height: scale(3) }, shadowOpacity: 0.08, shadowRadius: 6 },
             android: { elevation: 2 },
         }),
+    },
+    tabBar: {
+        flexDirection: 'row',
+        borderBottomWidth: 1,
+        borderBottomColor: '#E5E7EB',
+    },
+    tabContentContainer: {
+        paddingTop: scale(20),
     },
     tabItem: { flex: 1, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: scale(15) },
     tabItemActive: { borderBottomWidth: 2, borderBottomColor: '#FF5B0A' },

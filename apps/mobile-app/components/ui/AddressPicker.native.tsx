@@ -138,9 +138,15 @@ export const AddressPicker: React.FC<AddressPickerProps> = ({
   const locateUser = async () => {
     setLocatingUser(true);
     try {
-      const loc = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced,
+      let loc = await Location.getLastKnownPositionAsync({
+        maxAge: 1000 * 60 * 5, // 5 minutes
       });
+      if (!loc) {
+        loc = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Low,
+        });
+      }
+      if (!loc) throw new Error("No location found");
       const { latitude, longitude } = loc.coords;
       const newRegion = { latitude, longitude, latitudeDelta: 0.006, longitudeDelta: 0.006 };
       setRegion(newRegion);

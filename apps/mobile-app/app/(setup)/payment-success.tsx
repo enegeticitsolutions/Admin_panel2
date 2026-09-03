@@ -266,11 +266,17 @@ export default function PaymentSuccessScreen() {
 
                 <TouchableOpacity style={styles.linkBtn} onPress={handleDownloadInvoice} disabled={isDownloading}>
                     {isDownloading ? (
-                        <ActivityIndicator size="small" color="#FE6700" style={{ marginRight: 6 }} />
+                        <ActivityIndicator size="small" color="#FE6700" style={{ marginRight: 8 }} />
                     ) : (
-                        <Ionicons name="download-outline" size={16} color="#050505" style={{ marginRight: 6 }} />
+                        <Ionicons name="download-outline" size={24} color="#050505" style={{ marginRight: 8 }} />
                     )}
-                    <Text style={styles.linkBtnText}>{isDownloading ? 'Downloading...' : 'Download Invoice'}</Text>
+                    <Text 
+                        style={styles.linkBtnText}
+                        numberOfLines={1}
+                        adjustsFontSizeToFit
+                    >
+                        {isDownloading ? 'Downloading...' : 'Download Invoice'}
+                    </Text>
                 </TouchableOpacity>
 
                 {/*<TouchableOpacity style={styles.linkBtn}>
@@ -402,8 +408,8 @@ const styles = StyleSheet.create({
     },
     outlineBtnText: { color: '#FE6700', fontSize: 10, fontWeight: '600' },
 
-    linkBtn: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: 8, marginBottom: 16 },
-    linkBtnText: { color: '#050505', fontSize: 10, fontWeight: '400' },
+    linkBtn: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: 12, marginBottom: 16 },
+    linkBtnText: { color: '#050505', fontSize: 15, fontWeight: '500' },
 
     supportCard: {
         backgroundColor: '#FFFFFF', paddingHorizontal: 16, paddingTop: 16, paddingBottom: 18, borderRadius: 16,
