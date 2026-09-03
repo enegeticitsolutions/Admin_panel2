@@ -6,6 +6,20 @@ import { OtpProvider, OtpResponse } from './OtpProvider';
  */
 export class StplProvider extends OtpProvider {
   async send(phone: string): Promise<OtpResponse> {
+    const cleanPhone = phone.replace(/\D/g, '').slice(-10);
+
+    const BYPASS_PHONES = ['9305951785', '8585858585', '0000000000', '8814038004'];
+
+    // Reviewer & Test Bypass: always succeed instantly with static OTP 442233
+    if (BYPASS_PHONES.includes(cleanPhone)) {
+      await prisma.otp.upsert({
+        where: { phone: cleanPhone },
+        update: { code: '442233', expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) },
+        create: { phone: cleanPhone, code: '442233', expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) },
+      });
+      return { success: true, message: 'OTP sent successfully' };
+    }
+
     const authKey = process.env.STPL_AUTH_KEY || process.env.MSG91_AUTH_KEY;
     if (!authKey) {
       throw new Error('STPL_AUTH_KEY (or MSG91_AUTH_KEY) environment variable is required');
@@ -26,7 +40,6 @@ export class StplProvider extends OtpProvider {
       create: { phone, code: otpCode, expiresAt: new Date(Date.now() + 5 * 60 * 1000) },
     });
 
-    const cleanPhone = phone.replace(/\D/g, '').slice(-10);
     const recipient = cleanPhone.startsWith('91') ? cleanPhone : `91${cleanPhone}`;
 
     // ── Channel 1: STPL SMS via Flow API ───────────────────────────────────────

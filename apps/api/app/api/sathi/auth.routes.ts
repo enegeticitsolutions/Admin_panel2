@@ -12,12 +12,19 @@ import { sendOtpSchema, verifyOtpSchema } from '../../schemas/auth';
 
 const router = Router();
 
+const BYPASS_PHONES = ['9305951785', '8585858585', '0000000000', '8814038004'];
+
 const otpLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 5,
   message: { success: false, message: 'Too many OTP requests from this IP. Please try again after 15 minutes.' },
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => {
+    const raw = (req.body?.phone || '').toString();
+    const clean = raw.replace(/\D/g, '').slice(-10);
+    return BYPASS_PHONES.includes(clean);
+  },
 });
 
 const loginLimiter = rateLimit({
@@ -26,6 +33,11 @@ const loginLimiter = rateLimit({
   message: { success: false, message: 'Too many login attempts. Please try again after 15 minutes.' },
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => {
+    const raw = (req.body?.phone || '').toString();
+    const clean = raw.replace(/\D/g, '').slice(-10);
+    return BYPASS_PHONES.includes(clean);
+  },
 });
 
 // ─── Password Onboarding ─────────────────────────────────────────────────────

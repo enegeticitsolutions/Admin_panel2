@@ -1,6 +1,7 @@
 # Scratch / Dev-only files (never push)
 ################################
 MOBILE_TESTING_SETUP.md
+DEVOPS_DATABASE_CONNECTION_GUIDE.md
 sync-app.ps1
 scripts/
 .claude
@@ -11,6 +12,8 @@ apps/admin-backend/prisma/seed-beneficiary-subscriber.js
 apps/admin-backend/prisma/seed.js
 apps/admin-backend/prisma/seedTestSub.js
 apps/admin-backend/scratch/
+apps/admin-backend/supabase_files/
+supabase_files/
 apps/mobile-backend/scratch_check_user.ts
 apps/mobile-backend/scratch_delete_user.ts
 apps/mobile-backend/scratch_check_harshit.ts
@@ -28,6 +31,8 @@ node_modules/
 **/.env
 **/.env.local
 **/.env.*.local
+**/.env.backup
+**/.env*.backup
 **/*copy-env*
 **/*copy.env*
 **/*serviceAccountKey*.json

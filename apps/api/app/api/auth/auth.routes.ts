@@ -9,6 +9,8 @@ import { ApiResponse } from '../../utils/ApiResponse';
 
 const router = Router();
 
+const BYPASS_PHONES = ['9305951785', '8585858585', '0000000000', '8814038004'];
+
 // Rate Limiter for OTP Requests (max 10 requests per 15 mins per IP)
 const otpLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -16,6 +18,11 @@ const otpLimiter = rateLimit({
   message: { success: false, message: 'Too many OTP requests from this IP. Please try again after 15 minutes.' },
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => {
+    const raw = (req.body?.phone || '').toString();
+    const clean = raw.replace(/\D/g, '').slice(-10);
+    return BYPASS_PHONES.includes(clean);
+  },
 });
 
 // Rate Limiter for Password Logins (e.g., max 10 requests per 15 mins per IP)
@@ -25,6 +32,11 @@ const loginLimiter = rateLimit({
   message: { success: false, message: 'Too many login attempts. Please try again after 15 minutes.' },
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => {
+    const raw = (req.body?.phone || '').toString();
+    const clean = raw.replace(/\D/g, '').slice(-10);
+    return BYPASS_PHONES.includes(clean);
+  },
 });
 
 
