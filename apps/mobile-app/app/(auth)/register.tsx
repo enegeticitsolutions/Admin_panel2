@@ -13,6 +13,7 @@ import { IS_PASSWORD_LOGIN_ENABLED } from '@/constants/authMode';
 import { AddressPicker, SelectedAddress } from '@/components/ui/AddressPicker';
 import { getAccurateLocation } from '@/services/location';
 import { serviceabilityService, ServiceabilityResult } from '@/services/serviceability.service';
+import { LegalConsentModal } from '@/components/shared/LegalConsentModal';
 
 export default function RegisterScreen() {
     const { push, replace } = useNavigationStack();
@@ -23,6 +24,7 @@ export default function RegisterScreen() {
     const [step, setStep] = useState<'form' | 'otp'>('form');
     const [otp, setOtp] = useState(["", "", "", "", "", ""]);
     const [consentGiven, setConsentGiven] = useState(false);
+    const [showLegalModal, setShowLegalModal] = useState(false);
     const [resendTimer, setResendTimer] = useState(30);
     const inputRefs = useRef<Array<TextInput | null>>([]);
 
@@ -555,7 +557,13 @@ export default function RegisterScreen() {
                                 {/* ── Data Consent Checkbox ── */}
                                 <TouchableOpacity
                                     style={styles.consentBox}
-                                    onPress={() => setConsentGiven(!consentGiven)}
+                                    onPress={() => {
+                                        if (!consentGiven) {
+                                            setShowLegalModal(true);
+                                        } else {
+                                            setConsentGiven(false);
+                                        }
+                                    }}
                                     activeOpacity={0.8}
                                     accessibilityRole="checkbox"
                                     accessibilityLabel="Accept Terms of Service and Privacy Policy"
@@ -568,16 +576,9 @@ export default function RegisterScreen() {
                                         I agree that MaiHoonNa may collect and use my personal information (name, phone, age, and location) to provide elder care coordination services. I have read and accept the{" "}
                                         <Text
                                             style={styles.consentLink}
-                                            onPress={(e) => { e.stopPropagation?.(); Linking.openURL(LEGAL_CONFIG.TERMS_OF_SERVICE_URL); }}
+                                            onPress={(e) => { e.stopPropagation?.(); setShowLegalModal(true); }}
                                         >
-                                            Terms of Service
-                                        </Text>
-                                        {" "}and{" "}
-                                        <Text
-                                            style={styles.consentLink}
-                                            onPress={(e) => { e.stopPropagation?.(); Linking.openURL(LEGAL_CONFIG.PRIVACY_POLICY_URL); }}
-                                        >
-                                            Privacy Policy
+                                            Terms of Service & Privacy Policy
                                         </Text>
                                         .
                                     </Text>
@@ -691,6 +692,16 @@ export default function RegisterScreen() {
                     subtitle="Move the pin to your service address"
                 />
             </Modal>
+
+            <LegalConsentModal
+                visible={showLegalModal}
+                onClose={() => setShowLegalModal(false)}
+                onAccept={() => {
+                    setConsentGiven(true);
+                    setShowLegalModal(false);
+                }}
+                requireConsent={!consentGiven}
+            />
         </SafeAreaView>
     );
 }

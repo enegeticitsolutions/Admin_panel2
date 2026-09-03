@@ -11,6 +11,7 @@ import { useNavigationStack } from '@/contexts/NavigationStackContext';
 import { useAndroidBackHandler } from '@/hooks/useAndroidBackHandler';
 import { useAuth } from '@/contexts/AuthContext';
 import { IS_PASSWORD_LOGIN_ENABLED } from '@/constants/authMode';
+import { LegalConsentModal } from '@/components/shared/LegalConsentModal';
 
 const { width, height } = Dimensions.get('window');
 const BASE_WIDTH = 390;
@@ -24,6 +25,7 @@ export default function AuthScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [biometricType, setBiometricType] = useState<BiometricKind>('biometric');
   const [hasBiometricsSetup, setHasBiometricsSetup] = useState(false);
+  const [showLegalModal, setShowLegalModal] = useState(false);
 
   const { push } = useNavigationStack();
   useAndroidBackHandler();
@@ -280,24 +282,6 @@ export default function AuthScreen() {
               </TouchableOpacity>
             </LinearGradient>
 
-            {/* Divider */}
-            <View style={styles.dividerRow}>
-              <View style={styles.line} />
-              <Text style={styles.dividerText}>Or continue with</Text>
-              <View style={styles.line} />
-            </View>
-
-            {/* Biometric Login */}
-            <TouchableOpacity
-              style={styles.bioButton}
-              disabled={isLoading}
-              activeOpacity={0.85}
-              onPress={() => handleBiometricLogin(false)}
-            >
-              <MaterialCommunityIcons name={getBiometricIconName()} size={scale(22)} color="#FFFFFF" />
-              <Text style={styles.bioButtonText}>{getBiometricButtonTitle()}</Text>
-            </TouchableOpacity>
-
             {/* Password Login — staging / dev only */}
             {IS_PASSWORD_LOGIN_ENABLED && (
               <TouchableOpacity
@@ -330,14 +314,22 @@ export default function AuthScreen() {
               </TouchableOpacity>
 
               <Text style={styles.terms}>
-                By continuing, you agree to our{" "}
-                <Text style={styles.orangeTextTerms}>Terms of Service</Text>
-                {"\n"}and <Text style={styles.orangeTextTerms}>Privacy Policy</Text>
+                By continuing, you agree to our{"\n"}
+                <Text style={styles.orangeTextTerms} onPress={() => setShowLegalModal(true)}>
+                  Terms of Service & Privacy Policy
+                </Text>
               </Text>
             </View>
           </ScrollView>
         </KeyboardAvoidingView>
       </TouchableWithoutFeedback>
+
+      <LegalConsentModal
+        visible={showLegalModal}
+        onClose={() => setShowLegalModal(false)}
+        onAccept={() => setShowLegalModal(false)}
+        requireConsent={false}
+      />
     </SafeAreaView>
   );
 }

@@ -26,6 +26,7 @@ import { useNavigationStack } from '@/contexts/NavigationStackContext';
 import { useAndroidBackHandler } from '@/hooks/useAndroidBackHandler';
 import { AddressInputField } from '@/components/ui/AddressInputField';
 import { useAuth } from '@/contexts/AuthContext';
+import { LegalConsentModal } from '@/components/shared/LegalConsentModal';
 
 const { width } = Dimensions.get('window');
 const scale = (size: number) => Math.round((width / 390) * size);
@@ -66,8 +67,8 @@ export default function ApplyVolunteerScreen() {
   const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
   const [availableInterests, setAvailableInterests] = useState<string[]>([]);
   const [showAllInterests, setShowAllInterests] = useState(false);
-  const [agreeGuidelines, setAgreeGuidelines] = useState(false);
-  const [agreePrivacy, setAgreePrivacy] = useState(false);
+  const [consentGiven, setConsentGiven] = useState(false);
+  const [showLegalModal, setShowLegalModal] = useState(false);
   const [consentBackground, setConsentBackground] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -161,7 +162,7 @@ export default function ApplyVolunteerScreen() {
 
   // ─── Submit Handler ──────────────────────────────────────────────────────────
   const handleSubmitApplication = async () => {
-    console.log('[Apply] Submit tapped', { form, address, agreeGuidelines, consentBackground });
+    console.log('[Apply] Submit tapped', { form, address, consentGiven, consentBackground });
     setFormError(null);
 
     // Inline validation — visible on web
@@ -190,12 +191,8 @@ export default function ApplyVolunteerScreen() {
       setFormError('You must be at least 18 years old to register as a Saathi.');
       return;
     }
-    if (!agreeGuidelines) {
-      setFormError('You must agree to the Community Guidelines to proceed.');
-      return;
-    }
-    if (!agreePrivacy) {
-      setFormError('You must agree to the Privacy Policy to proceed.');
+    if (!consentGiven) {
+      setFormError('You must agree to the Terms of Service, Privacy Policy, and Child Safety Standards to proceed.');
       return;
     }
     if (!consentBackground) {
@@ -755,44 +752,32 @@ export default function ApplyVolunteerScreen() {
               />
             </View>
 
-            {/* Checkbox: Community Guidelines */}
+            {/* ── Data Consent Checkbox ── */}
             <TouchableOpacity
               style={styles.checkboxRow}
-              onPress={() => setAgreeGuidelines(!agreeGuidelines)}
+              onPress={() => {
+                  if (!consentGiven) {
+                      setShowLegalModal(true);
+                  } else {
+                      setConsentGiven(false);
+                  }
+              }}
               activeOpacity={0.8}
             >
-              <View style={[styles.checkbox, agreeGuidelines && styles.checkboxActive]}>
-                {agreeGuidelines && (
-                  <MaterialCommunityIcons name="check" size={14} color="#FFFFFF" />
-                )}
-              </View>
-              <Text style={styles.checkboxLabel}>
-                I agree to the{' '}
-                <Text style={styles.orangeTextBold}>Community Guidelines</Text> and understand
-                that Saathi Network is built on mutual respect and empathy.
-              </Text>
-            </TouchableOpacity>
-
-            {/* Checkbox: Privacy Policy */}
-            <TouchableOpacity
-              style={styles.checkboxRow}
-              onPress={() => setAgreePrivacy(!agreePrivacy)}
-              activeOpacity={0.8}
-            >
-              <View style={[styles.checkbox, agreePrivacy && styles.checkboxActive]}>
-                {agreePrivacy && (
+              <View style={[styles.checkbox, consentGiven && styles.checkboxActive]}>
+                {consentGiven && (
                   <MaterialCommunityIcons name="check" size={14} color="#FFFFFF" />
                 )}
               </View>
               <Text style={styles.checkboxLabel}>
                 I have read and agree to the{' '}
-                <Text 
+                <Text
                   style={styles.orangeTextBold}
-                  onPress={() => Linking.openURL('https://maihoonna.in/#privacy')}
+                  onPress={(e) => { e.stopPropagation?.(); setShowLegalModal(true); }}
                 >
                   Privacy Policy
                 </Text>{' '}
-                and consent to processing of my personal data under the DPDP Act, 2023.
+                and consent to processing of my personal data under the DPDP Act, 2023. I also agree to the Community Guidelines and understand that Saathi Network is built on mutual respect and empathy.
               </Text>
             </TouchableOpacity>
 
@@ -822,9 +807,9 @@ export default function ApplyVolunteerScreen() {
 
             {/* Submit Button */}
             <TouchableOpacity
-              style={[styles.submitButton, isLoading && styles.submitButtonDisabled]}
+              style={[styles.submitButton, (isLoading || !consentGiven || !consentBackground) && styles.submitButtonDisabled]}
               onPress={handleSubmitApplication}
-              disabled={isLoading}
+              disabled={isLoading || !consentGiven || !consentBackground}
               activeOpacity={0.85}
             >
               {isLoading ? (
@@ -836,6 +821,16 @@ export default function ApplyVolunteerScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <LegalConsentModal
+        visible={showLegalModal}
+        onClose={() => setShowLegalModal(false)}
+        onAccept={() => {
+            setConsentGiven(true);
+            setShowLegalModal(false);
+        }}
+        requireConsent={!consentGiven}
+      />
     </SafeAreaView>
   );
 }
