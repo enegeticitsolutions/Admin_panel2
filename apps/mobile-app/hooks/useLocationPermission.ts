@@ -63,13 +63,20 @@ export const useLocationPermission = (options: UseLocationPermissionOptions = {}
   const fetchCurrentLocation = async () => {
     setIsLocating(true);
     try {
-      const loc = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced,
+      let loc = await Location.getLastKnownPositionAsync({
+        maxAge: 1000 * 60 * 5, // 5 minutes
       });
-      setLocation({
-        latitude: loc.coords.latitude,
-        longitude: loc.coords.longitude,
-      });
+      if (!loc) {
+        loc = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Low,
+        });
+      }
+      if (loc) {
+        setLocation({
+          latitude: loc.coords.latitude,
+          longitude: loc.coords.longitude,
+        });
+      }
     } catch {
       // GPS failed silently — user can still pick on map
     } finally {

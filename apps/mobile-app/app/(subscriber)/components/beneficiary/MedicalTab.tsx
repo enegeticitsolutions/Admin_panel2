@@ -10,6 +10,31 @@ import { scale } from '@/utils/responsive';
 
 const { width } = Dimensions.get('window');
 
+const VITAL_COLORS = [
+    '#FCE7EC', // soft pink - blood pressure
+    '#FCE4F0', // soft rose - heart rate
+    '#FFF0E5', // soft orange - blood sugar
+    '#E3F2FD', // soft blue - temperature
+    '#E8F5E9', // soft green - oxygen
+    '#FFF9C4', // soft yellow - mood
+    '#F3E5F5', // soft purple - other
+    '#E0F7FA', // soft teal - other
+];
+
+const getVitalColor = (label: string, index: number) => {
+    const map: Record<string, string> = {
+        'blood pressure': '#FCE7EC',
+        'heart rate': '#FCE4F0',
+        'blood sugar': '#FFF0E5',
+        'temperature': '#E3F2FD',
+        'body temperature': '#E3F2FD',
+        'blood oxygen saturation': '#E8F5E9',
+        'oxygen': '#E8F5E9',
+        'mood': '#FFF9C4',
+    };
+    return map[label.toLowerCase()] || VITAL_COLORS[index % VITAL_COLORS.length];
+};
+
 const MedicalRecordItem = ({ doc, onRefresh, existingRecords }: { doc: any; onRefresh: () => void; existingRecords: any[] }) => {
     const [isRenaming, setIsRenaming] = useState(false);
     const [newTitle, setNewTitle] = useState(doc.title);
@@ -297,9 +322,9 @@ export const MedicalTab = ({ beneficiary, conditions, onRefresh }: { beneficiary
             {/* Medical Conditions */}
             <View style={styles.medCard}>
                 <Text style={styles.medCardTitle}>Medical Conditions</Text>
-                <View style={styles.conditionsTags}>
+                <View style={styles.conditionsBox}>
                     {conditions.map((c: string, i: number) => (
-                        <View key={i} style={styles.condTagLarge}>
+                        <View key={i} style={styles.conditionRow}>
                             <View style={styles.dot} />
                             <Text style={styles.condTagLargeText}>{c}</Text>
                         </View>
@@ -312,7 +337,7 @@ export const MedicalTab = ({ beneficiary, conditions, onRefresh }: { beneficiary
                 <Text style={styles.medCardTitle}>Current Vitals</Text>
                 <View style={styles.miniVitalsGrid}>
                     {beneficiary.vitalsData?.map((v: any, i: number) => (
-                        <View key={i} style={styles.miniVitalItem}>
+                        <View key={i} style={[styles.miniVitalItem, { backgroundColor: getVitalColor(v.label, i) }]}>
                             <Text style={styles.miniVitalLabel}>{v.label}</Text>
                             <Text style={styles.miniVitalValue}>{v.value}</Text>
                         </View>
@@ -324,18 +349,23 @@ export const MedicalTab = ({ beneficiary, conditions, onRefresh }: { beneficiary
             <View style={styles.medCard}>
                 <Text style={styles.medCardTitle}>Medical Records</Text>
                 {beneficiary.medicalRecords?.length > 0 ? (
-                    beneficiary.medicalRecords.map((doc: any, i: number) => (
-                        <MedicalRecordItem key={doc.id || i} doc={doc} onRefresh={onRefresh} existingRecords={beneficiary.medicalRecords || []} />
-                    ))
+                    <>
+                        {beneficiary.medicalRecords.map((doc: any, i: number) => (
+                            <MedicalRecordItem key={doc.id || i} doc={doc} onRefresh={onRefresh} existingRecords={beneficiary.medicalRecords || []} />
+                        ))}
+                        <TouchableOpacity style={styles.uploadBtn} onPress={handlePickDocument} disabled={uploading}>
+                            <Text style={styles.uploadBtnText}>{uploading ? "Uploading..." : "Upload Documents"}</Text>
+                        </TouchableOpacity>
+                    </>
                 ) : (
-                    <View style={styles.emptyRecords}>
-                        <Ionicons name="document-outline" size={scale(32)} color="#D1D5DB" />
+                    <View style={styles.emptyRecordsBox}>
+                        <Ionicons name="document-text-outline" size={scale(28)} color="#9CA3AF" />
                         <Text style={styles.emptyRecordsText}>No medical records uploaded yet</Text>
+                        <TouchableOpacity style={styles.uploadBtnSmall} onPress={handlePickDocument} disabled={uploading}>
+                            <Text style={styles.uploadBtnTextSmall}>{uploading ? "Uploading..." : "Upload Documents"}</Text>
+                        </TouchableOpacity>
                     </View>
                 )}
-                <TouchableOpacity style={styles.uploadBtn} onPress={handlePickDocument} disabled={uploading}>
-                    <Text style={styles.uploadBtnText}>{uploading ? "Uploading..." : "Upload Documents"}</Text>
-                </TouchableOpacity>
 
                 {/* Name Document Modal */}
                 <Modal visible={isUploadModalVisible} transparent animationType="fade">
@@ -422,11 +452,7 @@ export const MedicalTab = ({ beneficiary, conditions, onRefresh }: { beneficiary
 
 const styles = StyleSheet.create({
     medCard: {
-        backgroundColor: '#FFFFFF', borderRadius: scale(14), padding: scale(16), marginBottom: scale(12),
-        ...Platform.select({
-            ios: { shadowColor: '#000', shadowOffset: { width: 0, height: scale(2) }, shadowOpacity: 0.05, shadowRadius: 6 },
-            android: { elevation: 2 },
-        }),
+        marginBottom: scale(24),
     },
     medCardHeaderRow: {
         flexDirection: 'row',
@@ -434,7 +460,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginBottom: scale(12),
     },
-    medCardTitle: { fontSize: scale(13), fontWeight: '600', color: '#6B7280', textTransform: 'uppercase', letterSpacing: 0.5 },
+    medCardTitle: { fontSize: scale(16), fontWeight: '500', color: '#111827', marginBottom: scale(12) },
     addMedBtn: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -504,21 +530,23 @@ const styles = StyleSheet.create({
         color: '#FFFFFF',
     },
 
-    conditionsTags: { gap: scale(10) },
-    condTagLarge: { backgroundColor: '#FFF5ED', borderRadius: scale(10), paddingHorizontal: scale(16), paddingVertical: scale(12), flexDirection: 'row', alignItems: 'center' },
+    conditionsBox: { backgroundColor: '#FFF0E5', borderRadius: scale(12), padding: scale(16) },
+    conditionRow: { flexDirection: 'row', alignItems: 'center', marginBottom: scale(8) },
     dot: { width: scale(6), height: scale(6), borderRadius: scale(3), backgroundColor: '#F97316', marginRight: scale(10) },
-    condTagLargeText: { fontSize: scale(14), color: '#111827', fontWeight: '500' },
+    condTagLargeText: { fontSize: scale(14), color: '#111827', fontWeight: '400' },
     
     miniVitalsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: scale(10) },
-    miniVitalItem: { width: (width - 80) / 2, backgroundColor: '#F9FAFB', padding: scale(12), borderRadius: scale(10) },
-    miniVitalLabel: { fontSize: scale(11), color: '#6B7280', marginBottom: scale(4) },
-    miniVitalValue: { fontSize: scale(14), fontWeight: '700', color: '#111827' },
+    miniVitalItem: { width: '48%', padding: scale(14), borderRadius: scale(12) },
+    miniVitalLabel: { fontSize: scale(12), color: '#4B5563', marginBottom: scale(8) },
+    miniVitalValue: { fontSize: scale(20), fontWeight: '600', color: '#111827' },
 
     docRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: scale(12), borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
     docTitle: { fontSize: scale(14), fontWeight: '600', color: '#111827' },
     docMeta: { fontSize: scale(12), color: '#9CA3AF', marginTop: scale(2) },
-    emptyRecords: { alignItems: 'center', paddingVertical: scale(20) },
-    emptyRecordsText: { fontSize: scale(13), color: '#9CA3AF', marginTop: scale(8) },
+    emptyRecordsBox: { borderWidth: 1, borderStyle: 'dashed', borderColor: '#9CA3AF', borderRadius: scale(12), alignItems: 'center', paddingVertical: scale(30), backgroundColor: '#FFF' },
+    emptyRecordsText: { fontSize: scale(14), color: '#111827', marginTop: scale(12), marginBottom: scale(20) },
+    uploadBtnSmall: { backgroundColor: '#F97316', borderRadius: scale(8), paddingHorizontal: scale(20), paddingVertical: scale(10) },
+    uploadBtnTextSmall: { color: '#FFF', fontWeight: '600', fontSize: scale(14) },
     uploadBtn: { backgroundColor: '#F97316', borderRadius: scale(12), height: scale(44), justifyContent: 'center', alignItems: 'center', marginTop: scale(15) },
     uploadBtnText: { color: '#FFF', fontWeight: '600', fontSize: scale(14) },
 

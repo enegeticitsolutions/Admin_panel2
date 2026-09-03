@@ -153,29 +153,30 @@ export const TimelineTab = ({ visits: initialVisits }: { visits: VisitProps[] })
         );
     }
 
-    const formatDisplayDate = (rawDateStr?: string) => {
+    const formatDate = (rawDateStr?: string) => {
         if (!rawDateStr) return 'Recent visit';
-        const parts = rawDateStr.split('•');
-        const datePart = parts[0]?.trim();
-        const timePart = parts[1]?.trim();
-
-        let prettyDate = datePart;
+        const datePart = rawDateStr.split('•')[0]?.trim();
         if (datePart && datePart.includes('-')) {
             const d = new Date(datePart);
             if (!isNaN(d.getTime())) {
-                prettyDate = d.toLocaleDateString('en-GB', {
-                    day: 'numeric',
-                    month: 'short',
-                    year: 'numeric',
-                });
+                return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
             }
         }
+        return datePart || 'Recent visit';
+    };
 
-        if (timePart) {
-            const cleanTime = timePart.replace(/-/g, '–');
-            return `${prettyDate} • ${cleanTime}`;
-        }
-        return prettyDate;
+    const formatTimeRange = (rawDateStr?: string) => {
+        if (!rawDateStr) return '';
+        const timePart = rawDateStr.split('•')[1]?.trim();
+        if (!timePart) return '';
+        return timePart.replace(/-/g, '–');
+    };
+
+    // Keep for backward compatibility (used in 3rd party section)
+    const formatDisplayDate = (rawDateStr?: string) => {
+        const date = formatDate(rawDateStr);
+        const time = formatTimeRange(rawDateStr);
+        return time ? `${date} • ${time}` : date;
     };
 
     return (
@@ -306,28 +307,12 @@ export const TimelineTab = ({ visits: initialVisits }: { visits: VisitProps[] })
                                         photo={visit.companionPhoto}
                                     />
                                 </View>
-                                <Text style={styles.visitDate}>{formatDisplayDate(visit.dateStr)}</Text>
-                                <View style={styles.timingBadgeRow}>
-                                    <View style={styles.scheduledPill}>
-                                        <Ionicons name="time-outline" size={scale(12)} color="#D97706" style={{ marginRight: scale(3) }} />
-                                        <Text style={styles.scheduledPillText}>
-                                            {visit.scheduledTimeRange || visit.scheduledStartTime || 'Scheduled'}
-                                        </Text>
-                                    </View>
-                                    <Text style={styles.visitDuration}>{visit.scheduledDurationText || '60 mins'}</Text>
-                                </View>
-                                {visit.actualDurationText && (
-                                    <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: scale(4) }}>
-                                        <View style={[styles.scheduledPill, { backgroundColor: '#E0F2FE', borderColor: '#BAE6FD', marginRight: scale(6) }]}>
-                                            <Ionicons name="time-outline" size={scale(12)} color="#0284C7" style={{ marginRight: scale(3) }} />
-                                            <Text style={[styles.scheduledPillText, { color: '#0369A1' }]}>Actual</Text>
-                                        </View>
-                                        <Text style={[styles.visitDuration, { color: '#0369A1' }]}>{visit.actualDurationText}</Text>
-                                    </View>
-                                )}
+                                <Text style={styles.visitDate}>{formatDate(visit.dateStr)}</Text>
+                                <Text style={styles.visitTime}>{formatTimeRange(visit.dateStr)}</Text>
+                                <Text style={styles.visitDuration}>{`Duration: ${visit.scheduledDurationText || '60 mins'}`}</Text>
                             </View>
 
-                            {/* Subscriber Rating */}
+                            {/* Subscriber Rating - top-right aligned */}
                             {visit.rated && visit.rating ? (
                                 <TouchableOpacity
                                     onPress={(e) => {
@@ -489,37 +474,28 @@ export const TimelineTab = ({ visits: initialVisits }: { visits: VisitProps[] })
 
 const styles = StyleSheet.create({
     container: {
-        backgroundColor: '#FFFFFF',
-        marginHorizontal: scale(14),
-        paddingHorizontal: scale(18),
-        paddingTop: scale(25),
+        paddingHorizontal: scale(16),
+        paddingTop: scale(20),
         paddingBottom: scale(15),
-        borderBottomLeftRadius: 15,
-        borderBottomRightRadius: 15,
-        ...Platform.select({
-            ios: { shadowColor: '#4A2B17', shadowOffset: { width: 0, height: scale(4) }, shadowOpacity: 0.12, shadowRadius: 8 },
-            android: { elevation: 2 },
-        }),
     },
     emptyTab: { alignItems: 'center', paddingVertical: scale(40) },
     emptyTabText: { fontSize: scale(14), color: '#9CA3AF', marginTop: scale(10) },
 
     visitCard: {
-        backgroundColor: '#F3F4F6',
-        borderRadius: scale(14),
+        backgroundColor: '#EFEFEF',
+        borderRadius: scale(16),
         padding: scale(16),
-        marginBottom: scale(20),
-        borderWidth: 1,
-        borderColor: '#E5E7EB',
+        marginBottom: scale(16),
     },
 
-    visitHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: scale(12) },
-    visitCompanionPhoto: { width: scale(48), height: scale(48), borderRadius: scale(24), marginRight: scale(14), backgroundColor: '#D1D5DB' },
-    visitCompanionName: { fontSize: scale(17), fontWeight: '700', color: '#111111', marginBottom: scale(3) },
-    visitDate: { fontSize: scale(15), color: '#111111', fontWeight: '600', marginBottom: scale(3) },
-    visitDuration: { fontSize: scale(13), color: '#4B5563', fontWeight: '500' },
+    visitHeader: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: scale(14) },
+    visitCompanionPhoto: { width: scale(52), height: scale(52), borderRadius: scale(26), marginRight: scale(12), backgroundColor: '#D1D5DB' },
+    visitCompanionName: { fontSize: scale(17), fontWeight: '700', color: '#111111', marginBottom: scale(2) },
+    visitDate: { fontSize: scale(13), color: '#555555', fontWeight: '400', marginBottom: scale(4) },
+    visitDuration: { fontSize: scale(13), color: '#555555', fontWeight: '400' },
+    visitTime: { fontSize: scale(13), color: '#555555', fontWeight: '400', marginBottom: scale(2) },
 
-    timingBadgeRow: { flexDirection: 'row', alignItems: 'center', gap: scale(8), flexWrap: 'wrap' },
+    timingBadgeRow: { flexDirection: 'row', alignItems: 'center', gap: scale(6), flexWrap: 'wrap', marginBottom: scale(4) },
     scheduledPill: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -528,7 +504,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: scale(7),
         paddingVertical: scale(2),
     },
-    scheduledPillText: { fontSize: scale(12), fontWeight: '700', color: '#B45309' },
+    scheduledPillText: { fontSize: scale(12), fontWeight: '600', color: '#B45309' },
 
     actualTimeStrip: {
         flexDirection: 'row',
@@ -586,48 +562,53 @@ const styles = StyleSheet.create({
     beneficiaryRatingValue: { fontSize: scale(12), color: '#7C3AED', fontWeight: '700' },
 
     visitSectionLabel: { fontSize: scale(14), fontWeight: '700', color: '#111111', marginBottom: scale(8) },
-    activitiesTags: { flexDirection: 'row', flexWrap: 'wrap', gap: scale(6) },
+    activitiesTags: { flexDirection: 'row', flexWrap: 'wrap', gap: scale(8) },
     activityTag: {
         backgroundColor: '#FFFFFF',
-        borderRadius: scale(4),
-        paddingHorizontal: scale(9),
-        paddingVertical: scale(5),
+        borderRadius: scale(6),
+        paddingHorizontal: scale(12),
+        paddingVertical: scale(6),
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
     },
     activityTagText: { fontSize: scale(13), color: '#111111', fontWeight: '400' },
 
-    vitalsRow: { flexDirection: 'row', gap: scale(8), marginBottom: scale(15) },
+    vitalsRow: { flexDirection: 'row', gap: scale(8), marginBottom: scale(14) },
     vitalChip: {
         backgroundColor: '#FFFFFF',
-        borderRadius: scale(4),
-        paddingVertical: scale(8),
-        paddingHorizontal: scale(9),
+        borderRadius: scale(8),
+        paddingVertical: scale(10),
+        paddingHorizontal: scale(12),
         flex: 1,
         alignItems: 'flex-start',
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
     },
-    vitalLabel: { fontSize: scale(12), color: '#4B5563', fontWeight: '400', marginBottom: scale(3) },
-    vitalValue: { fontSize: scale(14), fontWeight: '800', color: '#111111' },
+    vitalLabel: { fontSize: scale(11), color: '#6B7280', fontWeight: '400', marginBottom: scale(4) },
+    vitalValue: { fontSize: scale(15), fontWeight: '800', color: '#111111' },
 
-    visitNotes: { fontSize: scale(15), color: '#333333', lineHeight: scale(21), fontWeight: '400' },
+    visitNotes: { fontSize: scale(14), color: '#444444', lineHeight: scale(21), fontWeight: '400' },
 
     // Tap Encounter CTA
     cardCtaRow: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        backgroundColor: '#EFF6FF',
+        backgroundColor: '#FFFFFF',
         borderRadius: scale(10),
-        paddingHorizontal: scale(12),
-        paddingVertical: scale(9),
+        paddingHorizontal: scale(14),
+        paddingVertical: scale(10),
         borderWidth: 1,
-        borderColor: '#BFDBFE',
+        borderColor: '#DBEAFE',
+        marginTop: scale(4),
     },
     cardCtaBadge: {
         flexDirection: 'row',
         alignItems: 'center',
     },
     cardCtaText: {
-        fontSize: scale(12),
-        fontWeight: '700',
+        fontSize: scale(13),
+        fontWeight: '600',
         color: '#0369A1',
     },
 

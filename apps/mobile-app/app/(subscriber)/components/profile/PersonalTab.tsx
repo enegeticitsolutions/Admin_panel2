@@ -1,11 +1,11 @@
 import React, { useState, useEffect, Dispatch, SetStateAction } from 'react';
-import { 
-    View, 
-    Text, 
-    StyleSheet, 
-    TouchableOpacity, 
-    TextInput, 
-    ActivityIndicator, 
+import {
+    View,
+    Text,
+    StyleSheet,
+    TouchableOpacity,
+    TextInput,
+    ActivityIndicator,
     Alert
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -72,7 +72,7 @@ const InfoRow = ({ icon, label, value, verified, field, type = 'ionicons', isEdi
         <View style={styles.infoContent}>
             <Text style={styles.infoLabel}>{label}</Text>
             {isEditing && field && field !== 'email' ? (
-                <TextInput 
+                <TextInput
                     style={styles.editableInput}
                     value={String(formData[field])}
                     onChangeText={(text) => setFormData(prev => ({ ...prev, [field]: text }))}
@@ -154,13 +154,13 @@ export const PersonalTab = ({ user, onUpdate }: PersonalTabProps) => {
 
             const res = await fetch(`${API_URL}/subscriber/profile`, {
                 method: 'PATCH',
-                headers: { 
+                headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify(savePayload)
             });
-            
+
             const data = await res.json();
             if (data.success) {
                 setIsEditing(false);
@@ -197,9 +197,9 @@ export const PersonalTab = ({ user, onUpdate }: PersonalTabProps) => {
             </View>
 
             <View style={styles.card}>
-                <InfoRow 
-                    icon="person-outline" label="Full Name" value={user.name} field="name" 
-                    isEditing={isEditing} formData={formData} setFormData={setFormData} 
+                <InfoRow
+                    icon="person-outline" label="Full Name" value={user.name} field="name"
+                    isEditing={isEditing} formData={formData} setFormData={setFormData}
                 />
                 <View style={styles.divider} />
 
@@ -209,24 +209,28 @@ export const PersonalTab = ({ user, onUpdate }: PersonalTabProps) => {
                         <Ionicons name="mail-outline" size={23} color={iconToneByLabel['Email Address']?.color} />
                     </View>
                     <View style={styles.infoContent}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
                             <Text style={styles.infoLabel}>Email Address</Text>
-                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                                {user.email && user.isVerified && (
-                                    <View style={styles.verifiedBadge}>
-                                        <Text style={styles.verifiedText}>Verified</Text>
-                                    </View>
-                                )}
-                                <TouchableOpacity onPress={() => setEmailModalVisible(true)} activeOpacity={0.7}>
-                                    <Text style={styles.verifyActionText}>
-                                        {user.email && !user.isVerified ? 'Verify Email' : user.email ? 'Change Email' : 'Add Email'}
-                                    </Text>
-                                </TouchableOpacity>
-                            </View>
+                            <TouchableOpacity onPress={() => setEmailModalVisible(true)} activeOpacity={0.7}>
+                                <Text style={styles.verifyActionText}>
+                                    {user.email && !user.isVerified ? 'Verify Email' : user.email ? 'Change Email' : 'Add Email'}
+                                </Text>
+                            </TouchableOpacity>
                         </View>
-                        <Text style={[styles.infoValue, { color: user.email && !user.isVerified ? '#EF4444' : '#111111' }]}>
-                            {user.email || 'Not specified'}
-                        </Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                            <Text
+                                style={[styles.infoValue, { color: user.email && !user.isVerified ? '#EF4444' : '#111111', flexShrink: 1 }]}
+                                numberOfLines={1}
+                                adjustsFontSizeToFit
+                            >
+                                {user.email || 'Not specified'}
+                            </Text>
+                            {user.email && user.isVerified && (
+                                <View style={styles.verifiedBadge}>
+                                    <Text style={styles.verifiedText}>Verified</Text>
+                                </View>
+                            )}
+                        </View>
                         {user.email && !user.isVerified && (
                             <Text style={{ fontSize: 12, color: '#EF4444', marginTop: 4, fontWeight: '500' }}>
                                 Please verify your email to secure your account.
@@ -236,14 +240,14 @@ export const PersonalTab = ({ user, onUpdate }: PersonalTabProps) => {
                 </View>
 
                 <View style={styles.divider} />
-                <InfoRow 
-                    icon="call-outline" label="Phone Number" value={user.phone} verified={true} 
-                    isEditing={isEditing} formData={formData} setFormData={setFormData} 
+                <InfoRow
+                    icon="call-outline" label="Phone Number" value={user.phone} verified={true}
+                    isEditing={isEditing} formData={formData} setFormData={setFormData}
                 />
                 <View style={styles.divider} />
-                <InfoRow 
-                    icon="location-outline" label="Address" value={user.location || ''} field="location" 
-                    isEditing={isEditing} formData={formData} setFormData={setFormData} 
+                <InfoRow
+                    icon="location-outline" label="Address" value={user.location || ''} field="location"
+                    isEditing={isEditing} formData={formData} setFormData={setFormData}
                 />
                 {isEditing && (
                     <View style={styles.editAddressSection}>
@@ -265,18 +269,18 @@ export const PersonalTab = ({ user, onUpdate }: PersonalTabProps) => {
                         <View style={styles.addressGrid}>
                             <View style={styles.gridItem}>
                                 <Text style={styles.gridLabel}>Flat/Plot</Text>
-                                <TextInput 
-                                    style={styles.gridInput} 
-                                    value={formData.flatPlot} 
+                                <TextInput
+                                    style={styles.gridInput}
+                                    value={formData.flatPlot}
                                     onChangeText={(t) => setFormData(prev => ({ ...prev, flatPlot: t }))}
                                     placeholder="e.g. 402"
                                 />
                             </View>
                             <View style={[styles.gridItem, { flex: 1.5 }]}>
                                 <Text style={styles.gridLabel}>Street/Area</Text>
-                                <TextInput 
-                                    style={styles.gridInput} 
-                                    value={formData.streetArea} 
+                                <TextInput
+                                    style={styles.gridInput}
+                                    value={formData.streetArea}
                                     onChangeText={(t) => setFormData(prev => ({ ...prev, streetArea: t }))}
                                     placeholder="e.g. Sector 15"
                                 />
@@ -284,9 +288,9 @@ export const PersonalTab = ({ user, onUpdate }: PersonalTabProps) => {
                         </View>
                         <View style={styles.gridItem}>
                             <Text style={styles.gridLabel}>Landmark</Text>
-                            <TextInput 
-                                style={styles.gridInput} 
-                                value={formData.landmark} 
+                            <TextInput
+                                style={styles.gridInput}
+                                value={formData.landmark}
                                 onChangeText={(t) => setFormData(prev => ({ ...prev, landmark: t }))}
                                 placeholder="Near..."
                             />
@@ -294,17 +298,17 @@ export const PersonalTab = ({ user, onUpdate }: PersonalTabProps) => {
                         <View style={styles.addressGrid}>
                             <View style={styles.gridItem}>
                                 <Text style={styles.gridLabel}>City</Text>
-                                <TextInput 
-                                    style={styles.gridInput} 
-                                    value={formData.city} 
+                                <TextInput
+                                    style={styles.gridInput}
+                                    value={formData.city}
                                     onChangeText={(t) => setFormData(prev => ({ ...prev, city: t }))}
                                 />
                             </View>
                             <View style={styles.gridItem}>
                                 <Text style={styles.gridLabel}>Pincode</Text>
-                                <TextInput 
-                                    style={styles.gridInput} 
-                                    value={formData.pincode} 
+                                <TextInput
+                                    style={styles.gridInput}
+                                    value={formData.pincode}
                                     onChangeText={(t) => setFormData(prev => ({ ...prev, pincode: t }))}
                                     keyboardType="numeric"
                                 />
@@ -312,18 +316,18 @@ export const PersonalTab = ({ user, onUpdate }: PersonalTabProps) => {
                         </View>
                         <View style={styles.gridItem}>
                             <Text style={styles.gridLabel}>State</Text>
-                            <TextInput 
-                                style={styles.gridInput} 
-                                value={formData.state} 
+                            <TextInput
+                                style={styles.gridInput}
+                                value={formData.state}
                                 onChangeText={(t) => setFormData(prev => ({ ...prev, state: t }))}
                             />
                         </View>
                     </View>
                 )}
                 <View style={styles.divider} />
-                <InfoRow 
-                    icon="calendar-outline" label="Member Since" value={formatDate(user.createdAt)} 
-                    isEditing={isEditing} formData={formData} setFormData={setFormData} 
+                <InfoRow
+                    icon="calendar-outline" label="Member Since" value={formatDate(user.createdAt)}
+                    isEditing={isEditing} formData={formData} setFormData={setFormData}
                 />
             </View>
 
@@ -357,8 +361,8 @@ const styles = StyleSheet.create({
         shadowRadius: 8,
         elevation: 3,
     },
-    sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 },
-    sectionTitle: { fontSize: 20, fontWeight: '600', color: '#111111' },
+    sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18, flexWrap: 'wrap', gap: 8 },
+    sectionTitle: { fontSize: 20, fontWeight: '600', color: '#111111', flexShrink: 1 },
     headerButtons: { flexDirection: 'row', alignItems: 'center' },
     cancelBtn: { marginRight: 15 },
     cancelText: { color: '#566174', fontSize: 14, fontWeight: '600' },
@@ -382,7 +386,7 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1, borderBottomColor: '#FFB47D',
         paddingVertical: 2
     },
-    valueRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' },
+    valueRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%' },
     infoValue: { fontSize: 16, fontWeight: '600', color: '#111111', lineHeight: 21 },
     verifyActionText: {
         fontSize: 12,
@@ -390,7 +394,7 @@ const styles = StyleSheet.create({
         color: '#FF5B0A',
         textDecorationLine: 'underline',
     },
-    verifiedBadge: { 
+    verifiedBadge: {
         backgroundColor: '#EAFBF0',
         paddingHorizontal: 9, paddingVertical: 2,
         borderRadius: 11, marginLeft: 9

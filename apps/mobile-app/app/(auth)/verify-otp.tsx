@@ -168,17 +168,17 @@ export default function VerifyOtpScreen() {
                 <TouchableWithoutFeedback onPress={Platform.OS === 'web' ? undefined : Keyboard.dismiss} accessible={false}>
                     <View style={styles.container}>
                         <View style={styles.header}>
-                                <TouchableOpacity onPress={() => {
-                                    if (router.canGoBack()) {
-                                        pop();
-                                    } else {
-                                        replace('/(auth)');
-                                    }
-                                }} style={styles.backButton}>
-                                    <Ionicons name="arrow-back" size={22} color="#111827" />
-                                </TouchableOpacity>
-                                <Text style={styles.headerTitle}>Verify Phone</Text>
-                                <View style={styles.headerSpacer} />
+                            <TouchableOpacity onPress={() => {
+                                if (router.canGoBack()) {
+                                    pop();
+                                } else {
+                                    replace('/(auth)');
+                                }
+                            }} style={styles.backButton}>
+                                <Ionicons name="arrow-back" size={22} color="#111827" />
+                            </TouchableOpacity>
+                            <Text style={styles.headerTitle}>Verify Phone</Text>
+                            <View style={styles.headerSpacer} />
                         </View>
 
                         <View style={{ flex: 1, justifyContent: 'center', paddingBottom: 60 }}>
@@ -347,14 +347,19 @@ const styles = StyleSheet.create({
         width: '100%',
     },
     otpInput: {
-        borderRadius: 10,
+        width: 48,
+        height: 52,
+        borderRadius: 8,
         borderWidth: 1.5,
-        borderColor: '#E5E7EB',
+        borderColor: '#FFB47D',
         backgroundColor: '#FFFFFF',
-        textAlign: 'center',
-        fontSize: 20,
+        color: '#111111',
+        fontSize: 24,
         fontFamily: 'Poppins-Bold',
-        color: '#111827',
+        textAlign: 'center',
+        textAlignVertical: 'center',
+        padding: 0,
+        includeFontPadding: false,
     },
     otpInputFilled: {
         borderColor: '#FE6700',

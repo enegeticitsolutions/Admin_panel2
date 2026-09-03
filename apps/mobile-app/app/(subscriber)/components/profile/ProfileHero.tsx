@@ -77,7 +77,7 @@ export const ProfileHero = ({ user, stats, onPhotoUpdated, onPressBeneficiaries 
                 <Text style={styles.meta}>
                     {(user.role || '').toUpperCase() === 'SUBSCRIBER'
                         ? `Subscriber • ${getMembershipDuration(user.createdAt)}`
-                        : `Member since ${getMembershipDuration(user.createdAt)}`}
+                        : getMembershipDuration(user.createdAt)}
                 </Text>
 
                 {/* Stats Bar */}
@@ -90,19 +90,19 @@ export const ProfileHero = ({ user, stats, onPhotoUpdated, onPressBeneficiaries 
                         <Ionicons name="people-outline" size={24} color="#FF5B0A" />
                         <Text style={styles.statValue}>{stats.beneficiaryCount}</Text>
                         <View style={styles.labelWithArrow}>
-                            <Text style={styles.statLabel}>Beneficiaries</Text>
+                            <Text style={styles.statLabel} adjustsFontSizeToFit numberOfLines={1}>Beneficiaries</Text>
                             <Ionicons name="chevron-forward" size={12} color="#FF5B0A" style={{ marginLeft: 2, marginTop: 2 }} />
                         </View>
                     </TouchableOpacity>
                     <View style={[styles.statItem, styles.hoursStat]}>
                         <Ionicons name="pulse-outline" size={24} color="#1F6BFF" />
                         <Text style={styles.statValue}>{formatHours(stats.usedHours)}</Text>
-                        <Text style={styles.statLabel}>Hours Used</Text>
+                        <Text style={styles.statLabel} adjustsFontSizeToFit numberOfLines={1}>Hours Used</Text>
                     </View>
                     <View style={[styles.statItem, styles.availableStat]}>
                         <Ionicons name="ribbon-outline" size={24} color="#A12BFF" />
                         <Text style={styles.statValue}>{formatHours(stats.availableHours)}</Text>
-                        <Text style={styles.statLabel}>Available</Text>
+                        <Text style={styles.statLabel} adjustsFontSizeToFit numberOfLines={1}>Available</Text>
                     </View>
                 </View>
             </View>
@@ -169,11 +169,13 @@ const styles = StyleSheet.create({
     hoursStat: { backgroundColor: '#EEF6FF' },
     availableStat: { backgroundColor: '#FBF1FF' },
     statValue: { fontSize: 23, fontWeight: '800', color: '#000000', marginTop: 5 },
-    statLabel: { fontSize: 13, color: '#333333', marginTop: 2 },
+    statLabel: { fontSize: 13, color: '#333333', marginTop: 2, flexShrink: 1, textAlign: 'center' },
     labelWithArrow: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
+        width: '100%',
+        paddingHorizontal: 4,
     },
     statDivider: { width: 0, height: 0 },
 });

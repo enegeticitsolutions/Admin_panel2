@@ -71,6 +71,7 @@
     },
     "android": {
       "package": "com.maihoonna.app",
+      "allowBackup": false,
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
