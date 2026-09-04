@@ -10,23 +10,16 @@ class S3Storage extends StorageService {
     super();
     this.bucketName = process.env.STORAGE_BUCKET || 'staff-documents';
 
-    const region = process.env.AWS_REGION;
+    const region = process.env.AWS_REGION || 'ap-south-1';
     const accessKeyId = process.env.AWS_ACCESS_KEY_ID;
     const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
 
-    if (!region || !accessKeyId || !secretAccessKey) {
-      console.warn(
-        'AWS credentials are not fully configured. S3Storage might fail.'
-      );
+    const clientConfig = { region };
+    if (accessKeyId && secretAccessKey) {
+      clientConfig.credentials = { accessKeyId, secretAccessKey };
     }
 
-    this.s3Client = new S3Client({
-      region: region || 'us-east-1',
-      credentials: {
-        accessKeyId: accessKeyId || '',
-        secretAccessKey: secretAccessKey || '',
-      },
-    });
+    this.s3Client = new S3Client(clientConfig);
   }
 
   async upload(fileBuffer, path, mimeType) {
