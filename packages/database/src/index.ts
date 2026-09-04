@@ -15,7 +15,11 @@ function getPrismaClient(): PrismaClient {
   let client: PrismaClient;
 
   if (dbUrl) {
-    const pool = new Pool({ connectionString: dbUrl });
+    const isLocal = dbUrl.includes('localhost') || dbUrl.includes('127.0.0.1');
+    const pool = new Pool({
+      connectionString: dbUrl,
+      ssl: isLocal ? false : { rejectUnauthorized: false },
+    });
     const adapter = new PrismaPg(pool);
     client = new PrismaClient({
       adapter,

@@ -12,10 +12,15 @@ const { Pool } = require('pg');
 
 const globalForPrisma = global;
 
+const isLocal = !process.env.DATABASE_URL || 
+  process.env.DATABASE_URL.includes('localhost') || 
+  process.env.DATABASE_URL.includes('127.0.0.1');
+
 const pool =
   globalForPrisma.pool ||
   new Pool({
     connectionString: process.env.DATABASE_URL,
+    ssl: isLocal ? false : { rejectUnauthorized: false },
     max: 3,                        // small pool for transaction-mode pooler
     idleTimeoutMillis: 10000,      // release idle connections quickly
     connectionTimeoutMillis: 15000, // wait up to 15s for a connection
