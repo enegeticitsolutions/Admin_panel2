@@ -128,7 +128,7 @@ async function dispatchRosterApproved({ zoneId, date, periodType, approvedByName
     const zone = await prisma.zone.findUnique({
       where: { id: zoneId },
       include: {
-        fieldManager: { select: { userId: true } },
+        fieldManagerUser: { select: { id: true } },
         teams: {
           include: {
             careCompanions: { select: { userId: true } }
@@ -143,9 +143,10 @@ async function dispatchRosterApproved({ zoneId, date, periodType, approvedByName
     const zoneName = zone.name || 'Zone';
 
     // Notify Field Manager
-    if (zone.fieldManager?.userId) {
+    const fmUserId = zone.fieldManagerUser?.id;
+    if (fmUserId) {
       notifyUser(prisma, {
-        userId: zone.fieldManager.userId,
+        userId: fmUserId,
         type: 'info',
         title: '📋 Roster Approved',
         body: `The ${periodType} roster for ${zoneName} (${formattedDate}) has been approved by ${approvedByName}.`,
